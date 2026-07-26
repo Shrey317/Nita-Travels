@@ -1,0 +1,55 @@
+/**
+ * lib/mileage.ts
+ *
+ * Pure business logic for mileage-log entries. Nothing here touches the database.
+ * lib/db/mileage.ts is responsible for fetching previousMileageKm server-side (SRS 13.5):
+ * it is the currentMileageKm of the vehicle's most recent MileageEntry, or — for a vehicle's
+ * very first-ever entry, where no prior MileageEntry exists — the vehicle's own
+ * currentMileageKm baseline. Client-submitted "previous mileage" values are always ignored.
+ */
+
+import { getISOWeek, getISOWeekYear } from "date-fns";
+
+export interface MileageEntryDerived {
+  distanceDrivenKm: number;
+  isoWeek: number;
+  isoYear: number;
+  overLimitByKm: number | null;
+}
+
+/**
+ * Derives the stored fields for a new mileage entry from a date and the current/previous
+ * odometer readings. weeklyLimitKm defaults to 2000, matching the schema default and the
+ * fleet-wide policy in the spec; it's a parameter (not a hardcoded literal) so a future
+ * per-vehicle limit doesn't require touching this formula.
+ */
+export function buildMileageEntry(
+  date: Date,
+  currentKm: number,
+  previousKm: number,
+  weeklyLimitKm: number = 2000
+): MileageEntryDerived {
+  const distance = currentKm - previousKm;
+  return {
+    distanceDrivenKm: distance,
+    isoWeek: getISOWeek(date),
+    isoYear: getISOWeekYear(date),
+    overLimitByKm: distance > weeklyLimitKm ? distance - weeklyLimitKm : null,
+  };
+}
+
+/** A new mileage reading must always exceed the previous one — odometers don't run backwards. */
+export function isValidMileageProgression(currentKm: number, previousKm: number): boolean {
+  return currentKm > previousKm;
+}
+
+/**
+ * Average weekly distance from recent mileage entries, used to project "days to next service"
+ * (SRS 15.6, drawn from the last 8 MileageEntry rows for the vehicle). Returns null for an
+ * empty input so callers can render "—" instead of dividing by zero.
+ */
+export function averageWeeklyKm(recentDistances: number[]): number | null {
+  if (recentDistances.length === 0) return null;
+  const total = recentDistances.reduce((sum, km) => sum + km, 0);
+  return total / recentDistances.length;
+}
