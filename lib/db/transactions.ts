@@ -59,7 +59,7 @@ function buildTransactionWhere(filters: TransactionFilters): Prisma.TransactionW
 }
 
 export interface TransactionListResult {
-  items: (Transaction & { vehicle: { registration: string } | null })[];
+  items: Transaction[];
   total: number;
   page: number;
   limit: number;
@@ -79,7 +79,6 @@ export async function getTransactions(filters: TransactionFilters = {}): Promise
       orderBy: [{ [sortBy]: sortDir }, { id: "asc" }],
       skip: (page - 1) * limit,
       take: limit,
-      include: { vehicle: { select: { registration: true } } },
     }),
     prisma.transaction.count({ where }),
   ]);

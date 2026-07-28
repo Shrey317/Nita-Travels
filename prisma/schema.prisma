@@ -8,6 +8,12 @@
 // - Service status is NEVER stored — always computed server-side at read time (see lib/service.ts).
 // - nextSvcKm is NEVER stored — always computed as mileageKm + vehicle.serviceIntervalKm.
 // - VehicleNote is delete-and-re-enter only; there is no update path in the API.
+// - Transaction.vehicleId and VehicleNote.vehicleId are deliberately NOT foreign keys, even
+//   though most of their values are real Vehicle ids — "ALLCR" is a valid value for both but
+//   isn't a real Vehicle row, and Postgres foreign keys can't accept "either a real row or this
+//   one specific sentinel string." Real-vehicle referential integrity is enforced in the
+//   application layer instead (Zod schemas + lib/db/*.ts), the same layer that already enforces
+//   the ALLCR/null cases a hard FK could never express anyway.
 //
 // photoUrls[] fields (added beyond the original spec, per product decision): each stores zero or
 // more Vercel Blob URLs. Attaching a photo is optional everywhere it appears. These are plain
@@ -47,9 +53,7 @@ model Vehicle {
   insurancePeriodMonths Int            @default(0)
   insuranceEndDate      DateTime?      @db.Date
   active                Boolean        @default(true)
-  transactions          Transaction[]
   mileageEntries        MileageEntry[]
-  vehicleNotes          VehicleNote[]
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
@@ -59,8 +63,11 @@ model Vehicle {
 model Transaction {
   id              String    @id @default(cuid())
   date            DateTime  @db.Date
-  vehicleId       String? // "CR01"-"CR09" | "ALLCR" | null
-  vehicle         Vehicle?  @relation(fields: [vehicleId], references: [id])
+  // "CR01"-"CR09" | "ALLCR" | null — deliberately NOT a foreign key. ALLCR is a valid value
+  // here but is not a real Vehicle row, so a hard FK relation would reject every fleet-wide
+  // entry. Referential integrity for the real-vehicle case is enforced in the application layer
+  // (Zod schemas + lib/db/transactions.ts), the same way null and ALLCR already are.
+  vehicleId       String?
   category        Category
   incomeZarCents  Int       @default(0)
   expenseZarCents Int       @default(0)
@@ -110,8 +117,9 @@ model MileageEntry {
 model VehicleNote {
   id        String   @id @default(cuid())
   date      DateTime @db.Date
-  vehicleId String? // "CR01"-"CR09" | "ALLCR" | null
-  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
+  // "CR01"-"CR09" | "ALLCR" | null — same reasoning as Transaction.vehicleId above: not a
+  // foreign key, since ALLCR is a valid value but not a real Vehicle row.
+  vehicleId String?
   note      String // free text, no categories, no character limit
   photoUrls String[] @default([]) // optional photos attached at entry time
   createdAt DateTime @default(now())

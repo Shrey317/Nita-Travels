@@ -231,19 +231,37 @@ function parseTransactionsCsv(): ParsedTransaction[] {
     .map((r) => {
       const date = col(r, 0);
       const vehicleIdRaw = col(r, 1);
-      const categoryRaw = col(r, 5);
+      const categoryRaw = col(r, 5).trim();
       const income = col(r, 6);
       const expense = col(r, 7);
       const notes = col(r, 8);
       const mileage = col(r, 10);
-      const category = CATEGORY_MAP[categoryRaw.trim()];
-      if (!category) throw new Error(`Unknown transaction category "${categoryRaw}" on ${date}`);
+      const incomeZarCents = parseMoneyToCents(income);
+      const expenseZarCents = parseMoneyToCents(expense);
+
+      let category = CATEGORY_MAP[categoryRaw];
+      if (!category) {
+        if (categoryRaw) {
+          // A non-blank value that doesn't match any known category is a real data problem
+          // worth stopping for, not guessing past.
+          throw new Error(`Unknown transaction category "${categoryRaw}" on ${date}`);
+        }
+        // A blank category (found once in the source data: a loan repayment with no vehicle
+        // and nothing filled in under Category) still carries real money and needs a home
+        // rather than being dropped — SRS's Business Logic Protection Policy rules out silently
+        // skipping audit-relevant rows. Falls back to Income for an income-only row, Other
+        // otherwise; either can be recategorized afterwards from the Transactions page, which
+        // already supports editing every field including category.
+        category = incomeZarCents > 0 && expenseZarCents === 0 ? "Income" : "Other";
+        console.warn(`  Blank category on ${date} (${notes || "no notes"}) -> defaulted to "${category}"`);
+      }
+
       return {
         date: parseDdMmmYyyy(date),
         vehicleId: normalizeVehicleId(vehicleIdRaw),
         category,
-        incomeZarCents: parseMoneyToCents(income),
-        expenseZarCents: parseMoneyToCents(expense),
+        incomeZarCents,
+        expenseZarCents,
         notes: notes.trim() || null,
         mileageKm: category === "Service" ? parseKmOrNull(mileage) : null,
       };
