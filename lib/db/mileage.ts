@@ -8,7 +8,7 @@
  */
 
 import type { MileageEntry, Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db/client";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { buildMileageEntry, isValidMileageProgression } from "@/lib/mileage";
@@ -102,7 +102,7 @@ export async function createMileageEntry(input: MileageEntryInput): Promise<Mile
     }
 
     return created;
-  });
+  }, TRANSACTION_OPTIONS);
 }
 
 export async function deleteMileageEntry(id: string): Promise<void> {

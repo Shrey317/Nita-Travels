@@ -17,3 +17,13 @@ export const prisma =
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
+
+/**
+ * Options for every prisma.$transaction(async (tx) => ...) call in this codebase. Neon's free
+ * tier suspends its compute when idle and can take several seconds to wake back up on the next
+ * request — comfortably longer than Prisma's 5-second interactive-transaction default, which
+ * surfaces as a confusing P2028 "Unable to start a transaction in the given time" error on the
+ * first write after a period of inactivity, not as a slow-but-successful request. Generous
+ * values here trade a slightly longer worst-case wait for not failing outright on cold starts.
+ */
+export const TRANSACTION_OPTIONS = { maxWait: 15_000, timeout: 20_000 };

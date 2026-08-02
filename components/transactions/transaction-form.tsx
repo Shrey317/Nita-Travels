@@ -96,9 +96,13 @@ export function TransactionForm({ vehicles, transaction, onClose }: TransactionF
           return;
         }
         toast({ title: isEdit ? "Transaction updated" : "Transaction added" });
-        router.refresh();
-        if (onClose) onClose();
-        else router.push("/transactions");
+        if (onClose) {
+          onClose();
+          router.refresh();
+        } else {
+          router.push("/transactions");
+          router.refresh();
+        }
       } catch {
         toast({ title: "Network error — please try again", variant: "destructive" });
       }

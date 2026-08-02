@@ -7,7 +7,7 @@
  */
 
 import type { Prisma, Transaction, Category } from "@prisma/client";
-import { prisma } from "@/lib/db/client";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
 import { NotFoundError } from "@/lib/errors";
 import { REPAIR_CATEGORIES, DEFAULT_PAGE_SIZE, NO_VEHICLE_FILTER_VALUE, FLEET_WIDE_VEHICLE_ID } from "@/lib/constants";
 import { formatDate, formatZAR, formatKm } from "@/lib/format";
@@ -115,7 +115,7 @@ export async function createTransaction(input: TransactionInput): Promise<Transa
     const created = await tx.transaction.create({ data });
     await syncVehicleMileageFromService(tx, data.vehicleId, data.category, data.mileageKm);
     return created;
-  });
+  }, TRANSACTION_OPTIONS);
 }
 
 /** Merges the PATCH body onto the existing row, validates the complete result, then writes —
@@ -131,7 +131,7 @@ export async function updateTransaction(id: string, input: TransactionUpdateInpu
     const updated = await tx.transaction.update({ where: { id }, data: merged });
     await syncVehicleMileageFromService(tx, merged.vehicleId, merged.category, merged.mileageKm);
     return updated;
-  });
+  }, TRANSACTION_OPTIONS);
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
