@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { deleteNote } from "@/lib/db/notes";
 import { requireSession, handleApiError } from "@/lib/api-response";

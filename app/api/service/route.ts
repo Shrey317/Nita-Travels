@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { getServiceStatusWithEstimates } from "@/lib/db/service";
 import { handleApiError } from "@/lib/api-response";

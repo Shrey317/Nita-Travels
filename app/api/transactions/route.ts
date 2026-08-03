@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { getTransactions, createTransaction } from "@/lib/db/transactions";
 import { requireSession, handleApiError } from "@/lib/api-response";

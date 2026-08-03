@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { getPreviousMileage } from "@/lib/db/mileage";
 import { handleApiError } from "@/lib/api-response";

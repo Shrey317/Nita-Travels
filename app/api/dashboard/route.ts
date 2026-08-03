@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { getVehiclesWithFinancials } from "@/lib/db/vehicles";
 import { getFleetTotals } from "@/lib/db/transactions";

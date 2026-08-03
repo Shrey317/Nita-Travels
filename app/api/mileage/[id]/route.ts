@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { deleteMileageEntry } from "@/lib/db/mileage";
 import { requireSession, handleApiError } from "@/lib/api-response";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { getVehicleDetail, updateVehicle, deactivateVehicle } from "@/lib/db/vehicles";
 import { requireSession, handleApiError, jsonError } from "@/lib/api-response";

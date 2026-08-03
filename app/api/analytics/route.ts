@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { getCategoryBreakdown, getVehiclePerformanceRanking } from "@/lib/db/analytics";
 import { handleApiError } from "@/lib/api-response";
