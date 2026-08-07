@@ -90,7 +90,16 @@ export function NoteForm({ vehicles }: NoteFormProps) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="nDate">Date</Label>
-          <Input id="nDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          <Input
+            id="nDate"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            aria-invalid={!!errors.date}
+            aria-describedby="nDate-error"
+            required
+          />
+          <FieldError id="nDate-error" message={errors.date} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="nVehicle">Vehicle</Label>

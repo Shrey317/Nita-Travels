@@ -10,15 +10,21 @@ const config: Config = {
     extend: {
       colors: {
         navy: { DEFAULT: "#0F2540", light: "#1A3557" },
-        teal: { DEFAULT: "#0D9488", light: "#14B8A6" },
+        // teal.DEFAULT and status.green/yellow were measured at 3.30-3.74:1 white-text contrast
+        // (fails WCAG AA's 4.5:1 for normal text — see README's "Accessibility" section for the
+        // full before/after table). Values below are the same hue, minimally darkened to clear
+        // 4.5:1. teal.light is unchanged (it's only ever used for focus rings, not text, and
+        // already passes the 3:1 non-text threshold against its actual backgrounds); teal.dark is
+        // new, used for hover/active states so they don't regress below teal.DEFAULT's contrast.
+        teal: { DEFAULT: "#0B8177", light: "#14B8A6", dark: "#09655D" },
         surface: "#F8FAFC",
         card: "#FFFFFF",
         border: "#E2E8F0",
         ink: "#0F172A",
         muted: "#64748B",
         status: {
-          green: "#16A34A",
-          yellow: "#CA8A04",
+          green: "#12843C",
+          yellow: "#9D6B03",
           red: "#DC2626",
         },
         notebg: "#FEF9C3",

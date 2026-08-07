@@ -7,6 +7,7 @@ import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   try {
+    await requireSession();
     const sp = request.nextUrl.searchParams;
     const vehicleId = sp.getAll("vehicleId");
     const category = sp.getAll("category");

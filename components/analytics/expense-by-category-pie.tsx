@@ -3,6 +3,7 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { formatZAR } from "@/lib/format";
 import { CATEGORY_LABELS } from "@/lib/constants";
+import { ClientOnlyChart } from "@/components/shared/client-only-chart";
 import type { CategoryBreakdownRow } from "@/lib/db/analytics";
 
 const PIE_COLORS = ["#0D9488", "#0F2540", "#CA8A04", "#DC2626", "#14B8A6", "#1A3557", "#64748B", "#16A34A", "#7C3AED"];
@@ -27,7 +28,7 @@ export function ExpenseByCategoryPie({ rows }: { rows: CategoryBreakdownRow[] })
   }
 
   return (
-    <div className="h-72 rounded-xl border border-border bg-card p-4">
+    <ClientOnlyChart className="h-72 rounded-xl border border-border bg-card p-4">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={(entry) => entry.name}>
@@ -39,6 +40,6 @@ export function ExpenseByCategoryPie({ rows }: { rows: CategoryBreakdownRow[] })
           <Legend />
         </PieChart>
       </ResponsiveContainer>
-    </div>
+    </ClientOnlyChart>
   );
 }

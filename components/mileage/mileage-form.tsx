@@ -118,7 +118,16 @@ export function MileageForm({ vehicles }: MileageFormProps) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="mDate">Date</Label>
-          <Input id="mDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          <Input
+            id="mDate"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            aria-invalid={!!errors.date}
+            aria-describedby="mDate-error"
+            required
+          />
+          <FieldError id="mDate-error" message={errors.date} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="mVehicle">Vehicle</Label>
@@ -162,7 +171,7 @@ export function MileageForm({ vehicles }: MileageFormProps) {
       </div>
 
       {distance !== null && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-4">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-4" aria-live="polite">
           <div>
             <p className="text-xs text-muted">Distance Driven</p>
             <p className="font-mono text-lg font-semibold text-ink">{distance.toLocaleString()} km</p>

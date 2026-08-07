@@ -2,10 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getVehicleTimeline } from "@/lib/db/vehicles";
-import { handleApiError } from "@/lib/api-response";
+import { requireSession, handleApiError } from "@/lib/api-response";
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    await requireSession();
     const sp = request.nextUrl.searchParams;
     const page = Number(sp.get("page") ?? "1");
     const dateFrom = sp.get("dateFrom");

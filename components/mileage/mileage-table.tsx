@@ -65,7 +65,7 @@ export function MileageTable({ entries }: { entries: MileageRow[] }) {
               ) : (
                 <span className="text-status-green">✅ Within Limit</span>
               )}
-              <PhotoThumbnails urls={e.photoUrls} />
+              <PhotoThumbnails urls={e.photoUrls} label={`Odometer photo for ${e.vehicle.registration} on ${formatDate(e.date)}`} />
             </TableCell>
             <TableCell className="text-right">
               <div className="flex justify-end">

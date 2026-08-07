@@ -2,6 +2,7 @@
 
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { formatZAR } from "@/lib/format";
+import { ClientOnlyChart } from "@/components/shared/client-only-chart";
 import type { MonthlyRow } from "@/lib/db/monthly";
 
 function formatAxisTick(cents: number): string {
@@ -44,7 +45,7 @@ export function MonthlyChart({ rows }: { rows: MonthlyRow[] }) {
   }
 
   return (
-    <div className="h-80 rounded-xl border border-border bg-card p-4">
+    <ClientOnlyChart className="h-80 rounded-xl border border-border bg-card p-4">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
@@ -57,6 +58,6 @@ export function MonthlyChart({ rows }: { rows: MonthlyRow[] }) {
           <Line dataKey="netProfit" name="Net P/L" stroke="#94A3B8" strokeWidth={2} dot={<NetProfitDot />} />
         </ComposedChart>
       </ResponsiveContainer>
-    </div>
+    </ClientOnlyChart>
   );
 }

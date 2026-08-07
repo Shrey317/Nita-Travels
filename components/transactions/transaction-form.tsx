@@ -114,7 +114,16 @@ export function TransactionForm({ vehicles, transaction, onClose }: TransactionF
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="txDate">Date</Label>
-          <Input id="txDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          <Input
+            id="txDate"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            aria-invalid={!!errors.date}
+            aria-describedby="txDate-error"
+            required
+          />
+          <FieldError id="txDate-error" message={errors.date} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="txVehicle">Vehicle</Label>
@@ -201,7 +210,7 @@ export function TransactionForm({ vehicles, transaction, onClose }: TransactionF
         <Textarea id="txNotes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </div>
 
-      <PhotoUpload photoUrls={photoUrls} onChange={setPhotoUrls} label="Receipt / invoice photos (optional)" />
+      <PhotoUpload photoUrls={photoUrls} onChange={setPhotoUrls} label="Receipts / invoices (optional)" />
 
       <div className="flex justify-end gap-3 pt-2">
         <Button type="button" variant="outline" onClick={() => (onClose ? onClose() : router.back())}>

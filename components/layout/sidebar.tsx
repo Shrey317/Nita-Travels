@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Menu, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/components/layout/nav-config";
@@ -55,40 +56,45 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile top bar */}
-      <div className="flex items-center justify-between border-b border-navy-light bg-navy px-4 py-3 md:hidden">
-        <span className="text-sm font-semibold tracking-tight text-white">NITA TRAVELS</span>
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open navigation menu"
-          className="rounded-md p-2 text-white hover:bg-navy-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      </div>
+      <DialogPrimitive.Root open={mobileOpen} onOpenChange={setMobileOpen}>
+        {/* Mobile top bar */}
+        <div className="flex items-center justify-between border-b border-navy-light bg-navy px-4 py-3 md:hidden">
+          <span className="text-sm font-semibold tracking-tight text-white">NITA TRAVELS</span>
+          <DialogPrimitive.Trigger asChild>
+            <button
+              type="button"
+              aria-label="Open navigation menu"
+              className="rounded-md p-2 text-white hover:bg-navy-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </DialogPrimitive.Trigger>
+        </div>
 
-      {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
-          <div className="absolute inset-0 bg-navy/60" onClick={() => setMobileOpen(false)} aria-hidden="true" />
-          <div className="absolute inset-y-0 left-0 flex w-64 flex-col bg-navy py-4">
+        {/* Mobile drawer — Radix traps focus inside while open, closes on Escape or an outside
+         *  click, and returns focus to the trigger button above on close (SRS a11y: keyboard
+         *  users can never tab out to content hidden behind the overlay). */}
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-navy/60 md:hidden" />
+          <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-navy py-4 outline-none md:hidden">
+            <DialogPrimitive.Title className="sr-only">Navigation menu</DialogPrimitive.Title>
             <div className="flex items-center justify-between px-4 pb-4">
               <span className="text-sm font-semibold text-white">NITA TRAVELS</span>
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                aria-label="Close navigation menu"
-                className="rounded-md p-2 text-white hover:bg-navy-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <DialogPrimitive.Close asChild>
+                <button
+                  type="button"
+                  aria-label="Close navigation menu"
+                  className="rounded-md p-2 text-white hover:bg-navy-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </DialogPrimitive.Close>
             </div>
             <NavLinks onNavigate={() => setMobileOpen(false)} alwaysShowLabel />
             <SignOutButton alwaysShowLabel />
-          </div>
-        </div>
-      )}
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
 
       {/* Desktop (240px, full labels) / tablet (icon-only) sidebar */}
       <aside className="hidden shrink-0 flex-col bg-navy py-4 md:flex md:w-16 lg:w-60">

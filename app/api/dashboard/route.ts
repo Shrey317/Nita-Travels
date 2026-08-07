@@ -5,7 +5,7 @@ import { getVehiclesWithFinancials } from "@/lib/db/vehicles";
 import { getFleetTotals } from "@/lib/db/transactions";
 import { prisma } from "@/lib/db/client";
 import { SERVICE_STATUS_SORT_ORDER } from "@/lib/service";
-import { handleApiError } from "@/lib/api-response";
+import { requireSession, handleApiError } from "@/lib/api-response";
 
 /**
  * SRS 16: "KPI totals + vehicle summary + service overview." The Dashboard page itself calls
@@ -16,6 +16,7 @@ import { handleApiError } from "@/lib/api-response";
  */
 export async function GET() {
   try {
+    await requireSession();
     const [vehicles, fleetTotals, activeVehicleCount] = await Promise.all([
       getVehiclesWithFinancials(),
       getFleetTotals(),

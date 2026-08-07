@@ -6,6 +6,7 @@ import { requireSession, handleApiError } from "@/lib/api-response";
 
 export async function GET() {
   try {
+    await requireSession();
     const vehicles = await getVehiclesWithFinancials();
     return NextResponse.json({ vehicles });
   } catch (error) {

@@ -239,7 +239,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               min={1}
               value={form.serviceIntervalKm}
               onChange={(e) => update("serviceIntervalKm", e.target.value)}
+              aria-invalid={!!errors.serviceIntervalKm}
+              aria-describedby="serviceIntervalKm-error"
             />
+            <FieldError id="serviceIntervalKm-error" message={errors.serviceIntervalKm} />
           </div>
         </div>
       </section>
@@ -249,7 +252,16 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="purchaseDate">Purchase Date</Label>
-            <Input id="purchaseDate" type="date" value={form.purchaseDate} onChange={(e) => update("purchaseDate", e.target.value)} required />
+            <Input
+              id="purchaseDate"
+              type="date"
+              value={form.purchaseDate}
+              onChange={(e) => update("purchaseDate", e.target.value)}
+              aria-invalid={!!errors.purchaseDate}
+              aria-describedby="purchaseDate-error"
+              required
+            />
+            <FieldError id="purchaseDate-error" message={errors.purchaseDate} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="purchasePriceRand">Purchase Price (R)</Label>
@@ -274,8 +286,11 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               min={0}
               value={form.mileageAtPurchaseKm}
               onChange={(e) => update("mileageAtPurchaseKm", e.target.value)}
+              aria-invalid={!!errors.mileageAtPurchaseKm}
+              aria-describedby="mileageAtPurchaseKm-error"
               required
             />
+            <FieldError id="mileageAtPurchaseKm-error" message={errors.mileageAtPurchaseKm} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="currentMileageKm">Current Mileage (km)</Label>
@@ -285,8 +300,11 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               min={0}
               value={form.currentMileageKm}
               onChange={(e) => update("currentMileageKm", e.target.value)}
+              aria-invalid={!!errors.currentMileageKm}
+              aria-describedby="currentMileageKm-error"
               required
             />
+            <FieldError id="currentMileageKm-error" message={errors.currentMileageKm} />
           </div>
         </div>
       </section>
@@ -303,7 +321,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               step="0.01"
               value={form.targetEmiRand}
               onChange={(e) => update("targetEmiRand", e.target.value)}
+              aria-invalid={!!errors.targetEmiCents}
+              aria-describedby="targetEmi-error"
             />
+            <FieldError id="targetEmi-error" message={errors.targetEmiCents} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="emiMonthsTotal">Term (months)</Label>
@@ -313,7 +334,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               min={0}
               value={form.emiMonthsTotal}
               onChange={(e) => update("emiMonthsTotal", e.target.value)}
+              aria-invalid={!!errors.emiMonthsTotal}
+              aria-describedby="emiMonthsTotal-error"
             />
+            <FieldError id="emiMonthsTotal-error" message={errors.emiMonthsTotal} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="emiMonthsPaid">Months Paid</Label>
@@ -351,7 +375,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               step="0.01"
               value={form.monthlyPremiumRand}
               onChange={(e) => update("monthlyPremiumRand", e.target.value)}
+              aria-invalid={!!errors.monthlyPremiumCents}
+              aria-describedby="monthlyPremium-error"
             />
+            <FieldError id="monthlyPremium-error" message={errors.monthlyPremiumCents} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="insurancePeriodMonths">Insurance Period (months)</Label>
@@ -361,7 +388,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               min={0}
               value={form.insurancePeriodMonths}
               onChange={(e) => update("insurancePeriodMonths", e.target.value)}
+              aria-invalid={!!errors.insurancePeriodMonths}
+              aria-describedby="insurancePeriodMonths-error"
             />
+            <FieldError id="insurancePeriodMonths-error" message={errors.insurancePeriodMonths} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="insuranceEndDate">Insurance End Date</Label>
@@ -370,7 +400,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               type="date"
               value={form.insuranceEndDate}
               onChange={(e) => update("insuranceEndDate", e.target.value)}
+              aria-invalid={!!errors.insuranceEndDate}
+              aria-describedby="insuranceEndDate-error"
             />
+            <FieldError id="insuranceEndDate-error" message={errors.insuranceEndDate} />
           </div>
         </div>
       </section>

@@ -2,42 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Only the 4 custom properties below are actually referenced anywhere in the codebase (verified
+   by grep across app/ and components/). This file previously also defined a full shadcn/ui-style
+   HSL token set (--background, --primary, --ring, etc., ~22 variables) and a .status-dot-* utility
+   layer — none of it was ever wired into tailwind.config.ts or used by any component, so it's been
+   removed as dead CSS. The actual color system lives in tailwind.config.ts's theme.extend.colors. */
 :root {
-  --color-navy: #0f2540;
-  --color-navy-light: #1a3557;
-  --color-teal: #0d9488;
-  --color-teal-light: #14b8a6;
   --color-surface: #f8fafc;
-  --color-card: #ffffff;
-  --color-border: #e2e8f0;
   --color-text: #0f172a;
-  --color-muted: #64748b;
-  --status-green: #16a34a;
-  --status-yellow: #ca8a04;
-  --status-red: #dc2626;
   --note-bg: #fef9c3;
-
-  /* shadcn/ui-style semantic tokens, mapped onto the palette above */
-  --background: 210 40% 98%;
-  --foreground: 222 47% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --primary: 175 84% 30%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222 47% 11%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222 47% 11%;
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 0 0% 100%;
   --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 175 84% 30%;
-  --radius: 0.75rem;
 }
 
 * {
@@ -52,10 +26,4 @@ body {
 
 .font-mono-figures {
   font-variant-numeric: tabular-nums;
-}
-
-@layer utilities {
-  .status-dot-green { background-color: var(--status-green); }
-  .status-dot-yellow { background-color: var(--status-yellow); }
-  .status-dot-red { background-color: var(--status-red); }
 }

@@ -60,7 +60,7 @@ export function NotesTable({ notes, vehicles }: NotesTableProps) {
             <TableCell>{registrationLabel(n.vehicleId, vehicles)}</TableCell>
             <TableCell className="max-w-lg">
               <p className="whitespace-pre-wrap">{n.note}</p>
-              <PhotoThumbnails urls={n.photoUrls} />
+              <PhotoThumbnails urls={n.photoUrls} label={`Note file for ${registrationLabel(n.vehicleId, vehicles)} on ${formatDate(n.date)}`} />
             </TableCell>
             <TableCell className="text-right">
               <div className="flex justify-end">

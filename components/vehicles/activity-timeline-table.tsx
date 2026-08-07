@@ -45,7 +45,10 @@ export function ActivityTimelineTable({ items }: { items: TimelineItem[] }) {
               {!item.isNote && item.type === "Service" && item.mileageKm !== null && (
                 <p className="mt-1 text-xs text-muted">Mileage at service: {formatKm(item.mileageKm)}</p>
               )}
-              <PhotoThumbnails urls={item.photoUrls} />
+              <PhotoThumbnails
+                urls={item.photoUrls}
+                label={`${item.isNote ? "Note" : item.type} file from ${formatDate(item.date)}`}
+              />
             </TableCell>
           </TableRow>
         ))}

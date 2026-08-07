@@ -19,7 +19,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async () => ({
-        allowedContentTypes: ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"],
+        allowedContentTypes: ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "application/pdf"],
         maximumSizeInBytes: 10 * 1024 * 1024, // 10MB
         addRandomSuffix: true,
       }),

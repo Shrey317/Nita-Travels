@@ -2,10 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { getCategoryBreakdown, getVehiclePerformanceRanking } from "@/lib/db/analytics";
-import { handleApiError } from "@/lib/api-response";
+import { requireSession, handleApiError } from "@/lib/api-response";
 
 export async function GET() {
   try {
+    await requireSession();
     const [categoryBreakdown, vehicleRanking] = await Promise.all([
       getCategoryBreakdown(),
       getVehiclePerformanceRanking(),

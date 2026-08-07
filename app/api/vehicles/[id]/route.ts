@@ -10,6 +10,7 @@ interface RouteParams {
 
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
+    await requireSession();
     const detail = await getVehicleDetail(params.id);
     if (!detail) return jsonError("Vehicle not found", 404);
     return NextResponse.json(detail);

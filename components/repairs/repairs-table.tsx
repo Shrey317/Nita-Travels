@@ -38,7 +38,10 @@ export function RepairsTable({ transactions }: { transactions: Transaction[] }) 
               <p className="truncate" title={t.notes ?? undefined}>
                 {t.notes ?? "—"}
               </p>
-              <PhotoThumbnails urls={t.photoUrls} />
+              <PhotoThumbnails
+                urls={t.photoUrls}
+                label={`${CATEGORY_LABELS[t.category] ?? t.category} file for ${formatVehicleLabel(t.vehicleId)} on ${formatDate(t.date)}`}
+              />
             </TableCell>
             <TableCell className="text-right font-mono text-sm">{formatKm(t.mileageKm)}</TableCell>
             <TableCell className="whitespace-nowrap text-sm text-muted">{formatMonthKey(t.date)}</TableCell>

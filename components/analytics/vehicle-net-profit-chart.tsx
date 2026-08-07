@@ -2,6 +2,7 @@
 
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { formatZAR } from "@/lib/format";
+import { ClientOnlyChart } from "@/components/shared/client-only-chart";
 import type { VehicleRankingRow } from "@/lib/db/analytics";
 
 function formatAxisTick(cents: number): string {
@@ -22,7 +23,7 @@ export function VehicleNetProfitChart({ rows }: { rows: VehicleRankingRow[] }) {
   }
 
   return (
-    <div className="h-72 rounded-xl border border-border bg-card p-4">
+    <ClientOnlyChart className="h-72 rounded-xl border border-border bg-card p-4">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
@@ -36,6 +37,6 @@ export function VehicleNetProfitChart({ rows }: { rows: VehicleRankingRow[] }) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-    </div>
+    </ClientOnlyChart>
   );
 }

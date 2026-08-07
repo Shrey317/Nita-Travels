@@ -2,10 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { exportTransactionsToCsv } from "@/lib/db/transactions";
-import { handleApiError } from "@/lib/api-response";
+import { requireSession, handleApiError } from "@/lib/api-response";
 
 export async function GET(request: NextRequest) {
   try {
+    await requireSession();
     const sp = request.nextUrl.searchParams;
     const vehicleId = sp.getAll("vehicleId");
     const category = sp.getAll("category");
