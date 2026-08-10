@@ -105,6 +105,57 @@ export async function createMileageEntry(input: MileageEntryInput): Promise<Mile
   }, TRANSACTION_OPTIONS);
 }
 
+export interface UpdateMileageInput {
+  currentMileageKm: number;
+}
+
+export async function updateMileageEntry(id: string, input: UpdateMileageInput): Promise<MileageEntry> {
+  const existing = await prisma.mileageEntry.findUnique({ where: { id } });
+  if (!existing) throw new NotFoundError(`Mileage entry ${id} not found`);
+
+  const newCurrentKm = input.currentMileageKm;
+
+  if (!Number.isInteger(newCurrentKm) || newCurrentKm <= 0) {
+    throw new ValidationError("Current mileage must be a positive whole number", "currentMileageKm");
+  }
+
+  if (!isValidMileageProgression(newCurrentKm, existing.previousMileageKm)) {
+    throw new ValidationError(
+      `Current mileage (${newCurrentKm.toLocaleString()} km) must be greater than the previous reading (${existing.previousMileageKm.toLocaleString()} km)`,
+      "currentMileageKm"
+    );
+  }
+
+  const derived = buildMileageEntry(existing.date, newCurrentKm, existing.previousMileageKm, existing.weeklyLimitKm);
+
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.mileageEntry.update({
+      where: { id },
+      data: {
+        currentMileageKm: newCurrentKm,
+        distanceDrivenKm: derived.distanceDrivenKm,
+        overLimitByKm: derived.overLimitByKm,
+      },
+    });
+
+    // Re-sync the vehicle's currentMileageKm: find the highest reading across all entries.
+    const maxEntry = await tx.mileageEntry.findFirst({
+      where: { vehicleId: existing.vehicleId },
+      orderBy: { currentMileageKm: "desc" },
+      select: { currentMileageKm: true },
+    });
+    if (maxEntry) {
+      const vehicle = await tx.vehicle.findUniqueOrThrow({ where: { id: existing.vehicleId } });
+      const highestKm = Math.max(maxEntry.currentMileageKm, vehicle.currentMileageKm);
+      if (highestKm !== vehicle.currentMileageKm) {
+        await tx.vehicle.update({ where: { id: existing.vehicleId }, data: { currentMileageKm: highestKm } });
+      }
+    }
+
+    return updated;
+  }, TRANSACTION_OPTIONS);
+}
+
 export async function deleteMileageEntry(id: string): Promise<void> {
   const existing = await prisma.mileageEntry.findUnique({ where: { id } });
   if (!existing) throw new NotFoundError(`Mileage entry ${id} not found`);

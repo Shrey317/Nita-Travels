@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { PhotoThumbnails } from "@/components/shared/photo-thumbnails";
 import { DeleteConfirmDialog } from "@/components/shared/delete-confirm-dialog";
+import { EditMileageDialog } from "@/components/mileage/edit-mileage-dialog";
 import { formatDate, formatKm } from "@/lib/format";
 import type { MileageEntry } from "@prisma/client";
 
@@ -68,7 +69,14 @@ export function MileageTable({ entries }: { entries: MileageRow[] }) {
               <PhotoThumbnails urls={e.photoUrls} label={`Odometer photo for ${e.vehicle.registration} on ${formatDate(e.date)}`} />
             </TableCell>
             <TableCell className="text-right">
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-1">
+                <EditMileageDialog
+                  entryId={e.id}
+                  vehicleId={e.vehicleId}
+                  currentMileageKm={e.currentMileageKm}
+                  previousMileageKm={e.previousMileageKm}
+                  onSaved={() => router.refresh()}
+                />
                 <DeleteConfirmDialog
                   title="Delete this mileage entry?"
                   description={`This permanently removes the ${formatDate(e.date)} entry for ${e.vehicleId}. This can't be undone.`}
@@ -84,3 +92,4 @@ export function MileageTable({ entries }: { entries: MileageRow[] }) {
     </Table>
   );
 }
+
