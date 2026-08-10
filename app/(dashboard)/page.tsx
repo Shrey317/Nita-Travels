@@ -26,7 +26,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
+      <div className="animate-fade-in">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">Dashboard</h1>
         <p className="text-sm text-muted">Fleet overview as of today</p>
       </div>
@@ -40,13 +40,19 @@ export default async function DashboardPage() {
 
       <InsuranceAlerts vehicles={vehicles.map((v) => v.vehicle)} />
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold tracking-tight text-ink">Per-Vehicle Financial Summary</h2>
+      <section className="animate-slide-up delay-300">
+        <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
+          <span className="inline-block h-5 w-1 rounded-full bg-gradient-to-b from-teal to-teal-light" />
+          Per-Vehicle Financial Summary
+        </h2>
         <VehicleSummaryTable vehicles={vehicles} fleetTotals={fleetTotals} />
       </section>
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold tracking-tight text-ink">Service Status Overview</h2>
+      <section className="animate-slide-up delay-400">
+        <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
+          <span className="inline-block h-5 w-1 rounded-full bg-gradient-to-b from-teal to-teal-light" />
+          Service Status Overview
+        </h2>
         <ServiceOverviewTable rows={serviceRows} />
       </section>
     </div>

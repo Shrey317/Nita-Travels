@@ -2,28 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Only the 4 custom properties below are actually referenced anywhere in the codebase (verified
-   by grep across app/ and components/). This file previously also defined a full shadcn/ui-style
-   HSL token set (--background, --primary, --ring, etc., ~22 variables) and a .status-dot-* utility
-   layer — none of it was ever wired into tailwind.config.ts or used by any component, so it's been
-   removed as dead CSS. The actual color system lives in tailwind.config.ts's theme.extend.colors. */
+/* Semantic color tokens as RGB channels so Tailwind opacity modifiers (e.g. bg-card/95) work.
+   Light values are the originals from the design system; dark values are matched-hue variants
+   chosen to maintain the navy brand feel while passing readability checks.
+   
+   The actual color system was previously in tailwind.config.ts as fixed hex values — it's now
+   driven by these CSS custom properties to support light/dark modes. */
 :root {
-  --color-surface: #f8fafc;
-  --color-text: #0f172a;
-  --note-bg: #fef9c3;
-  --border: 214 32% 91%;
+  --color-surface: 248 250 252;   /* #f8fafc */
+  --color-card: 255 255 255;      /* #ffffff */
+  --color-border: 226 232 240;    /* #e2e8f0 */
+  --color-ink: 15 23 42;          /* #0f172a */
+  --color-muted: 100 116 139;     /* #64748b */
+  --color-notebg: 254 249 195;    /* #fef9c3 */
+}
+
+.dark {
+  --color-surface: 12 18 34;      /* #0c1222 */
+  --color-card: 22 32 50;         /* #162032 */
+  --color-border: 42 53 68;       /* #2a3544 */
+  --color-ink: 226 232 240;       /* #e2e8f0 */
+  --color-muted: 148 163 184;     /* #94a3b8 */
+  --color-notebg: 51 43 14;       /* #332b0e */
 }
 
 * {
-  border-color: hsl(var(--border));
+  border-color: rgb(var(--color-border));
 }
 
 body {
-  background-color: var(--color-surface);
-  color: var(--color-text);
+  background-color: rgb(var(--color-surface));
+  color: rgb(var(--color-ink));
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 .font-mono-figures {
   font-variant-numeric: tabular-nums;
+}
+
+/* ─── Modern Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.25);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.45);
+}
+
+/* ─── Brand-colored text selection ─── */
+::selection {
+  background: rgba(11, 129, 119, 0.2);
+  color: rgb(var(--color-ink));
+}
+
+/* ─── Stagger animation delay utilities ─── */
+@layer utilities {
+  .delay-0 { animation-delay: 0ms; }
+  .delay-75 { animation-delay: 75ms; }
+  .delay-100 { animation-delay: 100ms; }
+  .delay-150 { animation-delay: 150ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
 }

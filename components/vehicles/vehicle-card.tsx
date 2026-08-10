@@ -15,11 +15,13 @@ export function VehicleCard({ vehicle, incomeCents, expenseCents, netProfitCents
     : vehicle.registration;
 
   return (
-    <Card>
+    <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover">
+      {/* Top gradient accent */}
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal to-teal-light opacity-60 transition-opacity group-hover:opacity-100" />
       <CardContent className="space-y-4 p-5">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <span className="inline-flex items-center rounded-md bg-navy px-2 py-1 text-xs font-semibold text-white">
+            <span className="inline-flex items-center rounded-md bg-gradient-to-r from-navy to-navy-light px-2 py-1 text-xs font-semibold text-white shadow-sm">
               {vehicle.id}
             </span>
             <p className="mt-2 font-semibold text-ink">
@@ -35,15 +37,15 @@ export function VehicleCard({ vehicle, incomeCents, expenseCents, netProfitCents
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-lg bg-surface px-2 py-2">
+          <div className="rounded-lg bg-gradient-to-br from-status-green/5 to-transparent px-2 py-2 ring-1 ring-status-green/10">
             <p className="text-xs text-muted">Income</p>
             <p className="truncate font-mono text-sm font-medium text-status-green">{formatZAR(incomeCents)}</p>
           </div>
-          <div className="rounded-lg bg-surface px-2 py-2">
+          <div className="rounded-lg bg-gradient-to-br from-status-red/5 to-transparent px-2 py-2 ring-1 ring-status-red/10">
             <p className="text-xs text-muted">Expense</p>
             <p className="truncate font-mono text-sm font-medium text-status-red">{formatZAR(expenseCents)}</p>
           </div>
-          <div className="rounded-lg bg-surface px-2 py-2">
+          <div className={`rounded-lg px-2 py-2 ring-1 ${isProfit ? "bg-gradient-to-br from-status-green/5 to-transparent ring-status-green/10" : "bg-gradient-to-br from-status-red/5 to-transparent ring-status-red/10"}`}>
             <p className="text-xs text-muted">Net P/L</p>
             <p className={`truncate font-mono text-sm font-medium ${isProfit ? "text-status-green" : "text-status-red"}`}>
               {formatZAR(netProfitCents)}

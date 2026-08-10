@@ -13,6 +13,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </a>
       <Sidebar />
       <div className="min-w-0 flex-1">
+        {/* Subtle gradient accent line */}
+        <div className="h-[2px] bg-gradient-to-r from-teal via-teal-light/40 to-transparent" />
         <main id="main-content" tabIndex={-1} className="mx-auto max-w-[1400px] px-4 py-6 outline-none sm:px-6 lg:px-8">
           {children}
         </main>

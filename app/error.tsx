@@ -13,13 +13,21 @@ export default function RootError({ error, reset }: { error: Error & { digest?: 
   }, [error]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-surface px-4 text-center">
-      <AlertCircle className="h-10 w-10 text-status-red" aria-hidden="true" />
-      <div className="space-y-1">
-        <p className="text-lg font-semibold text-ink">Something went wrong</p>
-        <p className="text-sm text-muted">Please try again.</p>
+    <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 overflow-hidden bg-surface px-4 text-center">
+      {/* Subtle background glow */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-status-red/20 blur-[100px]" />
       </div>
-      <Button onClick={reset}>Try again</Button>
+      <div className="relative z-10 flex flex-col items-center gap-4 animate-scale-in">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-status-red/10">
+          <AlertCircle className="h-8 w-8 animate-pulse text-status-red" aria-hidden="true" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-lg font-semibold text-ink">Something went wrong</p>
+          <p className="text-sm text-muted">Please try again.</p>
+        </div>
+        <Button onClick={reset}>Try again</Button>
+      </div>
     </div>
   );
 }
