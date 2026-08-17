@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Toaster } from "@/components/ui/toaster";
+import { Topbar } from "@/components/layout/topbar";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
@@ -12,10 +13,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         Skip to main content
       </a>
       <Sidebar />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 flex flex-col">
+        <Topbar />
         {/* Subtle gradient accent line */}
-        <div className="h-[2px] bg-gradient-to-r from-teal via-teal-light/40 to-transparent" />
-        <main id="main-content" tabIndex={-1} className="mx-auto max-w-[1400px] px-4 py-6 outline-none sm:px-6 lg:px-8">
+        <div className="h-[2px] w-full bg-gradient-to-r from-teal via-teal-light/40 to-transparent" />
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[1400px] px-4 py-6 outline-none sm:px-6 lg:px-8">
           {children}
         </main>
       </div>

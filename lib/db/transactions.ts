@@ -147,8 +147,11 @@ export interface FleetTotals {
 }
 
 /** Dashboard KPI totals — every vehicleId including ALLCR and null (SRS 13.3, 15.1). */
-export async function getFleetTotals(): Promise<FleetTotals> {
-  const result = await prisma.transaction.aggregate({ _sum: { incomeZarCents: true, expenseZarCents: true } });
+export async function getFleetTotals(dateFrom?: Date, dateTo?: Date): Promise<FleetTotals> {
+  const where = dateFrom || dateTo
+    ? { date: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
+    : {};
+  const result = await prisma.transaction.aggregate({ where, _sum: { incomeZarCents: true, expenseZarCents: true } });
   const incomeCents = result._sum.incomeZarCents ?? 0;
   const expenseCents = result._sum.expenseZarCents ?? 0;
   return { incomeCents, expenseCents, netProfitCents: incomeCents - expenseCents };

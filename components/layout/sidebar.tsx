@@ -6,39 +6,46 @@ import { usePathname } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Menu, X, LogOut, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NAV_ITEMS } from "@/components/layout/nav-config";
+import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { signOutAction } from "@/app/(dashboard)/actions";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 function NavLinks({ onNavigate, alwaysShowLabel = false }: { onNavigate?: () => void; alwaysShowLabel?: boolean }) {
   const pathname = usePathname();
   return (
-    <nav className="flex-1 space-y-1 px-3" aria-label="Main navigation">
-      {NAV_ITEMS.map((item) => {
-        const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light",
-              active
-                ? "bg-teal/15 font-medium text-white"
-                : "text-slate-400 hover:bg-white/5 hover:text-white hover:translate-x-0.5"
-            )}
-          >
-            {/* Active indicator bar */}
-            {active && (
-              <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-teal-light shadow-glow" />
-            )}
-            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span className={cn("truncate", alwaysShowLabel ? "inline" : "hidden lg:inline")}>{item.label}</span>
-          </Link>
-        );
-      })}
+    <nav className="flex-1 space-y-6 px-3" aria-label="Main navigation">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.label} className="space-y-1">
+          <div className={cn("px-3 text-xs font-semibold tracking-wider text-slate-500", alwaysShowLabel ? "block" : "hidden lg:block")}>
+            {group.label}
+          </div>
+          {group.items.map((item) => {
+            const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onNavigate}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light",
+                  active
+                    ? "bg-teal/15 font-medium text-white"
+                    : "text-slate-400 hover:bg-white/5 hover:text-white hover:translate-x-0.5"
+                )}
+              >
+                {/* Active indicator bar */}
+                {active && (
+                  <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-teal-light shadow-glow" />
+                )}
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span className={cn("truncate", alwaysShowLabel ? "inline" : "hidden lg:inline")}>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      ))}
     </nav>
   );
 }
@@ -90,7 +97,7 @@ export function Sidebar() {
          *  users can never tab out to content hidden behind the overlay). */}
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-navy/70 backdrop-blur-sm md:hidden" />
-          <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-gradient-to-b from-navy via-navy to-[#0a1929] py-4 outline-none data-[state=open]:animate-slide-in-left md:hidden">
+          <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-gradient-to-b from-navy via-navy to-navy-light py-4 outline-none data-[state=open]:animate-slide-in-left md:hidden">
             <DialogPrimitive.Title className="sr-only">Navigation menu</DialogPrimitive.Title>
             <div className="flex items-center justify-between px-4 pb-4">
               <div className="flex items-center gap-2">
@@ -116,7 +123,7 @@ export function Sidebar() {
       </DialogPrimitive.Root>
 
       {/* Desktop (240px, full labels) / tablet (icon-only) sidebar */}
-      <aside className="hidden shrink-0 flex-col bg-gradient-to-b from-navy via-navy to-[#0a1929] py-4 md:flex md:w-16 lg:w-60">
+      <aside className="hidden shrink-0 flex-col bg-gradient-to-b from-navy via-navy to-navy-light py-4 md:flex md:w-16 lg:w-60">
         <div className="mb-6 px-3">
           {/* Desktop: logo + name + theme toggle */}
           <div className="hidden items-center gap-2.5 lg:flex">

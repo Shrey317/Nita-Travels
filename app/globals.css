@@ -9,21 +9,21 @@
    The actual color system was previously in tailwind.config.ts as fixed hex values — it's now
    driven by these CSS custom properties to support light/dark modes. */
 :root {
-  --color-surface: 248 250 252;   /* #f8fafc */
-  --color-card: 255 255 255;      /* #ffffff */
-  --color-border: 226 232 240;    /* #e2e8f0 */
-  --color-ink: 15 23 42;          /* #0f172a */
-  --color-muted: 100 116 139;     /* #64748b */
-  --color-notebg: 254 249 195;    /* #fef9c3 */
+  --color-surface: 248 250 252;   /* slate-50 */
+  --color-card: 255 255 255;      /* white */
+  --color-border: 226 232 240;    /* slate-200 */
+  --color-ink: 15 23 42;          /* slate-900 */
+  --color-muted: 100 116 139;     /* slate-500 */
+  --color-notebg: 254 249 195;    /* yellow-100 */
 }
 
 .dark {
-  --color-surface: 12 18 34;      /* #0c1222 */
-  --color-card: 22 32 50;         /* #162032 */
-  --color-border: 42 53 68;       /* #2a3544 */
-  --color-ink: 226 232 240;       /* #e2e8f0 */
-  --color-muted: 148 163 184;     /* #94a3b8 */
-  --color-notebg: 51 43 14;       /* #332b0e */
+  --color-surface: 9 9 11;        /* zinc-950 */
+  --color-card: 24 24 27;         /* zinc-900 */
+  --color-border: 39 39 42;       /* zinc-800 */
+  --color-ink: 244 244 245;       /* zinc-50 */
+  --color-muted: 161 161 170;     /* zinc-400 */
+  --color-notebg: 67 36 24;       /* yellow-950ish */
 }
 
 * {
@@ -72,4 +72,12 @@ body {
   .delay-300 { animation-delay: 300ms; }
   .delay-400 { animation-delay: 400ms; }
   .delay-500 { animation-delay: 500ms; }
+}
+
+[cmdk-overlay] {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 50;
 }

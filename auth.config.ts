@@ -11,7 +11,7 @@ export const authConfig: NextAuthConfig = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 8 * 60 * 60, // 8 hours (SRS 10)
+    maxAge: 15 * 60, // 15 minutes
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {

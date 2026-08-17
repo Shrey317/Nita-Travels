@@ -9,14 +9,9 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        navy: { DEFAULT: "#0F2540", light: "#1A3557" },
-        // teal.DEFAULT and status.green/yellow were measured at 3.30-3.74:1 white-text contrast
-        // (fails WCAG AA's 4.5:1 for normal text — see README's "Accessibility" section for the
-        // full before/after table). Values below are the same hue, minimally darkened to clear
-        // 4.5:1. teal.light is unchanged (it's only ever used for focus rings, not text, and
-        // already passes the 3:1 non-text threshold against its actual backgrounds); teal.dark is
-        // new, used for hover/active states so they don't regress below teal.DEFAULT's contrast.
-        teal: { DEFAULT: "#0B8177", light: "#14B8A6", dark: "#09655D" },
+        navy: { DEFAULT: "#020617", light: "#0f172a" },
+        // teal is used as the primary brand color for Nita Travels
+        teal: { DEFAULT: "#0d9488", light: "#14b8a6", dark: "#0f766e" },
         // Semantic colors — driven by CSS custom properties in globals.css so they auto-switch
         // between light/dark modes. Uses the rgb(var(...) / <alpha-value>) pattern for opacity.
         surface: "rgb(var(--color-surface) / <alpha-value>)",

@@ -11,7 +11,8 @@ import { ActivityTimeline } from "@/components/vehicles/activity-timeline";
 import { DeactivateVehicleButton } from "@/components/vehicles/deactivate-vehicle-button";
 import { formatZAR, formatKm, formatDate, formatMargin } from "@/lib/format";
 import { badgeLabel, badgeVariant } from "@/lib/service";
-import { getVehicleTimeline } from "@/lib/db/vehicles";
+import { getVehicleTimeline, getVehicleMonthlyFinancials } from "@/lib/db/vehicles";
+import { FinancialChart } from "@/components/vehicles/financial-chart";
 
 interface VehicleProfilePageProps {
   params: { id: string };
@@ -25,12 +26,15 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
   const { vehicle, incomeCents, expenseCents, repairsCents, netProfitCents, emiBalanceCents, roiPercent, kmSincePurchase, service } =
     detail;
 
-  const timeline = await getVehicleTimeline(vehicle.id, {
-    page: Number(searchParams.page ?? "1") || 1,
-    dateFrom: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,
-    dateTo: searchParams.dateTo ? new Date(searchParams.dateTo) : undefined,
-    type: searchParams.type === "transactions" || searchParams.type === "notes" ? searchParams.type : "all",
-  });
+  const [timeline, monthlyFinancials] = await Promise.all([
+    getVehicleTimeline(vehicle.id, {
+      page: Number(searchParams.page ?? "1") || 1,
+      dateFrom: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,
+      dateTo: searchParams.dateTo ? new Date(searchParams.dateTo) : undefined,
+      type: searchParams.type === "transactions" || searchParams.type === "notes" ? searchParams.type : "all",
+    }),
+    getVehicleMonthlyFinancials(vehicle.id),
+  ]);
 
   const registrationLine = vehicle.registration2 ? `${vehicle.registration} / ${vehicle.registration2}` : vehicle.registration;
 
@@ -132,6 +136,11 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
           ]}
         />
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold tracking-tight text-ink">Monthly Financials</h2>
+        <FinancialChart data={monthlyFinancials} />
+      </section>
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold tracking-tight text-ink">Activity Timeline</h2>

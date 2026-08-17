@@ -36,19 +36,23 @@ export interface VehicleSummary {
  * total regardless of fleet size (financials, repairs subset, service status), not one per
  * vehicle.
  */
-export async function getVehiclesWithFinancials(): Promise<VehicleSummary[]> {
-  const vehicles = await prisma.vehicle.findMany({ where: { active: true }, orderBy: { id: "asc" } });
+export async function getVehiclesWithFinancials(dateFrom?: Date, dateTo?: Date, includeInactive?: boolean): Promise<VehicleSummary[]> {
+  const vehicles = await prisma.vehicle.findMany({ where: includeInactive ? undefined : { active: true }, orderBy: { id: "asc" } });
   const vehicleIds = vehicles.map((v) => v.id);
+
+  const dateWhere = dateFrom || dateTo
+    ? { date: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
+    : {};
 
   const [incomeExpenseGroups, repairsGroups, serviceRows] = await Promise.all([
     prisma.transaction.groupBy({
       by: ["vehicleId"],
-      where: { vehicleId: { in: vehicleIds } },
+      where: { vehicleId: { in: vehicleIds }, ...dateWhere },
       _sum: { incomeZarCents: true, expenseZarCents: true },
     }),
     prisma.transaction.groupBy({
       by: ["vehicleId"],
-      where: { vehicleId: { in: vehicleIds }, category: { in: [...REPAIR_CATEGORIES] } },
+      where: { vehicleId: { in: vehicleIds }, category: { in: [...REPAIR_CATEGORIES] }, ...dateWhere },
       _sum: { expenseZarCents: true },
     }),
     getServiceStatusAllVehicles(),
@@ -239,4 +243,36 @@ export async function getVehicleTimeline(vehicleId: string, filters: TimelineFil
 
   const start = (page - 1) * limit;
   return { items: items.slice(start, start + limit), total: items.length, page, limit };
+}
+
+export interface MonthlyFinancials {
+  month: string;
+  incomeCents: number;
+  expenseCents: number;
+}
+
+export async function getVehicleMonthlyFinancials(id: string): Promise<MonthlyFinancials[]> {
+  const transactions = await prisma.transaction.findMany({
+    where: { vehicleId: id },
+    select: { date: true, incomeZarCents: true, expenseZarCents: true },
+    orderBy: { date: "asc" },
+  });
+
+  const grouped = new Map<string, MonthlyFinancials>();
+  for (const t of transactions) {
+    const d = new Date(t.date.getFullYear(), t.date.getMonth(), 1);
+    const key = d.getTime().toString();
+    if (!grouped.has(key)) {
+      grouped.set(key, { 
+        month: d.toLocaleDateString("en-US", { month: "short", year: "2-digit" }), 
+        incomeCents: 0, 
+        expenseCents: 0 
+      });
+    }
+    const data = grouped.get(key)!;
+    data.incomeCents += t.incomeZarCents;
+    data.expenseCents += t.expenseZarCents;
+  }
+
+  return Array.from(grouped.values());
 }
