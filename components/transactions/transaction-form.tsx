@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, useTransition, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -42,15 +42,28 @@ export function TransactionForm({ vehicles, transaction, onClose }: TransactionF
     transaction ? transaction.vehicleId ?? NO_VEHICLE_FILTER_VALUE : undefined
   );
   const [category, setCategory] = useState<string | undefined>(transaction?.category);
-  const [incomeRand, setIncomeRand] = useState(transaction ? String(centsToRand(transaction.incomeZarCents)) : "0");
-  const [expenseRand, setExpenseRand] = useState(transaction ? String(centsToRand(transaction.expenseZarCents)) : "0");
+  const [incomeRand, setIncomeRand] = useState(transaction ? String(centsToRand(transaction.incomeZarCents)) : "");
+  const [expenseRand, setExpenseRand] = useState(transaction ? String(centsToRand(transaction.expenseZarCents)) : "");
   const [notes, setNotes] = useState(transaction?.notes ?? "");
   const [mileageKm, setMileageKm] = useState(transaction?.mileageKm != null ? String(transaction.mileageKm) : "");
   const [photoUrls, setPhotoUrls] = useState<string[]>(transaction?.photoUrls ?? []);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
 
+  useEffect(() => {
+    if (!isEdit) {
+      const savedVehicle = localStorage.getItem("nita-last-vehicle");
+      if (savedVehicle && !vehicleId) setVehicleId(savedVehicle);
+
+      const savedCategory = localStorage.getItem("nita-last-category");
+      if (savedCategory && !category) setCategory(savedCategory);
+    }
+  }, [isEdit]);
+
   const isService = category === "Service";
+  const isIncomeCat = category === "Income" || category === "UberFees";
+  const isExpenseCat = category && !isIncomeCat;
+  
   const options = vehicleIdOptions(vehicles);
 
   function buildPayload() {
@@ -96,6 +109,10 @@ export function TransactionForm({ vehicles, transaction, onClose }: TransactionF
           return;
         }
         toast({ title: isEdit ? "Transaction updated" : "Transaction added" });
+        if (!isEdit) {
+          if (vehicleId) localStorage.setItem("nita-last-vehicle", vehicleId);
+          if (category) localStorage.setItem("nita-last-category", category);
+        }
         if (onClose) {
           onClose();
           router.refresh();
@@ -175,34 +192,40 @@ export function TransactionForm({ vehicles, transaction, onClose }: TransactionF
             <FieldError id="txMileage-error" message={errors.mileageKm} />
           </div>
         )}
-        <div className="space-y-2">
-          <Label htmlFor="txIncome">Income (R)</Label>
-          <Input
-            id="txIncome"
-            type="number"
-            min={0}
-            step="0.01"
-            value={incomeRand}
-            onChange={(e) => setIncomeRand(e.target.value)}
-            aria-invalid={!!errors.incomeZarCents}
-            aria-describedby="txIncome-error"
-          />
-          <FieldError id="txIncome-error" message={errors.incomeZarCents} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="txExpense">Expense (R)</Label>
-          <Input
-            id="txExpense"
-            type="number"
-            min={0}
-            step="0.01"
-            value={expenseRand}
-            onChange={(e) => setExpenseRand(e.target.value)}
-            aria-invalid={!!errors.expenseZarCents}
-            aria-describedby="txExpense-error"
-          />
-          <FieldError id="txExpense-error" message={errors.expenseZarCents} />
-        </div>
+        {(!category || isIncomeCat) && (
+          <div className="space-y-2">
+            <Label htmlFor="txIncome">Income (R)</Label>
+            <Input
+              id="txIncome"
+              type="number"
+              min={0}
+              step="0.01"
+              value={incomeRand}
+              onChange={(e) => setIncomeRand(e.target.value)}
+              aria-invalid={!!errors.incomeZarCents}
+              aria-describedby="txIncome-error"
+              autoFocus={isIncomeCat}
+            />
+            <FieldError id="txIncome-error" message={errors.incomeZarCents} />
+          </div>
+        )}
+        {(!category || isExpenseCat) && (
+          <div className="space-y-2">
+            <Label htmlFor="txExpense">Expense (R)</Label>
+            <Input
+              id="txExpense"
+              type="number"
+              min={0}
+              step="0.01"
+              value={expenseRand}
+              onChange={(e) => setExpenseRand(e.target.value)}
+              aria-invalid={!!errors.expenseZarCents}
+              aria-describedby="txExpense-error"
+              autoFocus={isExpenseCat}
+            />
+            <FieldError id="txExpense-error" message={errors.expenseZarCents} />
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

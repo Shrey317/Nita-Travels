@@ -1,8 +1,9 @@
 export const dynamic = "force-dynamic";
 
-import { getTransactions, getRepairsSummary } from "@/lib/db/transactions";
+import { getTransactions, getRepairsSummary, getRepairsAnomalies } from "@/lib/db/transactions";
 import { prisma } from "@/lib/db/client";
 import { RepairsSummaryCards } from "@/components/repairs/repairs-summary-cards";
+import { RepairsAnomalies } from "@/components/repairs/repairs-anomalies";
 import { RepairsTable } from "@/components/repairs/repairs-table";
 import { VehicleDateFilters } from "@/components/shared/vehicle-date-filters";
 import { Pagination } from "@/components/shared/pagination";
@@ -18,9 +19,10 @@ export default async function RepairsPage({ searchParams }: RepairsPageProps) {
   const vehicleId = toStringArray(searchParams.vehicleId);
   const page = Number(searchParams.page ?? "1") || 1;
 
-  const [vehicles, summary, result] = await Promise.all([
+  const [vehicles, summary, anomalies, result] = await Promise.all([
     prisma.vehicle.findMany({ where: { active: true }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
     getRepairsSummary(),
+    getRepairsAnomalies(),
     getTransactions({
       category: [...REPAIR_CATEGORIES],
       vehicleId: vehicleId.length ? vehicleId : undefined,
@@ -44,6 +46,7 @@ export default async function RepairsPage({ searchParams }: RepairsPageProps) {
       </div>
 
       <RepairsSummaryCards summary={summary} />
+      <RepairsAnomalies anomalies={anomalies} />
       <VehicleDateFilters vehicleOptions={vehicleOptions} idPrefix="repairs" />
       <RepairsTable transactions={result.items} />
       <Pagination page={result.page} limit={result.limit} total={result.total} />

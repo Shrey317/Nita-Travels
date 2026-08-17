@@ -24,7 +24,10 @@ export function VehicleRankingTable({ rows }: { rows: VehicleRankingRow[] }) {
           <TableHead className="text-right">Repairs (R)</TableHead>
           <TableHead className="text-right">Net P/L (R)</TableHead>
           <TableHead className="text-right">Margin %</TableHead>
-          <TableHead className="text-right">ROI on Purchase</TableHead>
+          <TableHead className="text-right">ROI</TableHead>
+          <TableHead className="text-right">Rev/KM</TableHead>
+          <TableHead className="text-right">Cost/KM</TableHead>
+          <TableHead className="text-right">Profit/KM</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -45,6 +48,9 @@ export function VehicleRankingTable({ rows }: { rows: VehicleRankingRow[] }) {
             <TableCell className="text-right font-mono text-sm">
               {r.roiPercent === null ? "—" : `${r.roiPercent.toFixed(1)}%`}
             </TableCell>
+            <TableCell className="text-right font-mono text-sm">{r.revenuePerKmCents !== null ? formatZAR(Math.round(r.revenuePerKmCents)) : "—"}</TableCell>
+            <TableCell className="text-right font-mono text-sm">{r.costPerKmCents !== null ? formatZAR(Math.round(r.costPerKmCents)) : "—"}</TableCell>
+            <TableCell className="text-right font-mono text-sm font-medium">{r.profitPerKmCents !== null ? formatZAR(Math.round(r.profitPerKmCents)) : "—"}</TableCell>
           </TableRow>
         ))}
       </TableBody>

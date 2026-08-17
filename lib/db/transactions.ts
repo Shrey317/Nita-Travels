@@ -185,6 +185,65 @@ export async function getRepairsSummary(): Promise<RepairsSummary> {
   };
 }
 
+export interface RepairAnomaly {
+  vehicleId: string;
+  type: "HIGH_FREQUENCY" | "HIGH_COST";
+  description: string;
+}
+
+export async function getRepairsAnomalies(): Promise<RepairAnomaly[]> {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  
+  const recentRepairs = await prisma.transaction.findMany({
+    where: { 
+      category: { in: [...REPAIR_CATEGORIES] },
+      date: { gte: thirtyDaysAgo },
+      vehicleId: { not: null }
+    }
+  });
+
+  const costByVehicle = new Map<string, number>();
+  const countByVehicle = new Map<string, number>();
+  let totalCost = 0;
+
+  for (const r of recentRepairs) {
+    if (!r.vehicleId || r.vehicleId === FLEET_WIDE_VEHICLE_ID) continue;
+    
+    const cost = r.expenseZarCents ?? 0;
+    totalCost += cost;
+
+    costByVehicle.set(r.vehicleId, (costByVehicle.get(r.vehicleId) || 0) + cost);
+    countByVehicle.set(r.vehicleId, (countByVehicle.get(r.vehicleId) || 0) + 1);
+  }
+
+  const activeVehicles = Array.from(costByVehicle.keys()).length;
+  const avgCost = activeVehicles > 0 ? totalCost / activeVehicles : 0;
+
+  const anomalies: RepairAnomaly[] = [];
+
+  for (const [vehicleId, count] of countByVehicle.entries()) {
+    if (count > 2) {
+      anomalies.push({
+        vehicleId,
+        type: "HIGH_FREQUENCY",
+        description: `Had ${count} repairs within the last 30 days.`
+      });
+    }
+  }
+
+  for (const [vehicleId, cost] of costByVehicle.entries()) {
+    if (avgCost > 0 && cost > avgCost * 1.5 && cost > 100000) { // threshold > R1000 and 1.5x average
+      anomalies.push({
+        vehicleId,
+        type: "HIGH_COST",
+        description: `Repair spending is significantly above fleet average.`
+      });
+    }
+  }
+
+  return anomalies;
+}
+
 const CSV_HEADER = ["Date", "Vehicle", "Category", "Income (R)", "Expense (R)", "Mileage (km)", "Notes"] as const;
 
 function csvEscape(value: string): string {

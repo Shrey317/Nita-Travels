@@ -11,6 +11,7 @@ import { Pagination } from "@/components/shared/pagination";
 import { vehicleIdOptions } from "@/components/shared/vehicle-options";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { toStringArray } from "@/lib/utils";
+import { MileageAlerts } from "@/components/mileage/mileage-alerts";
 
 interface MileagePageProps {
   searchParams: { vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string };
@@ -31,6 +32,27 @@ export default async function MileagePage({ searchParams }: MileagePageProps) {
     }),
   ]);
 
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recentEntries = await prisma.mileageEntry.findMany({
+    where: { date: { gte: weekAgo } },
+    orderBy: { date: 'desc' }
+  });
+
+  const vehiclesWithRecentMileage = new Set(recentEntries.map(e => e.vehicleId));
+  const missingMileageVehicles = vehicles.filter(v => !vehiclesWithRecentMileage.has(v.id));
+  
+  const overLimitVehicles = [];
+  const processed = new Set();
+  for (const e of recentEntries) {
+    if (!processed.has(e.vehicleId)) {
+      processed.add(e.vehicleId);
+      if (e.overLimitByKm && e.overLimitByKm > 0) {
+        const v = vehicles.find(veh => veh.id === e.vehicleId);
+        if (v) overLimitVehicles.push({ vehicle: v as any, overBy: e.overLimitByKm });
+      }
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -45,6 +67,8 @@ export default async function MileagePage({ searchParams }: MileagePageProps) {
           </Link>
         </Button>
       </div>
+
+      <MileageAlerts missingMileageVehicles={missingMileageVehicles as any} overLimitVehicles={overLimitVehicles} />
 
       <VehicleDateFilters vehicleOptions={vehicleIdOptions(vehicles)} idPrefix="mileage" />
       <MileageTable entries={result.items} />

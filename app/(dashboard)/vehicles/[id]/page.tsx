@@ -11,8 +11,10 @@ import { ActivityTimeline } from "@/components/vehicles/activity-timeline";
 import { DeactivateVehicleButton } from "@/components/vehicles/deactivate-vehicle-button";
 import { formatZAR, formatKm, formatDate, formatMargin } from "@/lib/format";
 import { badgeLabel, badgeVariant } from "@/lib/service";
-import { getVehicleTimeline, getVehicleMonthlyFinancials } from "@/lib/db/vehicles";
+import { getVehicleTimeline, getVehicleMonthlyFinancials, calculateVehicleHealthScore, checkVehicleReplacementCriteria } from "@/lib/db/vehicles";
 import { FinancialChart } from "@/components/vehicles/financial-chart";
+import { prisma } from "@/lib/db/client";
+import { AlertTriangle } from "lucide-react";
 
 interface VehicleProfilePageProps {
   params: { id: string };
@@ -25,6 +27,26 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
 
   const { vehicle, incomeCents, expenseCents, repairsCents, netProfitCents, emiBalanceCents, roiPercent, kmSincePurchase, service } =
     detail;
+
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recentMileage = await prisma.mileageEntry.findFirst({
+    where: { vehicleId: vehicle.id, date: { gte: weekAgo } },
+  });
+
+  const { score: healthScore, reasons: healthReasons } = calculateVehicleHealthScore({
+    active: vehicle.active,
+    serviceStatus: service?.status,
+    insuranceEndDate: vehicle.insuranceEndDate,
+    hasRecentMileage: !!recentMileage,
+  });
+
+  const { recommended: replaceRecommended, reasons: replaceReasons } = checkVehicleReplacementCriteria({
+    currentMileageKm: vehicle.currentMileageKm,
+    purchaseDate: vehicle.purchaseDate,
+    roiPercent: roiPercent,
+    repairsCostCents: repairsCents,
+    totalIncomeCents: incomeCents,
+  });
 
   const [timeline, monthlyFinancials] = await Promise.all([
     getVehicleTimeline(vehicle.id, {
@@ -52,17 +74,43 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
           </div>
           <p className="mt-1 text-sm text-muted">{registrationLine}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {!vehicle.active && <Badge variant="outline">Inactive</Badge>}
-          <Button asChild variant="outline">
+          
+          <Button asChild variant="outline" size="sm">
             <Link href={`/vehicles/${vehicle.id}/edit`}>
-              <Pencil className="h-4 w-4" />
+              <Pencil className="mr-2 h-3.5 w-3.5" />
               Edit
             </Link>
           </Button>
+
+          <Button asChild variant="default" size="sm" className="bg-teal text-white hover:bg-teal-light">
+            <Link href="/transactions/new">Add Transaction</Link>
+          </Button>
+          <Button asChild variant="default" size="sm" className="bg-teal text-white hover:bg-teal-light">
+            <Link href="/mileage/new">Add Mileage</Link>
+          </Button>
+          <Button asChild variant="default" size="sm" className="bg-navy text-white hover:bg-navy-light">
+            <Link href={`/vehicles/${vehicle.id}/notes/new`}>Add Note</Link>
+          </Button>
+          
           {vehicle.active && <DeactivateVehicleButton vehicleId={vehicle.id} />}
         </div>
       </div>
+
+      {replaceRecommended && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 flex gap-3 shadow-sm">
+          <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-semibold text-red-700 dark:text-red-400">Vehicle Replacement Analysis: Review Recommended</h3>
+            <ul className="mt-2 space-y-1">
+              {replaceReasons.map((reason, i) => (
+                <li key={i} className="text-sm text-red-600 dark:text-red-300">• {reason}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <InfoCard
@@ -73,6 +121,10 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
             { label: "Model", value: vehicle.model },
             { label: "Registration", value: vehicle.registration },
             { label: "Reg. 2", value: vehicle.registration2 ?? "—" },
+            { 
+              label: "Health Score", 
+              value: <span className="font-semibold text-teal" title={healthReasons.join("\n")}>{healthScore} / 100</span> 
+            },
             { label: "Transmission", value: vehicle.transmission },
             { label: "Warranty", value: vehicle.warranty ?? "—" },
             { label: "Service Interval", value: formatKm(vehicle.serviceIntervalKm) },
@@ -115,6 +167,9 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
             { label: "Net P/L", value: formatZAR(netProfitCents) },
             { label: "Margin", value: formatMargin(incomeCents, expenseCents) },
             { label: "ROI on Purchase", value: roiPercent === null ? "—" : `${roiPercent.toFixed(1)}%` },
+            { label: "Revenue / KM", value: kmSincePurchase > 0 ? formatZAR(Math.round(incomeCents / kmSincePurchase)) : "—" },
+            { label: "Cost / KM", value: kmSincePurchase > 0 ? formatZAR(Math.round(expenseCents / kmSincePurchase)) : "—" },
+            { label: "Profit / KM", value: kmSincePurchase > 0 ? formatZAR(Math.round(netProfitCents / kmSincePurchase)) : "—" },
           ]}
         />
         <InfoCard

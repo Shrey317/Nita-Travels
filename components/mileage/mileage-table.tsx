@@ -43,6 +43,8 @@ export function MileageTable({ entries }: { entries: MileageRow[] }) {
           <TableHead className="text-right">Distance</TableHead>
           <TableHead>Week</TableHead>
           <TableHead className="text-right">Limit</TableHead>
+          <TableHead className="text-right">Rem</TableHead>
+          <TableHead className="text-right">Util %</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
@@ -60,9 +62,20 @@ export function MileageTable({ entries }: { entries: MileageRow[] }) {
               W{e.isoWeek}-{e.isoYear}
             </TableCell>
             <TableCell className="text-right font-mono text-sm">{formatKm(e.weeklyLimitKm)}</TableCell>
+            <TableCell className="text-right font-mono text-sm">
+              {e.overLimitByKm !== null ? 
+                <span className="text-status-red">- {formatKm(e.overLimitByKm)}</span> : 
+                <span className="text-status-green">{formatKm(e.weeklyLimitKm - e.distanceDrivenKm)}</span>
+              }
+            </TableCell>
+            <TableCell className="text-right font-mono text-sm">
+              <span className={e.distanceDrivenKm > e.weeklyLimitKm ? "text-status-red font-semibold" : ""}>
+                {Math.round((e.distanceDrivenKm / e.weeklyLimitKm) * 100)}%
+              </span>
+            </TableCell>
             <TableCell>
               {e.overLimitByKm !== null ? (
-                <span className="font-semibold text-status-red">⚠ OVER LIMIT BY {e.overLimitByKm.toLocaleString()} km</span>
+                <span className="font-semibold text-status-red">⚠ OVER BY {e.overLimitByKm.toLocaleString()} km</span>
               ) : (
                 <span className="text-status-green">✅ Within Limit</span>
               )}

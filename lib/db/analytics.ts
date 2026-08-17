@@ -54,6 +54,10 @@ export interface VehicleRankingRow {
   netProfitCents: number;
   marginLabel: string;
   roiPercent: number | null;
+  kmSincePurchase: number;
+  revenuePerKmCents: number | null;
+  costPerKmCents: number | null;
+  profitPerKmCents: number | null;
 }
 
 /** Excludes ALLCR and no-vehicle entries by construction — getVehiclesWithFinancials() only
@@ -72,5 +76,9 @@ export async function getVehiclePerformanceRanking(): Promise<VehicleRankingRow[
     netProfitCents: s.netProfitCents,
     marginLabel: s.marginLabel,
     roiPercent: s.vehicle.purchasePriceCents === 0 ? null : (s.netProfitCents / s.vehicle.purchasePriceCents) * 100,
+    kmSincePurchase: s.kmSincePurchase,
+    revenuePerKmCents: s.kmSincePurchase > 0 ? s.incomeCents / s.kmSincePurchase : null,
+    costPerKmCents: s.kmSincePurchase > 0 ? s.expenseCents / s.kmSincePurchase : null,
+    profitPerKmCents: s.kmSincePurchase > 0 ? s.netProfitCents / s.kmSincePurchase : null,
   }));
 }
