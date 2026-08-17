@@ -8,7 +8,6 @@ import { Menu, X, LogOut, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { signOutAction } from "@/app/(dashboard)/actions";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 function NavLinks({ onNavigate, alwaysShowLabel = false }: { onNavigate?: () => void; alwaysShowLabel?: boolean }) {
   const pathname = usePathname();
@@ -79,7 +78,6 @@ export function Sidebar() {
               <Truck className="h-4 w-4 text-teal-light" />
             </div>
             <span className="text-sm font-semibold tracking-tight text-white">NITA TRAVELS</span>
-            <ThemeToggle />
           </div>
           <DialogPrimitive.Trigger asChild>
             <button
@@ -131,14 +129,12 @@ export function Sidebar() {
               <Truck className="h-4 w-4 text-teal-light" />
             </div>
             <span className="flex-1 text-sm font-semibold tracking-tight text-white">NITA TRAVELS</span>
-            <ThemeToggle />
           </div>
           {/* Tablet: icon-only logo + theme toggle stacked */}
           <div className="flex flex-col items-center gap-2 lg:hidden">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal/20">
               <Truck className="h-4 w-4 text-teal-light" aria-hidden="true" />
             </div>
-            <ThemeToggle />
           </div>
         </div>
         <NavLinks />
