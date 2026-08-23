@@ -10,12 +10,14 @@ import { InfoCard } from "@/components/vehicles/info-card";
 import { ActivityTimeline } from "@/components/vehicles/activity-timeline";
 import { DeactivateVehicleButton } from "@/components/vehicles/deactivate-vehicle-button";
 import { formatZAR, formatKm, formatDate, formatMargin } from "@/lib/format";
+import { getVehicleTimeline, getVehicleMonthlyFinancials } from "@/lib/db/vehicles";
 import { badgeLabel, badgeVariant } from "@/lib/service";
-import { getVehicleTimeline, getVehicleMonthlyFinancials, calculateVehicleHealthScore, checkVehicleReplacementCriteria } from "@/lib/db/vehicles";
+import { calculateVehicleHealthScore, checkVehicleReplacementCriteria } from "@/lib/health";
 import { FinancialChart } from "@/components/vehicles/financial-chart";
 import { prisma } from "@/lib/db/client";
-import { AlertTriangle } from "lucide-react";
-import { startOfWeek } from "date-fns";
+import { differenceInCalendarDays, startOfWeek } from "date-fns";
+import { VehicleHealthCard } from "@/components/vehicles/health-card";
+import { VehicleReplacementCard } from "@/components/vehicles/replacement-card";
 
 interface VehicleProfilePageProps {
   params: { id: string };
@@ -26,22 +28,24 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
   const detail = await getVehicleDetail(params.id);
   if (!detail) notFound();
 
-  const { vehicle, incomeCents, expenseCents, repairsCents, netProfitCents, emiBalanceCents, roiPercent, kmSincePurchase, service } =
+  const { vehicle, incomeCents, expenseCents, repairsCents, netProfitCents, emiBalanceCents, roiPercent, kmSincePurchase, service, recentRepairs } =
     detail;
 
   const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
   const recentMileage = await prisma.mileageEntry.findFirst({
     where: { vehicleId: vehicle.id, date: { gte: startOfCurrentWeek } },
   });
+  const hasRecentMileage = !!recentMileage;
 
-  const ageInYears = (new Date().getTime() - vehicle.purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-  
-  const { score: healthScore, reasons: healthReasons } = calculateVehicleHealthScore({
+  const health = calculateVehicleHealthScore({
     active: vehicle.active,
     serviceStatus: service?.status,
     insuranceEndDate: vehicle.insuranceEndDate,
-    hasRecentMileage: !!recentMileage,
-    ageInYears,
+    hasRecentMileage,
+    highRepairFrequency: recentRepairs.length > 2,
+    highRepairCost: false,
+    roiPercent: roiPercent,
+    downtimeDays: 0,
   });
 
   const { recommended: replaceRecommended, reasons: replaceReasons } = checkVehicleReplacementCriteria({
@@ -50,6 +54,7 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
     roiPercent: roiPercent,
     repairsCostCents: repairsCents,
     totalIncomeCents: incomeCents,
+    profitPerKmCents: kmSincePurchase > 0 ? netProfitCents / kmSincePurchase : null,
   });
 
   const [timeline, monthlyFinancials] = await Promise.all([
@@ -88,13 +93,13 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
             </Link>
           </Button>
 
-          <Button asChild variant="default" size="sm" className="bg-teal text-white hover:bg-teal-light">
+          <Button asChild variant="default" size="sm" className="bg-brand-blue text-white hover:bg-brand-blueAccent">
             <Link href={`/transactions/new?vehicleId=${vehicle.id}`}>Add Transaction</Link>
           </Button>
-          <Button asChild variant="default" size="sm" className="bg-teal text-white hover:bg-teal-light">
+          <Button asChild variant="default" size="sm" className="bg-brand-blue text-white hover:bg-brand-blueAccent">
             <Link href={`/mileage/new?vehicleId=${vehicle.id}`}>Add Mileage</Link>
           </Button>
-          <Button asChild variant="default" size="sm" className="bg-navy text-white hover:bg-navy-light">
+          <Button asChild variant="default" size="sm" className="bg-brand-navy text-white hover:bg-brand-navy/90">
             <Link href={`/vehicles/${vehicle.id}/notes/new`}>Add Note</Link>
           </Button>
           
@@ -102,19 +107,55 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
         </div>
       </div>
 
-      {replaceRecommended && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 flex gap-3 shadow-sm">
-          <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-red-700 dark:text-red-400">Vehicle Replacement Analysis: Review Recommended</h3>
-            <ul className="mt-2 space-y-1">
-              {replaceReasons.map((reason, i) => (
-                <li key={i} className="text-sm text-red-600 dark:text-red-300">• {reason}</li>
-              ))}
-            </ul>
-          </div>
+      {/* Scannable Top Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider">Status</p>
+          <p className={`mt-1 font-semibold ${vehicle.active ? "text-status-success" : "text-status-error"}`}>
+            {vehicle.active ? "Operational" : "Inactive"}
+          </p>
         </div>
-      )}
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider">Mileage</p>
+          <p className="mt-1 font-semibold text-ink">{formatKm(vehicle.currentMileageKm)}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider">Health</p>
+          <p className={`mt-1 font-semibold ${health.score >= 80 ? 'text-status-success' : health.score >= 50 ? 'text-status-warning' : 'text-status-error'}`}>
+            {health.score} / 100
+          </p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider">Service</p>
+          <p className={`mt-1 font-semibold ${
+            service?.status === 'OVERDUE' ? 'text-status-error' : 
+            service?.status === 'DUE_SOON' ? 'text-status-warning' : 'text-ink'
+          }`}>
+            {service?.kmRemaining !== null ? `${formatKm(service?.kmRemaining)} rem` : "—"}
+          </p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider">Insurance</p>
+          <p className="mt-1 font-semibold text-ink">
+            {vehicle.insuranceEndDate ? `${Math.max(0, differenceInCalendarDays(vehicle.insuranceEndDate, new Date()))} days` : "—"}
+          </p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider">Revenue</p>
+          <p className="mt-1 font-semibold text-brand-blue">{formatZAR(incomeCents)}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider">Profit</p>
+          <p className={`mt-1 font-semibold ${netProfitCents >= 0 ? "text-status-success" : "text-status-error"}`}>
+            {formatZAR(netProfitCents)}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <VehicleHealthCard score={health.score} reasons={health.reasons} categories={health.categories} />
+        <VehicleReplacementCard recommended={replaceRecommended} reasons={replaceReasons} />
+      </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <InfoCard
@@ -125,10 +166,6 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
             { label: "Model", value: vehicle.model },
             { label: "Registration", value: vehicle.registration },
             { label: "Reg. 2", value: vehicle.registration2 ?? "—" },
-            { 
-              label: "Health Score", 
-              value: <span className="font-semibold text-teal" title={healthReasons.join("\n")}>{healthScore} / 100</span> 
-            },
             { label: "Transmission", value: vehicle.transmission },
             { label: "Warranty", value: vehicle.warranty ?? "—" },
             { label: "Service Interval", value: formatKm(vehicle.serviceIntervalKm) },

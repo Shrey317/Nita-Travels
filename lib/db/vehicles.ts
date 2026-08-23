@@ -11,6 +11,7 @@ import { prisma } from "@/lib/db/client";
 import { getServiceStatusAllVehicles, getLatestServiceForVehicle, type VehicleServiceRow } from "@/lib/db/service";
 import { deriveServiceStatus } from "@/lib/service";
 import { formatMargin } from "@/lib/format";
+import { calculateRoiPercent } from "@/lib/finance";
 import { NotFoundError } from "@/lib/errors";
 import { REPAIR_CATEGORIES } from "@/lib/constants";
 import {
@@ -38,7 +39,7 @@ export interface VehicleSummary {
  * vehicle.
  */
 export async function getVehiclesWithFinancials(dateFrom?: Date, dateTo?: Date, includeInactive?: boolean): Promise<VehicleSummary[]> {
-  const vehicles = await prisma.vehicle.findMany({ where: includeInactive ? undefined : { active: true }, orderBy: { id: "asc" } });
+  const vehicles = await prisma.vehicle.findMany({ where: { deletedAt: null, ...(includeInactive ? {} : { active: true }) }, orderBy: { id: "asc" } });
   const vehicleIds = vehicles.map((v) => v.id);
 
   const dateWhere = dateFrom || dateTo
@@ -48,12 +49,12 @@ export async function getVehiclesWithFinancials(dateFrom?: Date, dateTo?: Date, 
   const [incomeExpenseGroups, repairsGroups, serviceRows] = await Promise.all([
     prisma.transaction.groupBy({
       by: ["vehicleId"],
-      where: { vehicleId: { in: vehicleIds }, ...dateWhere },
+      where: { vehicleId: { in: vehicleIds }, deletedAt: null, ...dateWhere },
       _sum: { incomeZarCents: true, expenseZarCents: true },
     }),
     prisma.transaction.groupBy({
       by: ["vehicleId"],
-      where: { vehicleId: { in: vehicleIds }, category: { in: [...REPAIR_CATEGORIES] }, ...dateWhere },
+      where: { vehicleId: { in: vehicleIds }, category: { in: [...REPAIR_CATEGORIES] }, deletedAt: null, ...dateWhere },
       _sum: { expenseZarCents: true },
     }),
     getServiceStatusAllVehicles(),
@@ -82,24 +83,29 @@ export async function getVehiclesWithFinancials(dateFrom?: Date, dateTo?: Date, 
 export interface VehicleDetail extends VehicleSummary {
   emiBalanceCents: number;
   roiPercent: number | null;
+  recentRepairs: any[];
 }
 
 /** Full detail for the Vehicle Profile page (SRS 15.3). Not filtered by `active` — a
  *  deactivated vehicle's profile must stay viewable even though it drops off the main list. */
 export async function getVehicleDetail(id: string): Promise<VehicleDetail | null> {
-  const vehicle = await prisma.vehicle.findUnique({ where: { id } });
+  const vehicle = await prisma.vehicle.findUnique({ where: { id, deletedAt: null } });
   if (!vehicle) return null;
 
-  const [incomeExpense, repairs, latestService] = await Promise.all([
+  const [incomeExpense, repairs, latestService, recentRepairs] = await Promise.all([
     prisma.transaction.aggregate({
-      where: { vehicleId: id },
+      where: { vehicleId: id, deletedAt: null },
       _sum: { incomeZarCents: true, expenseZarCents: true },
     }),
     prisma.transaction.aggregate({
-      where: { vehicleId: id, category: { in: [...REPAIR_CATEGORIES] } },
+      where: { vehicleId: id, category: { in: [...REPAIR_CATEGORIES] }, deletedAt: null },
       _sum: { expenseZarCents: true },
     }),
     getLatestServiceForVehicle(id),
+    prisma.transaction.findMany({
+      where: { vehicleId: id, category: { in: [...REPAIR_CATEGORIES] }, deletedAt: null, date: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+      select: { id: true }
+    }),
   ]);
 
   const incomeCents = incomeExpense._sum.incomeZarCents ?? 0;
@@ -120,7 +126,7 @@ export async function getVehicleDetail(id: string): Promise<VehicleDetail | null
     netProfitCents,
     marginLabel: formatMargin(incomeCents, expenseCents),
     emiBalanceCents: vehicle.targetEmiCents * (vehicle.emiMonthsTotal - vehicle.emiMonthsPaid),
-    roiPercent: vehicle.purchasePriceCents === 0 ? null : (netProfitCents / vehicle.purchasePriceCents) * 100,
+    roiPercent: calculateRoiPercent(netProfitCents, vehicle.purchasePriceCents),
     kmSincePurchase: vehicle.currentMileageKm - vehicle.mileageAtPurchaseKm,
     service: {
       vehicleId: vehicle.id,
@@ -132,6 +138,7 @@ export async function getVehicleDetail(id: string): Promise<VehicleDetail | null
       kmRemaining,
       status,
     },
+    recentRepairs,
   };
 }
 
@@ -144,7 +151,7 @@ export async function createVehicle(input: VehicleInput): Promise<Vehicle> {
  *  business rule (like emiMonthsPaid <= emiMonthsTotal) can't be bypassed by editing one field
  *  at a time while leaving the other stale. */
 export async function updateVehicle(id: string, input: VehicleUpdateInput): Promise<Vehicle> {
-  const existing = await prisma.vehicle.findUnique({ where: { id } });
+  const existing = await prisma.vehicle.findUnique({ where: { id, deletedAt: null } });
   if (!existing) throw new NotFoundError(`Vehicle ${id} not found`);
 
   const partial = vehicleUpdateSchema.parse(input);
@@ -155,9 +162,9 @@ export async function updateVehicle(id: string, input: VehicleUpdateInput): Prom
 /** DELETE /api/vehicles/[id] is a soft-deactivate (SRS 16, 26) — vehicles are never hard-deleted
  *  so historical transactions/mileage/notes referencing them stay intact and queryable. */
 export async function deactivateVehicle(id: string): Promise<Vehicle> {
-  const existing = await prisma.vehicle.findUnique({ where: { id } });
+  const existing = await prisma.vehicle.findUnique({ where: { id, deletedAt: null } });
   if (!existing) throw new NotFoundError(`Vehicle ${id} not found`);
-  return prisma.vehicle.update({ where: { id }, data: { active: false } });
+  return prisma.vehicle.update({ where: { id }, data: { active: false, deletedAt: new Date() } });
 }
 
 export interface TimelineItem {
@@ -208,7 +215,7 @@ export async function getVehicleTimeline(vehicleId: string, filters: TimelineFil
   const [transactions, notes] = await Promise.all([
     type === "notes"
       ? Promise.resolve([])
-      : prisma.transaction.findMany({ where: { vehicleId, ...dateFilter }, orderBy: { date: "desc" } }),
+      : prisma.transaction.findMany({ where: { vehicleId, deletedAt: null, ...dateFilter }, orderBy: { date: "desc" } }),
     type === "transactions"
       ? Promise.resolve([])
       : prisma.vehicleNote.findMany({
@@ -254,7 +261,7 @@ export interface MonthlyFinancials {
 
 export async function getVehicleMonthlyFinancials(id: string): Promise<MonthlyFinancials[]> {
   const transactions = await prisma.transaction.findMany({
-    where: { vehicleId: id },
+    where: { vehicleId: id, deletedAt: null },
     select: { date: true, incomeZarCents: true, expenseZarCents: true },
     orderBy: { date: "asc" },
   });

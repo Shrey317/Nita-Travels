@@ -11,7 +11,7 @@ import type { MileageEntry, Prisma } from "@prisma/client";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
-import { buildMileageEntry, isValidMileageProgression } from "@/lib/mileage";
+import { buildMileageEntry, validateMileageReading } from "@/lib/mileage";
 import { mileageEntrySchema, type MileageEntryInput } from "@/lib/schemas/mileage.schema";
 
 export interface MileageFilters {
@@ -71,11 +71,9 @@ export async function createMileageEntry(input: MileageEntryInput): Promise<Mile
   const data = mileageEntrySchema.parse(input);
   const previousMileageKm = await getPreviousMileage(data.vehicleId);
 
-  if (!isValidMileageProgression(data.currentMileageKm, previousMileageKm)) {
-    throw new ValidationError(
-      `Current mileage (${data.currentMileageKm.toLocaleString()} km) must be greater than the last recorded reading (${previousMileageKm.toLocaleString()} km)`,
-      "currentMileageKm"
-    );
+  const errorMsg = validateMileageReading(data.currentMileageKm, previousMileageKm);
+  if (errorMsg) {
+    throw new ValidationError(errorMsg, "currentMileageKm");
   }
 
   const derived = buildMileageEntry(data.date, data.currentMileageKm, previousMileageKm);
@@ -119,11 +117,9 @@ export async function updateMileageEntry(id: string, input: UpdateMileageInput):
     throw new ValidationError("Current mileage must be a positive whole number", "currentMileageKm");
   }
 
-  if (!isValidMileageProgression(newCurrentKm, existing.previousMileageKm)) {
-    throw new ValidationError(
-      `Current mileage (${newCurrentKm.toLocaleString()} km) must be greater than the previous reading (${existing.previousMileageKm.toLocaleString()} km)`,
-      "currentMileageKm"
-    );
+  const errorMsg = validateMileageReading(newCurrentKm, existing.previousMileageKm);
+  if (errorMsg) {
+    throw new ValidationError(errorMsg, "currentMileageKm");
   }
 
   const derived = buildMileageEntry(existing.date, newCurrentKm, existing.previousMileageKm, existing.weeklyLimitKm);

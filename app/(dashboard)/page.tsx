@@ -194,9 +194,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
         <TimeFilter />
       </div>
 
-      <ExtendedKpiCards stats={stats} />
-
       <TodaysPriorities items={priorities} />
+
+      <ExtendedKpiCards stats={stats} />
 
       <InsuranceAlerts vehicles={vehicles.map((v) => v.vehicle)} />
 
@@ -204,7 +204,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
       <section className="animate-slide-up delay-300">
         <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
-          <span className="inline-block h-5 w-1 rounded-full bg-gradient-to-b from-teal to-teal-light" />
+          <span className="inline-block h-5 w-1 rounded-full bg-brand-blue" />
           Per-Vehicle Financial Summary
         </h2>
         <VehicleSummaryTable vehicles={vehicles} fleetTotals={fleetTotals} />
@@ -212,7 +212,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
       <section className="animate-slide-up delay-400">
         <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
-          <span className="inline-block h-5 w-1 rounded-full bg-gradient-to-b from-teal to-teal-light" />
+          <span className="inline-block h-5 w-1 rounded-full bg-brand-blue" />
           Service Status Overview
         </h2>
         <ServiceOverviewTable rows={serviceRows} />

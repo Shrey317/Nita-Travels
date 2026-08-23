@@ -8,6 +8,7 @@
 
 import { format as formatDateFns, parseISO } from "date-fns";
 import { FLEET_WIDE_VEHICLE_ID } from "@/lib/constants";
+import { calculateProfitMargin } from "@/lib/finance";
 
 /** Formats integer cents as a ZAR currency string, e.g. 1234550 -> "R 12,345.50". */
 export function formatZAR(cents: number): string {
@@ -22,20 +23,9 @@ export function formatKm(km: number | null | undefined): string {
   return km === null || km === undefined ? "—" : `${km.toLocaleString("en-ZA")} km`;
 }
 
-/**
- * Net profit margin as a decimal ratio, e.g. 0.235 for 23.5%.
- * Returns null when income is zero — margin is undefined in that case, not zero.
- * This is the single source of truth for the margin formula: (income - expense) / income.
- * income/expense - 1 is INCORRECT and must never be used anywhere in the codebase.
- */
-export function profitMargin(incomeCents: number, expenseCents: number): number | null {
-  if (incomeCents === 0) return null;
-  return (incomeCents - expenseCents) / incomeCents;
-}
-
 /** Formats net profit margin for display, e.g. "23.5%". Renders "—" when income is zero. */
 export function formatMargin(incomeCents: number, expenseCents: number): string {
-  const margin = profitMargin(incomeCents, expenseCents);
+  const margin = calculateProfitMargin(incomeCents, expenseCents);
   return margin === null ? "—" : `${(margin * 100).toFixed(1)}%`;
 }
 

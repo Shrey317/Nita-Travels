@@ -8,7 +8,23 @@
  * currentMileageKm baseline. Client-submitted "previous mileage" values are always ignored.
  */
 
-import { getISOWeek, getISOWeekYear } from "date-fns";
+import { getISOWeek, getISOWeekYear, startOfWeek, endOfWeek } from "date-fns";
+
+export const WEEKLY_MILEAGE_LIMIT = 2000;
+
+/**
+ * Returns the start of the business week (Monday 00:00:00).
+ */
+export function getBusinessWeekStart(date: Date = new Date()): Date {
+  return startOfWeek(date, { weekStartsOn: 1 });
+}
+
+/**
+ * Returns the end of the business week (Sunday 23:59:59.999).
+ */
+export function getBusinessWeekEnd(date: Date = new Date()): Date {
+  return endOfWeek(date, { weekStartsOn: 1 });
+}
 
 export interface MileageEntryDerived {
   distanceDrivenKm: number;
@@ -27,7 +43,7 @@ export function buildMileageEntry(
   date: Date,
   currentKm: number,
   previousKm: number,
-  weeklyLimitKm: number = 2000
+  weeklyLimitKm: number = WEEKLY_MILEAGE_LIMIT
 ): MileageEntryDerived {
   const distance = currentKm - previousKm;
   return {
@@ -41,6 +57,22 @@ export function buildMileageEntry(
 /** A new mileage reading must always exceed the previous one — odometers don't run backwards. */
 export function isValidMileageProgression(currentKm: number, previousKm: number): boolean {
   return currentKm > previousKm;
+}
+
+/**
+ * Validates a mileage reading. Returns an error message if invalid, or null if valid.
+ */
+export function validateMileageReading(newMileageKm: number, previousMileageKm: number): string | null {
+  if (newMileageKm < previousMileageKm) {
+    return "New mileage reading cannot be lower than the previous reading.";
+  }
+  if (newMileageKm === previousMileageKm) {
+    return "New mileage reading must be greater than the previous reading.";
+  }
+  if (newMileageKm - previousMileageKm > 5000) {
+    return "Unrealistic mileage increase detected (> 5,000 km in a single reading). Please verify.";
+  }
+  return null;
 }
 
 /**

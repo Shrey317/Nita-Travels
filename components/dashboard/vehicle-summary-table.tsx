@@ -49,7 +49,7 @@ export function VehicleSummaryTable({ vehicles, fleetTotals }: VehicleSummaryTab
         {sorted.map(({ vehicle, incomeCents, expenseCents, repairsCents, netProfitCents, marginLabel, service }) => (
           <TableRow key={vehicle.id}>
             <TableCell>
-              <Link href={`/vehicles/${vehicle.id}`} className="font-medium text-teal hover:underline">
+              <Link href={`/vehicles/${vehicle.id}`} className="font-medium text-brand-blue hover:underline">
                 {vehicle.id}
               </Link>
             </TableCell>
@@ -70,7 +70,7 @@ export function VehicleSummaryTable({ vehicles, fleetTotals }: VehicleSummaryTab
               <div className="flex items-center justify-end gap-2 opacity-50 transition-opacity hover:opacity-100 focus-within:opacity-100">
                 <Link
                   href={`/transactions/new?vehicleId=${vehicle.id}`}
-                  className="rounded p-1.5 text-muted hover:bg-surface hover:text-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light"
+                  className="rounded p-1.5 text-muted hover:bg-surface-secondary hover:text-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30"
                   title="Add Transaction"
                 >
                   <PlusCircle className="h-4 w-4" />
@@ -78,7 +78,7 @@ export function VehicleSummaryTable({ vehicles, fleetTotals }: VehicleSummaryTab
                 </Link>
                 <Link
                   href={`/mileage/new?vehicleId=${vehicle.id}`}
-                  className="rounded p-1.5 text-muted hover:bg-surface hover:text-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light"
+                  className="rounded p-1.5 text-muted hover:bg-surface-secondary hover:text-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30"
                   title="Add Mileage"
                 >
                   <Gauge className="h-4 w-4" />
@@ -86,7 +86,7 @@ export function VehicleSummaryTable({ vehicles, fleetTotals }: VehicleSummaryTab
                 </Link>
                 <Link
                   href={`/vehicles/${vehicle.id}/notes/new`}
-                  className="rounded p-1.5 text-muted hover:bg-surface hover:text-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light"
+                  className="rounded p-1.5 text-muted hover:bg-surface-secondary hover:text-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30"
                   title="Add Note"
                 >
                   <FileText className="h-4 w-4" />
@@ -94,7 +94,7 @@ export function VehicleSummaryTable({ vehicles, fleetTotals }: VehicleSummaryTab
                 </Link>
                 <Link
                   href={`/vehicles/${vehicle.id}/edit`}
-                  className="rounded p-1.5 text-muted hover:bg-surface hover:text-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light"
+                  className="rounded p-1.5 text-muted hover:bg-surface-secondary hover:text-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30"
                   title="Edit Vehicle"
                 >
                   <Pencil className="h-4 w-4" />

@@ -15,14 +15,14 @@ export function TodaysPriorities({ items }: { items: PriorityItem[] }) {
       <Card className="animate-slide-up delay-200">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
-            <span className="inline-block h-5 w-1 rounded-full bg-gradient-to-b from-teal to-teal-light" />
+            <span className="inline-block h-5 w-1 rounded-full bg-brand-blue" />
             Today&apos;s Priorities
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-3 rounded-lg border border-status-green/20 bg-status-green/5 p-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-status-green/10">
-              <Clock className="h-4 w-4 text-status-green" />
+          <div className="flex items-center gap-3 rounded-lg border border-status-success/20 bg-status-success/5 p-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-status-success/10">
+              <Clock className="h-4 w-4 text-status-success" />
             </div>
             <div>
               <p className="text-sm font-medium text-ink">All clear</p>
@@ -38,9 +38,9 @@ export function TodaysPriorities({ items }: { items: PriorityItem[] }) {
     <Card className="animate-slide-up delay-200">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
-          <span className="inline-block h-5 w-1 rounded-full bg-gradient-to-b from-status-red to-orange-400" />
+          <span className="inline-block h-5 w-1 rounded-full bg-status-error" />
           Today&apos;s Priorities
-          <span className="ml-auto inline-flex h-5 items-center rounded-full bg-status-red/10 px-2 text-xs font-medium text-status-red">
+          <span className="ml-auto inline-flex h-5 items-center rounded-full bg-status-error/10 px-2 text-xs font-medium text-status-error">
             {items.length}
           </span>
         </CardTitle>
@@ -53,29 +53,29 @@ export function TodaysPriorities({ items }: { items: PriorityItem[] }) {
               <Link
                 key={`${item.vehicleId}-${i}`}
                 href={item.href}
-                className="group flex items-start gap-3 rounded-lg border border-border/50 p-3 transition-all hover:border-teal/30 hover:bg-surface/50 hover:shadow-sm"
+                className="group flex items-start gap-3 rounded-lg border border-border/50 p-3 transition-all hover:border-brand-blue/30 hover:bg-surface-secondary/50 hover:shadow-sm"
               >
                 <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                  isCritical ? "bg-status-red/10" : "bg-status-yellow/10"
+                  isCritical ? "bg-status-error/10" : "bg-status-warning/10"
                 }`}>
                   {isCritical ? (
-                    <AlertCircle className="h-3.5 w-3.5 text-status-red" />
+                    <AlertCircle className="h-3.5 w-3.5 text-status-error" />
                   ) : (
-                    <AlertTriangle className="h-3.5 w-3.5 text-status-yellow" />
+                    <AlertTriangle className="h-3.5 w-3.5 text-status-warning" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded bg-navy px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    <span className="inline-flex items-center rounded bg-brand-navy px-1.5 py-0.5 text-[10px] font-bold text-white">
                       {item.vehicleId}
                     </span>
                     <span className={`text-[10px] font-medium uppercase tracking-wider ${
-                      isCritical ? "text-status-red" : "text-status-yellow"
+                      isCritical ? "text-status-error" : "text-status-warning"
                     }`}>
                       {isCritical ? "Critical" : "Warning"}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-sm text-ink group-hover:text-teal transition-colors">{item.title}</p>
+                  <p className="mt-0.5 text-sm text-ink group-hover:text-brand-blue transition-colors">{item.title}</p>
                 </div>
                 <span className="mt-1 text-xs text-muted opacity-0 group-hover:opacity-100 transition-opacity">View →</span>
               </Link>

@@ -9,20 +9,37 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        navy: { DEFAULT: "#020617", light: "#0f172a" },
-        // teal is used as the primary brand color for Nita Travels
-        teal: { DEFAULT: "#0d9488", light: "#14b8a6", dark: "#0f766e" },
-        // Semantic colors — driven by CSS custom properties in globals.css so they auto-switch
-        // between light/dark modes. Uses the rgb(var(...) / <alpha-value>) pattern for opacity.
+        // Nita Travels Brand Colors
+        brand: {
+          navy: "#0F172A",
+          blue: "#2563EB",
+          blueAccent: "#3B82F6",
+          teal: "#0D9488",
+        },
+        navy: { DEFAULT: "#0F172A", light: "#1E293B" },
+        teal: { DEFAULT: "#0D9488", light: "#14B8A6", dark: "#0F766E" },
+        
+        // Neutral System (Semantic custom properties via globals.css)
         surface: "rgb(var(--color-surface) / <alpha-value>)",
-        card: "rgb(var(--color-card) / <alpha-value>)",
+        "surface-secondary": "rgb(var(--color-surface-secondary) / <alpha-value>)",
+        "surface-elevated": "rgb(var(--color-surface-elevated) / <alpha-value>)",
         border: "rgb(var(--color-border) / <alpha-value>)",
+        
+        // Text Colors
         ink: "rgb(var(--color-ink) / <alpha-value>)",
+        "ink-secondary": "rgb(var(--color-ink-secondary) / <alpha-value>)",
         muted: "rgb(var(--color-muted) / <alpha-value>)",
+        disabled: "rgb(var(--color-disabled) / <alpha-value>)",
+        
+        // Semantic Status Colors
         status: {
-          green: "#12843C",
-          yellow: "#9D6B03",
+          success: { DEFAULT: "#16A34A", bg: "rgb(var(--color-success-bg) / <alpha-value>)" },
+          warning: { DEFAULT: "#D97706", bg: "rgb(var(--color-warning-bg) / <alpha-value>)" },
+          error: { DEFAULT: "#DC2626", bg: "rgb(var(--color-error-bg) / <alpha-value>)" },
+          info: { DEFAULT: "#2563EB", bg: "rgb(var(--color-info-bg) / <alpha-value>)" },
           red: "#DC2626",
+          yellow: "#D97706",
+          green: "#16A34A",
         },
         notebg: "rgb(var(--color-notebg) / <alpha-value>)",
       },
@@ -30,12 +47,16 @@ const config: Config = {
         sans: ["var(--font-inter)"],
       },
       borderRadius: {
-        xl: "0.75rem",
+        badge: "0.375rem",   // 6px
+        input: "0.5rem",     // 8px
+        button: "0.5rem",    // 8px
+        card: "0.75rem",     // 12px
+        dialog: "0.875rem",  // 14px
       },
       boxShadow: {
-        glow: "0 0 15px -3px rgba(11,129,119,0.3)",
-        "card-hover": "0 10px 40px -10px rgba(15,37,64,0.15), 0 4px 12px -2px rgba(15,37,64,0.08)",
-        "card-elevated": "0 20px 60px -15px rgba(15,37,64,0.2)",
+        "soft": "0 2px 8px -2px rgba(15, 23, 42, 0.05)",
+        "card-hover": "0 10px 40px -10px rgba(15, 23, 42, 0.15), 0 4px 12px -2px rgba(15, 23, 42, 0.08)",
+        "card-elevated": "0 20px 60px -15px rgba(15, 23, 42, 0.2)",
       },
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
@@ -43,21 +64,17 @@ const config: Config = {
         "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
         "slide-up": { from: { opacity: "0", transform: "translateY(12px)" }, to: { opacity: "1", transform: "translateY(0)" } },
         "slide-in-left": { from: { opacity: "0", transform: "translateX(-16px)" }, to: { opacity: "1", transform: "translateX(0)" } },
-        "scale-in": { from: { opacity: "0", transform: "scale(0.9)" }, to: { opacity: "1", transform: "scale(1)" } },
+        "scale-in": { from: { opacity: "0", transform: "scale(0.95)" }, to: { opacity: "1", transform: "scale(1)" } },
         shimmer: { "0%": { backgroundPosition: "-200% 0" }, "100%": { backgroundPosition: "200% 0" } },
-        float: { "0%, 100%": { transform: "translateY(0)" }, "50%": { transform: "translateY(-4px)" } },
-        "pulse-dot": { "0%, 100%": { opacity: "1" }, "50%": { opacity: "0.4" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.5s ease-out both",
-        "slide-up": "slide-up 0.5s ease-out both",
-        "slide-in-left": "slide-in-left 0.4s ease-out both",
-        "scale-in": "scale-in 0.4s ease-out both",
+        "fade-in": "fade-in 0.3s ease-out both",
+        "slide-up": "slide-up 0.3s ease-out both",
+        "slide-in-left": "slide-in-left 0.3s ease-out both",
+        "scale-in": "scale-in 0.2s ease-out both",
         shimmer: "shimmer 2s linear infinite",
-        float: "float 3s ease-in-out infinite",
-        "pulse-dot": "pulse-dot 2s ease-in-out infinite",
       },
     },
   },

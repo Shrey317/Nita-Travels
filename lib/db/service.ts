@@ -40,6 +40,7 @@ async function getLatestServiceByVehicle(): Promise<Map<string, { date: Date; mi
       category: "Service",
       mileageKm: { not: null },
       vehicleId: { not: null },
+      deletedAt: null,
     },
     orderBy: { date: "desc" },
     distinct: ["vehicleId"],
@@ -58,7 +59,7 @@ async function getLatestServiceByVehicle(): Promise<Map<string, { date: Date; mi
 export async function getServiceStatusAllVehicles(): Promise<VehicleServiceRow[]> {
   const [vehicles, latestServiceMap] = await Promise.all([
     prisma.vehicle.findMany({
-      where: { active: true },
+      where: { active: true, deletedAt: null },
       select: { id: true, registration: true, currentMileageKm: true, serviceIntervalKm: true },
       orderBy: { id: "asc" },
     }),
@@ -120,7 +121,7 @@ export async function getLatestServiceForVehicle(
   vehicleId: string
 ): Promise<{ date: Date; mileageKm: number } | null> {
   const row = await prisma.transaction.findFirst({
-    where: { vehicleId, category: "Service", mileageKm: { not: null } },
+    where: { vehicleId, category: "Service", mileageKm: { not: null }, deletedAt: null },
     orderBy: { date: "desc" },
     select: { date: true, mileageKm: true },
   });

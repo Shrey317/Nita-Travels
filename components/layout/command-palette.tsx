@@ -1,16 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Command } from "cmdk";
 import { Search, Car, Receipt, Wrench, Loader2, FileText, PlusCircle, Gauge } from "lucide-react";
 import { globalSearch, SearchResults } from "@/lib/actions/search";
 
 export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: boolean) => void }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // Extract vehicleId if we are on a vehicle profile page
+  const vehicleIdMatch = pathname?.match(/^\/vehicles\/([^/]+)$/);
+  const currentVehicleId = vehicleIdMatch && vehicleIdMatch[1] !== "new" ? vehicleIdMatch[1] : null;
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -65,17 +70,17 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
 
         {!query && (
           <Command.Group heading="Quick Actions" className="px-2 py-2 text-xs font-medium text-muted">
-            <Command.Item onSelect={() => onSelect("/vehicles/new")} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-teal/10 aria-selected:text-teal-dark dark:aria-selected:text-teal-light data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1">
+            <Command.Item onSelect={() => onSelect("/vehicles/new")} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-brand-blue/10 aria-selected:text-brand-blue data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1">
               <Car className="mr-2 h-4 w-4 text-muted" />
               <span className="text-ink">Add New Vehicle</span>
             </Command.Item>
-            <Command.Item onSelect={() => onSelect("/transactions/new")} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-teal/10 aria-selected:text-teal-dark dark:aria-selected:text-teal-light data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1">
+            <Command.Item onSelect={() => onSelect(currentVehicleId ? `/transactions/new?vehicleId=${currentVehicleId}` : "/transactions/new")} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-brand-blue/10 aria-selected:text-brand-blue data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1">
               <PlusCircle className="mr-2 h-4 w-4 text-muted" />
-              <span className="text-ink">Log Transaction</span>
+              <span className="text-ink">Log Transaction {currentVehicleId && `(${currentVehicleId})`}</span>
             </Command.Item>
-            <Command.Item onSelect={() => onSelect("/mileage/new")} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-teal/10 aria-selected:text-teal-dark dark:aria-selected:text-teal-light data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
+            <Command.Item onSelect={() => onSelect(currentVehicleId ? `/mileage/new?vehicleId=${currentVehicleId}` : "/mileage/new")} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-brand-blue/10 aria-selected:text-brand-blue data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
               <Gauge className="mr-2 h-4 w-4 text-muted" />
-              <span className="text-ink">Record Mileage</span>
+              <span className="text-ink">Record Mileage {currentVehicleId && `(${currentVehicleId})`}</span>
             </Command.Item>
           </Command.Group>
         )}
@@ -83,7 +88,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
         {results?.vehicles?.length ? (
           <Command.Group heading="Vehicles" className="px-2 py-2 text-xs font-medium text-muted">
             {results.vehicles.map((v) => (
-              <Command.Item key={v.id} value={v.id} onSelect={() => onSelect(v.href)} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-teal/10 aria-selected:text-teal-dark dark:aria-selected:text-teal-light data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1 last:mb-0">
+              <Command.Item key={v.id} value={v.id} onSelect={() => onSelect(v.href)} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-brand-blue/10 aria-selected:text-brand-blue data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1 last:mb-0">
                 <Car className="mr-2 h-4 w-4 text-muted" />
                 <div className="flex flex-col">
                   <span className="text-ink">{v.title}</span>
@@ -97,7 +102,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
         {results?.transactions?.length ? (
           <Command.Group heading="Transactions" className="px-2 py-2 text-xs font-medium text-muted">
             {results.transactions.map((t) => (
-              <Command.Item key={t.id} value={t.id} onSelect={() => onSelect(t.href)} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-teal/10 aria-selected:text-teal-dark dark:aria-selected:text-teal-light data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1 last:mb-0">
+              <Command.Item key={t.id} value={t.id} onSelect={() => onSelect(t.href)} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-brand-blue/10 aria-selected:text-brand-blue data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1 last:mb-0">
                 <Receipt className="mr-2 h-4 w-4 text-muted" />
                 <div className="flex flex-col">
                   <span className="text-ink">{t.title}</span>
@@ -111,7 +116,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
         {results?.repairs?.length ? (
           <Command.Group heading="Repairs" className="px-2 py-2 text-xs font-medium text-muted">
             {results.repairs.map((r) => (
-              <Command.Item key={r.id} value={r.id} onSelect={() => onSelect(r.href)} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-teal/10 aria-selected:text-teal-dark dark:aria-selected:text-teal-light data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1 last:mb-0">
+              <Command.Item key={r.id} value={r.id} onSelect={() => onSelect(r.href)} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-brand-blue/10 aria-selected:text-brand-blue data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1 last:mb-0">
                 <Wrench className="mr-2 h-4 w-4 text-muted" />
                 <div className="flex flex-col">
                   <span className="text-ink">{r.title}</span>
@@ -125,7 +130,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
         {results?.notes?.length ? (
           <Command.Group heading="Notes" className="px-2 py-2 text-xs font-medium text-muted">
             {results.notes.map((n) => (
-              <Command.Item key={n.id} value={n.id} onSelect={() => onSelect(n.href)} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-teal/10 aria-selected:text-teal-dark dark:aria-selected:text-teal-light data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1 last:mb-0">
+              <Command.Item key={n.id} value={n.id} onSelect={() => onSelect(n.href)} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-brand-blue/10 aria-selected:text-brand-blue data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1 last:mb-0">
                 <FileText className="mr-2 h-4 w-4 text-muted" />
                 <div className="flex flex-col">
                   <span className="text-ink">{n.title}</span>

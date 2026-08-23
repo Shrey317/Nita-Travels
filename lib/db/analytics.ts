@@ -8,6 +8,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { getVehiclesWithFinancials } from "@/lib/db/vehicles";
+import { calculateRoiPercent, calculateRevenuePerKm, calculateCostPerKm, calculateProfitPerKm } from "@/lib/finance";
 
 export interface CategoryBreakdownRow {
   category: string;
@@ -22,6 +23,7 @@ export interface CategoryBreakdownRow {
 export async function getCategoryBreakdown(): Promise<CategoryBreakdownRow[]> {
   const groups = await prisma.transaction.groupBy({
     by: ["category"],
+    where: { deletedAt: null },
     _sum: { incomeZarCents: true, expenseZarCents: true },
     _count: true,
   });
@@ -75,10 +77,10 @@ export async function getVehiclePerformanceRanking(): Promise<VehicleRankingRow[
     repairsCents: s.repairsCents,
     netProfitCents: s.netProfitCents,
     marginLabel: s.marginLabel,
-    roiPercent: s.vehicle.purchasePriceCents === 0 ? null : (s.netProfitCents / s.vehicle.purchasePriceCents) * 100,
+    roiPercent: calculateRoiPercent(s.netProfitCents, s.vehicle.purchasePriceCents),
     kmSincePurchase: s.kmSincePurchase,
-    revenuePerKmCents: s.kmSincePurchase > 0 ? s.incomeCents / s.kmSincePurchase : null,
-    costPerKmCents: s.kmSincePurchase > 0 ? s.expenseCents / s.kmSincePurchase : null,
-    profitPerKmCents: s.kmSincePurchase > 0 ? s.netProfitCents / s.kmSincePurchase : null,
+    revenuePerKmCents: calculateRevenuePerKm(s.incomeCents, s.kmSincePurchase),
+    costPerKmCents: calculateCostPerKm(s.expenseCents, s.kmSincePurchase),
+    profitPerKmCents: calculateProfitPerKm(s.netProfitCents, s.kmSincePurchase),
   }));
 }

@@ -8,7 +8,7 @@ export type SearchResultItem = {
   title: string;
   subtitle: string;
   href: string;
-  type: "vehicle" | "transaction" | "repair" | "mileage";
+  type: "vehicle" | "transaction" | "repair" | "mileage" | "note";
 };
 
 export type SearchResults = {
@@ -22,26 +22,44 @@ export async function globalSearch(query: string): Promise<SearchResults> {
   const session = await auth();
   if (!session) return { vehicles: [], transactions: [], repairs: [], notes: [] };
 
-  if (!query || query.length < 2) {
+  const q = query?.trim();
+  if (!q || q.length < 2) {
     return { vehicles: [], transactions: [], repairs: [], notes: [] };
   }
+
+  const exactMatches = await prisma.vehicle.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        { id: { equals: q, mode: "insensitive" } },
+        { registration: { equals: q, mode: "insensitive" } },
+      ],
+    },
+    take: 3,
+  });
+
+  const exactIds = new Set(exactMatches.map(v => v.id));
 
   const [vehicles, transactions, notes] = await Promise.all([
     prisma.vehicle.findMany({
       where: {
+        deletedAt: null,
+        id: { notIn: Array.from(exactIds) },
         OR: [
-          { make: { contains: query, mode: "insensitive" } },
-          { model: { contains: query, mode: "insensitive" } },
-          { registration: { contains: query, mode: "insensitive" } },
+          { make: { contains: q, mode: "insensitive" } },
+          { model: { contains: q, mode: "insensitive" } },
+          { registration: { contains: q, mode: "insensitive" } },
+          { id: { contains: q, mode: "insensitive" } },
         ],
       },
       take: 5,
     }),
     prisma.transaction.findMany({
       where: {
+        deletedAt: null,
         OR: [
-          { notes: { contains: query, mode: "insensitive" } },
-          { vehicleId: { contains: query, mode: "insensitive" } },
+          { notes: { contains: q, mode: "insensitive" } },
+          { vehicleId: { contains: q, mode: "insensitive" } },
         ],
       },
       take: 10,
@@ -49,16 +67,18 @@ export async function globalSearch(query: string): Promise<SearchResults> {
     prisma.vehicleNote.findMany({
       where: {
         OR: [
-          { note: { contains: query, mode: "insensitive" } },
-          { vehicleId: { contains: query, mode: "insensitive" } },
+          { note: { contains: q, mode: "insensitive" } },
+          { vehicleId: { contains: q, mode: "insensitive" } },
         ],
       },
       take: 5,
     }),
   ]);
 
+  const allVehicles = [...exactMatches, ...vehicles];
+
   return {
-    vehicles: vehicles.map((v) => ({
+    vehicles: allVehicles.map((v) => ({
       id: v.id,
       title: `${v.make} ${v.model} (${v.registration})`,
       subtitle: `Status: ${v.active ? "Active" : "Inactive"}`,
@@ -84,7 +104,7 @@ export async function globalSearch(query: string): Promise<SearchResults> {
       title: n.vehicleId ? `Note for ${n.vehicleId}` : "Fleet-wide Note",
       subtitle: `Date: ${n.date.toISOString().split("T")[0]}`,
       href: n.vehicleId && n.vehicleId !== "ALLCR" ? `/vehicles/${n.vehicleId}?type=notes` : `/vehicles`,
-      type: "transaction", // Reusing transaction visual style for notes
+      type: "note", 
     })),
   };
 }

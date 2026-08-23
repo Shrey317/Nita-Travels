@@ -54,6 +54,7 @@ function buildTransactionWhere(filters: TransactionFilters): Prisma.TransactionW
     ...(dateFrom || dateTo
       ? { date: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
       : {}),
+    deletedAt: null,
     ...(search ? { notes: { contains: search, mode: "insensitive" as const } } : {}),
   };
 }
@@ -87,7 +88,7 @@ export async function getTransactions(filters: TransactionFilters = {}): Promise
 }
 
 export async function getTransactionById(id: string): Promise<Transaction | null> {
-  return prisma.transaction.findUnique({ where: { id } });
+  return prisma.transaction.findUnique({ where: { id, deletedAt: null } });
 }
 
 /**
@@ -135,9 +136,9 @@ export async function updateTransaction(id: string, input: TransactionUpdateInpu
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
-  const existing = await prisma.transaction.findUnique({ where: { id } });
+  const existing = await prisma.transaction.findUnique({ where: { id, deletedAt: null } });
   if (!existing) throw new NotFoundError(`Transaction ${id} not found`);
-  await prisma.transaction.delete({ where: { id } });
+  await prisma.transaction.update({ where: { id }, data: { deletedAt: new Date() } });
 }
 
 export interface FleetTotals {
@@ -148,9 +149,12 @@ export interface FleetTotals {
 
 /** Dashboard KPI totals — every vehicleId including ALLCR and null (SRS 13.3, 15.1). */
 export async function getFleetTotals(dateFrom?: Date, dateTo?: Date): Promise<FleetTotals> {
-  const where = dateFrom || dateTo
-    ? { date: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
-    : {};
+  const where: Prisma.TransactionWhereInput = {
+    deletedAt: null,
+    ...(dateFrom || dateTo
+      ? { date: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
+      : {}),
+  };
   const result = await prisma.transaction.aggregate({ where, _sum: { incomeZarCents: true, expenseZarCents: true } });
   const incomeCents = result._sum.incomeZarCents ?? 0;
   const expenseCents = result._sum.expenseZarCents ?? 0;
@@ -167,12 +171,12 @@ export interface RepairsSummary {
 export async function getRepairsSummary(): Promise<RepairsSummary> {
   const [agg, mostRecent] = await Promise.all([
     prisma.transaction.aggregate({
-      where: { category: { in: [...REPAIR_CATEGORIES] } },
+      where: { category: { in: [...REPAIR_CATEGORIES] }, deletedAt: null },
       _sum: { expenseZarCents: true },
       _count: true,
     }),
     prisma.transaction.findFirst({
-      where: { category: { in: [...REPAIR_CATEGORIES] } },
+      where: { category: { in: [...REPAIR_CATEGORIES] }, deletedAt: null },
       orderBy: { date: "desc" },
       select: { date: true, vehicleId: true },
     }),
@@ -198,7 +202,8 @@ export async function getRepairsAnomalies(): Promise<RepairAnomaly[]> {
     where: { 
       category: { in: [...REPAIR_CATEGORIES] },
       date: { gte: thirtyDaysAgo },
-      vehicleId: { not: null }
+      vehicleId: { not: null },
+      deletedAt: null
     }
   });
 

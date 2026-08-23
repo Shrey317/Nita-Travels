@@ -76,7 +76,7 @@ export function Topbar() {
         {/* Global Search */}
         <button
           onClick={() => setCommandOpen(true)}
-          className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm text-muted hover:border-teal/50 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light transition-colors"
+          className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm text-muted hover:border-brand-blue/50 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue transition-colors"
         >
           <Search className="h-4 w-4" />
           <span className="hidden sm:inline-block">Search...</span>

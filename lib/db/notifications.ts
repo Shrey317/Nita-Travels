@@ -33,7 +33,7 @@ export async function getFleetNotifications(): Promise<FleetNotification[]> {
 
   const [vehicles, serviceRows] = await Promise.all([
     prisma.vehicle.findMany({
-      where: { active: true },
+      where: { active: true, deletedAt: null },
       select: {
         id: true,
         registration: true,

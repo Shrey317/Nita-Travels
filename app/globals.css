@@ -2,42 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Semantic color tokens as RGB channels so Tailwind opacity modifiers (e.g. bg-card/95) work.
-   Light values are the originals from the design system; dark values are matched-hue variants
-   chosen to maintain the navy brand feel while passing readability checks.
-   
-   The actual color system was previously in tailwind.config.ts as fixed hex values — it's now
-   driven by these CSS custom properties to support light/dark modes. */
 :root {
-  --color-surface: 248 250 252;   /* slate-50 */
-  --color-card: 255 255 255;      /* white */
-  --color-border: 226 232 240;    /* slate-200 */
-  --color-ink: 15 23 42;          /* slate-900 */
-  --color-muted: 100 116 139;     /* slate-500 */
-  --color-notebg: 254 249 195;    /* yellow-100 */
+  /* Main Neutral System */
+  --color-surface: 248 250 252;             /* #F8FAFC */
+  --color-surface-secondary: 241 245 249;   /* #F1F5F9 */
+  --color-surface-elevated: 255 255 255;    /* #FFFFFF */
+  --color-border: 226 232 240;              /* #E2E8F0 */
+  
+  /* Text */
+  --color-ink: 15 23 42;                    /* #0F172A */
+  --color-ink-secondary: 71 85 105;         /* #475569 */
+  --color-muted: 100 116 139;               /* #64748B */
+  --color-disabled: 148 163 184;            /* #94A3B8 */
+
+  /* Semantic Backgrounds (Light) */
+  --color-success-bg: 220 252 231;          /* #DCFCE7 */
+  --color-warning-bg: 254 243 199;          /* #FEF3C7 */
+  --color-error-bg: 254 226 226;            /* #FEE2E2 */
+  --color-info-bg: 219 234 254;             /* #DBEAFE */
+  --color-notebg: 254 249 195;              /* #FEF9C3 */
 }
 
 .dark {
-  --color-surface: 9 9 11;        /* zinc-950 */
-  --color-card: 24 24 27;         /* zinc-900 */
-  --color-border: 39 39 42;       /* zinc-800 */
-  --color-ink: 244 244 245;       /* zinc-50 */
-  --color-muted: 161 161 170;     /* zinc-400 */
-  --color-notebg: 67 36 24;       /* yellow-950ish */
+  /* Main Neutral System */
+  --color-surface: 2 6 23;                  /* #020617 */
+  --color-surface-secondary: 15 23 42;      /* #0F172A */
+  --color-surface-elevated: 30 41 59;       /* #1E293B */
+  --color-border: 51 65 85;                 /* #334155 */
+  
+  /* Text */
+  --color-ink: 248 250 252;                 /* #F8FAFC */
+  --color-ink-secondary: 203 213 225;       /* #CBD5E1 */
+  --color-muted: 148 163 184;               /* #94A3B8 */
+  --color-disabled: 71 85 105;              /* #475569 */
+
+  /* Semantic Backgrounds (Dark - Using Surface Elevated or brand specific opacity logic generally) */
+  /* For dark mode, we dim the semantic backgrounds significantly so they don't overpower the dark aesthetic */
+  --color-success-bg: 22 101 52;            /* #166534 / opacity handled in utility */
+  --color-warning-bg: 146 64 14;            /* #92400E / opacity handled in utility */
+  --color-error-bg: 153 27 27;              /* #991B1B / opacity handled in utility */
+  --color-info-bg: 30 64 175;               /* #1E40AF / opacity handled in utility */
+  --color-notebg: 67 36 24;                 /* dark note background */
 }
 
-* {
-  border-color: rgb(var(--color-border));
-}
-
-body {
-  background-color: rgb(var(--color-surface));
-  color: rgb(var(--color-ink));
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-surface text-ink antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
 }
 
 .font-mono-figures {
   font-variant-numeric: tabular-nums;
+}
+
+/* ─── Focus States ─── */
+/* Consistent modern focus ring replacing default browser focus */
+*:focus-visible {
+  outline: 2px solid theme('colors.brand.blue');
+  outline-offset: 2px;
 }
 
 /* ─── Modern Scrollbar ─── */
@@ -58,26 +85,24 @@ body {
 
 /* ─── Brand-colored text selection ─── */
 ::selection {
-  background: rgba(11, 129, 119, 0.2);
+  background: rgba(37, 99, 235, 0.2); /* Brand Blue */
   color: rgb(var(--color-ink));
 }
 
-/* ─── Stagger animation delay utilities ─── */
-@layer utilities {
-  .delay-0 { animation-delay: 0ms; }
-  .delay-75 { animation-delay: 75ms; }
-  .delay-100 { animation-delay: 100ms; }
-  .delay-150 { animation-delay: 150ms; }
-  .delay-200 { animation-delay: 200ms; }
-  .delay-300 { animation-delay: 300ms; }
-  .delay-400 { animation-delay: 400ms; }
-  .delay-500 { animation-delay: 500ms; }
+/* ─── Reduced Motion Support ─── */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 [cmdk-overlay] {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.7);
+  background-color: rgba(2, 6, 23, 0.7);
   backdrop-filter: blur(4px);
   z-index: 50;
 }

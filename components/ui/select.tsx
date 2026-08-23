@@ -15,9 +15,9 @@ const SelectTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       "flex h-10 w-full items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm text-ink",
-      "focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal",
+      "focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30 focus-visible:border-brand-blue",
       "disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
-      "aria-[invalid=true]:border-status-red",
+      "aria-[invalid=true]:border-status-error aria-[invalid=true]:focus-visible:ring-status-error/30",
       className
     )}
     {...props}
@@ -70,14 +70,14 @@ const SelectItem = React.forwardRef<
     ref={ref}
     className={cn(
       "relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-sm outline-none",
-      "focus:bg-teal/10 focus:text-teal data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "focus:bg-brand-blue/10 focus:text-brand-blue data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <Check className="h-4 w-4 text-teal" />
+        <Check className="h-4 w-4 text-brand-blue" />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>

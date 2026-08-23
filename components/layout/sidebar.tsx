@@ -32,15 +32,15 @@ function NavLinks({ onNavigate, alwaysShowLabel = false }: { onNavigate?: () => 
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light",
+                  "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
                   active
-                    ? "bg-teal/15 font-medium text-white"
+                    ? "bg-brand-blue/15 font-medium text-white"
                     : "text-slate-400 hover:bg-white/5 hover:text-white hover:translate-x-0.5"
                 )}
               >
                 {/* Active indicator bar */}
                 {active && (
-                  <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-teal-light shadow-glow" />
+                  <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-blue shadow-glow" />
                 )}
                 <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span className={cn("truncate flex-1", alwaysShowLabel ? "inline" : "hidden lg:inline")}>{item.label}</span>
@@ -70,7 +70,7 @@ function SignOutButton({ alwaysShowLabel = false }: { alwaysShowLabel?: boolean 
       <button
         type="submit"
         aria-label="Sign Out"
-        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition-all duration-200 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light"
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition-all duration-200 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
       >
         <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span className={cn(alwaysShowLabel ? "inline" : "hidden lg:inline")}>Sign Out</span>
@@ -88,8 +88,8 @@ export function Sidebar() {
         {/* Mobile top bar */}
         <div className="flex items-center justify-between border-b border-white/5 bg-gradient-to-r from-navy to-navy-light px-4 py-3 md:hidden">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal/20">
-              <Truck className="h-4 w-4 text-teal-light" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10">
+              <Truck className="h-4 w-4 text-white" />
             </div>
             <span className="text-sm font-semibold tracking-tight text-white">NITA TRAVELS</span>
           </div>
@@ -97,7 +97,7 @@ export function Sidebar() {
             <button
               type="button"
               aria-label="Open navigation menu"
-              className="rounded-md p-2 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light"
+              className="rounded-md p-2 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -113,8 +113,8 @@ export function Sidebar() {
             <DialogPrimitive.Title className="sr-only">Navigation menu</DialogPrimitive.Title>
             <div className="flex items-center justify-between px-4 pb-4">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal/20">
-                  <Truck className="h-4 w-4 text-teal-light" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10">
+                  <Truck className="h-4 w-4 text-white" />
                 </div>
                 <span className="text-sm font-semibold text-white">NITA TRAVELS</span>
               </div>
@@ -122,7 +122,7 @@ export function Sidebar() {
                 <button
                   type="button"
                   aria-label="Close navigation menu"
-                  className="rounded-md p-2 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light"
+                  className="rounded-md p-2 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -139,15 +139,15 @@ export function Sidebar() {
         <div className="mb-6 px-3">
           {/* Desktop: logo + name + theme toggle */}
           <div className="hidden items-center gap-2.5 lg:flex">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal/20">
-              <Truck className="h-4 w-4 text-teal-light" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
+              <Truck className="h-4 w-4 text-white" />
             </div>
             <span className="flex-1 text-sm font-semibold tracking-tight text-white">NITA TRAVELS</span>
           </div>
           {/* Tablet: icon-only logo + theme toggle stacked */}
           <div className="flex flex-col items-center gap-2 lg:hidden">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal/20">
-              <Truck className="h-4 w-4 text-teal-light" aria-hidden="true" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
+              <Truck className="h-4 w-4 text-white" aria-hidden="true" />
             </div>
           </div>
         </div>

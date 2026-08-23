@@ -39,7 +39,7 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
   const renderTrend = (trend?: TrendData) => {
     if (!trend) return null;
     return (
-      <div className={`mt-2 flex items-center text-xs font-medium ${trend.isPositive ? 'text-status-green' : 'text-status-red'}`}>
+      <div className={`mt-2 flex items-center text-xs font-medium ${trend.isPositive ? 'text-status-success' : 'text-status-error'}`}>
         {trend.isPositive ? <TrendingUp className="mr-1 h-3 w-3" /> : <TrendingDown className="mr-1 h-3 w-3" />}
         <span>{trend.percent.toFixed(1)}%</span>
         <span className="ml-1 text-muted font-normal">{trend.label}</span>
@@ -51,17 +51,16 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
     <div className="space-y-6">
       {/* Financials Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link href="/transactions" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
-          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-0 transition-all h-full">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-status-green to-emerald-400" />
-          <div className="absolute -right-4 -top-4 text-status-green/5 transition-transform duration-500 group-hover:scale-110">
+        <Link href="/transactions" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-0 transition-all h-full border-t-2 border-t-brand-blue border-x-border border-b-border">
+          <div className="absolute -right-4 -top-4 text-brand-blue/5 transition-transform duration-500 group-hover:scale-110">
             <TrendingUp className="h-24 w-24" />
           </div>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted">Total Income</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="font-mono text-2xl font-semibold text-status-green">{formatZAR(stats.incomeCents)}</p>
+            <p className="font-mono text-2xl font-semibold text-brand-blue">{formatZAR(stats.incomeCents)}</p>
             <div className="flex items-center justify-between">
               <p className="mt-1 text-xs text-muted">Avg {formatZAR(avgIncome)} / veh</p>
               {renderTrend(stats.incomeTrend)}
@@ -70,17 +69,16 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
         </Card>
         </Link>
 
-        <Link href="/transactions" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
-          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-75 transition-all h-full">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-status-red to-rose-400" />
-          <div className="absolute -right-4 -top-4 text-status-red/5 transition-transform duration-500 group-hover:scale-110">
+        <Link href="/transactions" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-75 transition-all h-full border-t-2 border-t-slate-400 border-x-border border-b-border">
+          <div className="absolute -right-4 -top-4 text-slate-400/5 transition-transform duration-500 group-hover:scale-110">
             <TrendingDown className="h-24 w-24" />
           </div>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted">Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="font-mono text-2xl font-semibold text-status-red">{formatZAR(stats.expenseCents)}</p>
+            <p className="font-mono text-2xl font-semibold text-ink">{formatZAR(stats.expenseCents)}</p>
             <div className="flex items-center justify-between">
               <p className="mt-1 text-xs text-muted">Avg {formatZAR(avgCost)} / veh</p>
               {renderTrend(stats.expenseTrend)}
@@ -89,10 +87,9 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
         </Card>
         </Link>
 
-        <Link href="/transactions" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
-          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-150 transition-all h-full">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-navy to-navy-light" />
-          <div className="absolute -right-4 -top-4 text-navy/5 transition-transform duration-500 group-hover:scale-110">
+        <Link href="/transactions" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-150 transition-all h-full border-t-2 border-t-brand-teal border-x-border border-b-border">
+          <div className="absolute -right-4 -top-4 text-brand-teal/5 transition-transform duration-500 group-hover:scale-110">
             <DollarSign className="h-24 w-24" />
           </div>
           <CardHeader className="pb-2">
@@ -120,10 +117,9 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
         </Card>
         </Link>
         
-        <Link href="/repairs" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
-          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-150 transition-all h-full">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 to-amber-500" />
-          <div className="absolute -right-4 -top-4 text-orange-500/5 transition-transform duration-500 group-hover:scale-110">
+        <Link href="/repairs" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-150 transition-all h-full border-t-2 border-t-status-warning border-x-border border-b-border">
+          <div className="absolute -right-4 -top-4 text-status-warning/5 transition-transform duration-500 group-hover:scale-110">
             <Wrench className="h-24 w-24" />
           </div>
           <CardHeader className="pb-2">
@@ -140,7 +136,7 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="font-mono text-2xl font-semibold text-orange-500">{formatZAR(stats.repairsCents)}</p>
+            <p className="font-mono text-2xl font-semibold text-status-warning">{formatZAR(stats.repairsCents)}</p>
             {renderTrend(stats.repairsTrend)}
           </CardContent>
         </Card>
@@ -149,10 +145,9 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
 
       {/* Operational Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link href="/vehicles" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
-          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200 transition-all h-full">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal to-teal-light" />
-          <div className="absolute -right-4 -top-4 text-teal/5 transition-transform duration-500 group-hover:scale-110">
+        <Link href="/vehicles" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200 transition-all h-full border-t-2 border-t-slate-300 border-x-border border-b-border">
+          <div className="absolute -right-4 -top-4 text-slate-300/10 transition-transform duration-500 group-hover:scale-110">
             <Truck className="h-24 w-24" />
           </div>
           <CardHeader className="pb-2">
@@ -164,10 +159,9 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
         </Card>
         </Link>
 
-        <Link href="/service" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
-          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200 transition-all h-full">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-status-yellow to-amber-400" />
-          <div className="absolute -right-4 -top-4 text-status-yellow/5 transition-transform duration-500 group-hover:scale-110">
+        <Link href="/service" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200 transition-all h-full border-t-2 border-t-status-warning border-x-border border-b-border">
+          <div className="absolute -right-4 -top-4 text-status-warning/5 transition-transform duration-500 group-hover:scale-110">
             <AlertTriangle className="h-24 w-24" />
           </div>
           <CardHeader className="pb-2">
@@ -176,20 +170,19 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
           <CardContent className="flex flex-col gap-1">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted">Overdue</span>
-              <span className={`font-mono font-medium ${stats.serviceOverdueCount > 0 ? "text-status-red" : "text-ink"}`}>{stats.serviceOverdueCount}</span>
+              <span className={`font-mono font-medium ${stats.serviceOverdueCount > 0 ? "text-status-error" : "text-ink"}`}>{stats.serviceOverdueCount}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted">Due Soon</span>
-              <span className={`font-mono font-medium ${stats.serviceDueCount > 0 ? "text-status-yellow" : "text-ink"}`}>{stats.serviceDueCount}</span>
+              <span className={`font-mono font-medium ${stats.serviceDueCount > 0 ? "text-status-warning" : "text-ink"}`}>{stats.serviceDueCount}</span>
             </div>
           </CardContent>
         </Card>
         </Link>
 
-        <Link href="/vehicles" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
-          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200 transition-all h-full">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-status-red to-rose-400" />
-          <div className="absolute -right-4 -top-4 text-status-red/5 transition-transform duration-500 group-hover:scale-110">
+        <Link href="/vehicles" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200 transition-all h-full border-t-2 border-t-status-error border-x-border border-b-border">
+          <div className="absolute -right-4 -top-4 text-status-error/5 transition-transform duration-500 group-hover:scale-110">
             <ShieldAlert className="h-24 w-24" />
           </div>
           <CardHeader className="pb-2">
@@ -198,20 +191,19 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
           <CardContent className="flex flex-col gap-1">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted">Expired</span>
-              <span className={`font-mono font-medium ${stats.insuranceExpiredCount > 0 ? "text-status-red" : "text-ink"}`}>{stats.insuranceExpiredCount}</span>
+              <span className={`font-mono font-medium ${stats.insuranceExpiredCount > 0 ? "text-status-error" : "text-ink"}`}>{stats.insuranceExpiredCount}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted">Expiring</span>
-              <span className={`font-mono font-medium ${stats.insuranceExpiringCount > 0 ? "text-status-yellow" : "text-ink"}`}>{stats.insuranceExpiringCount}</span>
+              <span className={`font-mono font-medium ${stats.insuranceExpiringCount > 0 ? "text-status-warning" : "text-ink"}`}>{stats.insuranceExpiringCount}</span>
             </div>
           </CardContent>
         </Card>
         </Link>
 
-        <Link href="/mileage" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
-          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200 transition-all h-full">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-400" />
-          <div className="absolute -right-4 -top-4 text-purple-500/5 transition-transform duration-500 group-hover:scale-110">
+        <Link href="/mileage" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200 transition-all h-full border-t-2 border-t-status-warning border-x-border border-b-border">
+          <div className="absolute -right-4 -top-4 text-status-warning/5 transition-transform duration-500 group-hover:scale-110">
             <AlertTriangle className="h-24 w-24" />
           </div>
           <CardHeader className="pb-2">
@@ -220,11 +212,11 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
           <CardContent className="flex flex-col gap-1">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted">Missing Logs</span>
-              <span className={`font-mono font-medium ${stats.missingMileageCount > 0 ? "text-status-red" : "text-ink"}`}>{stats.missingMileageCount}</span>
+              <span className={`font-mono font-medium ${stats.missingMileageCount > 0 ? "text-status-error" : "text-ink"}`}>{stats.missingMileageCount}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted">Violations</span>
-              <span className={`font-mono font-medium ${stats.mileageViolationsCount > 0 ? "text-status-yellow" : "text-ink"}`}>{stats.mileageViolationsCount}</span>
+              <span className={`font-mono font-medium ${stats.mileageViolationsCount > 0 ? "text-status-warning" : "text-ink"}`}>{stats.mileageViolationsCount}</span>
             </div>
           </CardContent>
         </Card>
