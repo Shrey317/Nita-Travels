@@ -12,31 +12,33 @@ const config: Config = {
         // Nita Travels Brand Colors
         brand: {
           navy: "#0F172A",
-          blue: "#2563EB",
-          blueAccent: "#3B82F6",
+          blue: "#165a18ff",
+          blueAccent: "#218624ff",
           teal: "#0D9488",
         },
         navy: { DEFAULT: "#0F172A", light: "#1E293B" },
         teal: { DEFAULT: "#0D9488", light: "#14B8A6", dark: "#0F766E" },
-        
+
         // Neutral System (Semantic custom properties via globals.css)
         surface: "rgb(var(--color-surface) / <alpha-value>)",
         "surface-secondary": "rgb(var(--color-surface-secondary) / <alpha-value>)",
         "surface-elevated": "rgb(var(--color-surface-elevated) / <alpha-value>)",
+        card: "rgb(var(--color-surface-elevated) / <alpha-value>)",
         border: "rgb(var(--color-border) / <alpha-value>)",
-        
+
         // Text Colors
         ink: "rgb(var(--color-ink) / <alpha-value>)",
         "ink-secondary": "rgb(var(--color-ink-secondary) / <alpha-value>)",
+        "card-foreground": "rgb(var(--color-ink) / <alpha-value>)",
         muted: "rgb(var(--color-muted) / <alpha-value>)",
         disabled: "rgb(var(--color-disabled) / <alpha-value>)",
-        
+
         // Semantic Status Colors
         status: {
           success: { DEFAULT: "#16A34A", bg: "rgb(var(--color-success-bg) / <alpha-value>)" },
           warning: { DEFAULT: "#D97706", bg: "rgb(var(--color-warning-bg) / <alpha-value>)" },
           error: { DEFAULT: "#DC2626", bg: "rgb(var(--color-error-bg) / <alpha-value>)" },
-          info: { DEFAULT: "#2563EB", bg: "rgb(var(--color-info-bg) / <alpha-value>)" },
+          info: { DEFAULT: "#218624ff", bg: "rgb(var(--color-info-bg) / <alpha-value>)" },
           red: "#DC2626",
           yellow: "#D97706",
           green: "#16A34A",

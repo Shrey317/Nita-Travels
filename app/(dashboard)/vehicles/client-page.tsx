@@ -14,6 +14,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface VehicleListClientProps {
   initialVehicles: VehicleSummary[];
@@ -51,7 +58,7 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
           <h1 className="text-2xl font-semibold tracking-tight text-ink">Vehicles</h1>
           <p className="text-sm text-muted">{filteredVehicles.length} vehicles matching filters</p>
         </div>
-        <Button asChild>
+        <Button asChild className="bg-brand-blue text-white hover:bg-brand-blueAccent">
           <Link href="/vehicles/new">
             <Plus className="mr-2 h-4 w-4" />
             Add Vehicle
@@ -74,25 +81,27 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
         </div>
         
         <div className="flex items-center gap-2">
-          <select 
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 rounded-md border border-border bg-transparent px-3 text-sm outline-none focus:border-teal"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active Only</option>
-            <option value="inactive">Inactive Only</option>
-          </select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[130px] h-9 border-border bg-transparent">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active Only</SelectItem>
+              <SelectItem value="inactive">Inactive Only</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <select 
-            value={serviceFilter}
-            onChange={(e) => setServiceFilter(e.target.value)}
-            className="h-9 rounded-md border border-border bg-transparent px-3 text-sm outline-none focus:border-teal"
-          >
-            <option value="all">All Service</option>
-            <option value="overdue">Overdue</option>
-            <option value="due">Due Soon</option>
-          </select>
+          <Select value={serviceFilter} onValueChange={setServiceFilter}>
+            <SelectTrigger className="w-[140px] h-9 border-border bg-transparent">
+              <SelectValue placeholder="All Service" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Service</SelectItem>
+              <SelectItem value="overdue">Overdue</SelectItem>
+              <SelectItem value="due">Due Soon</SelectItem>
+            </SelectContent>
+          </Select>
 
           <div className="flex items-center rounded-md border border-border p-1 bg-surface">
             <button 

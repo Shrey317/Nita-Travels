@@ -24,6 +24,8 @@
 }
 
 .dark {
+  color-scheme: dark;
+  
   /* Main Neutral System */
   --color-surface: 2 6 23;                  /* #020617 */
   --color-surface-secondary: 15 23 42;      /* #0F172A */
@@ -60,11 +62,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ─── Focus States ─── */
-/* Consistent modern focus ring replacing default browser focus */
-*:focus-visible {
-  outline: 2px solid theme('colors.brand.blue');
-  outline-offset: 2px;
+@layer base {
+  :focus-visible {
+    outline: 2px solid theme('colors.brand.blue');
+    outline-offset: 2px;
+  }
 }
 
 /* ─── Modern Scrollbar ─── */
