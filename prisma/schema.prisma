@@ -127,3 +127,11 @@ model VehicleNote {
   @@index([vehicleId])
   @@index([date])
 }
+
+model RateLimit {
+  key       String   @id
+  points    Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}

@@ -28,7 +28,9 @@ export function TimeFilter() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="today">Today</SelectItem>
+          <SelectItem value="yesterday">Yesterday</SelectItem>
           <SelectItem value="week">This Week</SelectItem>
+          <SelectItem value="last-week">Last Week</SelectItem>
           <SelectItem value="month">This Month</SelectItem>
           <SelectItem value="last-month">Last Month</SelectItem>
           <SelectItem value="3-months">Last 3 Months</SelectItem>

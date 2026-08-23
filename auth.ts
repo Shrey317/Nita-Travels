@@ -25,7 +25,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Rate-limit by username+IP so this only throttles repeated guesses against one
         // account/source, not every login attempt from behind a shared IP (office wifi, etc.).
         const rateLimitKey = `${username}:${getClientIp(request)}`;
-        const { allowed } = checkLoginRateLimit(rateLimitKey);
+        const { allowed } = await checkLoginRateLimit(rateLimitKey);
         if (!allowed) {
           console.warn(`Login rate limit hit for key: ${rateLimitKey.split(":")[1]}`);
           return null;
@@ -43,7 +43,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const passwordMatches = await bcrypt.compare(password, passwordHash);
         if (!passwordMatches) return null;
 
-        clearLoginRateLimit(rateLimitKey);
+        await clearLoginRateLimit(rateLimitKey);
         return { id: "admin", name: "Nita Travels Admin" };
       },
     }),

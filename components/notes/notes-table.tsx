@@ -5,6 +5,8 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { PhotoThumbnails } from "@/components/shared/photo-thumbnails";
 import { DeleteConfirmDialog } from "@/components/shared/delete-confirm-dialog";
 import { formatDate } from "@/lib/format";
+import { EmptyState } from "@/components/shared/empty-state";
+import { FileText } from "lucide-react";
 import { FLEET_WIDE_VEHICLE_ID } from "@/lib/constants";
 import type { VehicleNote } from "@prisma/client";
 
@@ -35,9 +37,11 @@ export function NotesTable({ notes, vehicles }: NotesTableProps) {
 
   if (notes.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted">
-        No notes yet.
-      </div>
+      <EmptyState
+        title="No notes yet"
+        description="There are no notes that match your filters."
+        icon={FileText}
+      />
     );
   }
 

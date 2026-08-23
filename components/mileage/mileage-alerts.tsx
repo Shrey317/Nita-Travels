@@ -1,12 +1,15 @@
 "use client";
 
-import { AlertTriangle, Info, AlertCircle } from "lucide-react";
+import { AlertTriangle, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { Vehicle } from "@prisma/client";
+export interface MileageAlertVehicle {
+  id: string;
+  registration: string;
+}
 
 interface MileageAlertsProps {
-  missingMileageVehicles: Vehicle[];
-  overLimitVehicles: { vehicle: Vehicle; overBy: number }[];
+  missingMileageVehicles: MileageAlertVehicle[];
+  overLimitVehicles: { vehicle: MileageAlertVehicle; overBy: number }[];
 }
 
 export function MileageAlerts({ missingMileageVehicles, overLimitVehicles }: MileageAlertsProps) {

@@ -15,6 +15,7 @@ import { getVehicleTimeline, getVehicleMonthlyFinancials, calculateVehicleHealth
 import { FinancialChart } from "@/components/vehicles/financial-chart";
 import { prisma } from "@/lib/db/client";
 import { AlertTriangle } from "lucide-react";
+import { startOfWeek } from "date-fns";
 
 interface VehicleProfilePageProps {
   params: { id: string };
@@ -28,16 +29,19 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
   const { vehicle, incomeCents, expenseCents, repairsCents, netProfitCents, emiBalanceCents, roiPercent, kmSincePurchase, service } =
     detail;
 
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
   const recentMileage = await prisma.mileageEntry.findFirst({
-    where: { vehicleId: vehicle.id, date: { gte: weekAgo } },
+    where: { vehicleId: vehicle.id, date: { gte: startOfCurrentWeek } },
   });
 
+  const ageInYears = (new Date().getTime() - vehicle.purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  
   const { score: healthScore, reasons: healthReasons } = calculateVehicleHealthScore({
     active: vehicle.active,
     serviceStatus: service?.status,
     insuranceEndDate: vehicle.insuranceEndDate,
     hasRecentMileage: !!recentMileage,
+    ageInYears,
   });
 
   const { recommended: replaceRecommended, reasons: replaceReasons } = checkVehicleReplacementCriteria({
@@ -85,10 +89,10 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
           </Button>
 
           <Button asChild variant="default" size="sm" className="bg-teal text-white hover:bg-teal-light">
-            <Link href="/transactions/new">Add Transaction</Link>
+            <Link href={`/transactions/new?vehicleId=${vehicle.id}`}>Add Transaction</Link>
           </Button>
           <Button asChild variant="default" size="sm" className="bg-teal text-white hover:bg-teal-light">
-            <Link href="/mileage/new">Add Mileage</Link>
+            <Link href={`/mileage/new?vehicleId=${vehicle.id}`}>Add Mileage</Link>
           </Button>
           <Button asChild variant="default" size="sm" className="bg-navy text-white hover:bg-navy-light">
             <Link href={`/vehicles/${vehicle.id}/notes/new`}>Add Note</Link>

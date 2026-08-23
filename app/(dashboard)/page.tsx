@@ -9,7 +9,10 @@ import { InsuranceAlerts } from "@/components/dashboard/insurance-alerts";
 import { VehicleSummaryTable } from "@/components/dashboard/vehicle-summary-table";
 import { ServiceOverviewTable } from "@/components/dashboard/service-overview-table";
 import { TimeFilter } from "@/components/dashboard/time-filter";
+import { TodaysPriorities, type PriorityItem } from "@/components/dashboard/todays-priorities";
+import { DashboardInsights, generateInsights } from "@/components/dashboard/dashboard-insights";
 import { parseDateRange, getPreviousPeriod } from "@/lib/date-ranges";
+import { differenceInCalendarDays, startOfWeek } from "date-fns";
 
 function calculateTrend(current: number, previous: number, invertGoodBad = false): TrendData | undefined {
   if (current === 0 && previous === 0) return undefined;
@@ -33,6 +36,7 @@ function calculateTrend(current: number, previous: number, invertGoodBad = false
 export default async function DashboardPage({ searchParams }: { searchParams: { range?: string } }) {
   const currentRange = parseDateRange(searchParams.range);
   const prevRange = getPreviousPeriod(currentRange);
+  const hasPeriodFilter = searchParams.range && searchParams.range !== "all";
 
   const [vehicles, fleetTotals, prevVehicles, prevFleetTotals, activeVehicleCount] = await Promise.all([
     getVehiclesWithFinancials(currentRange.from, currentRange.to),
@@ -70,14 +74,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     prevRepairsCents += v.repairsCents;
   }
 
-  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); // Monday
   const [recentMileageEntries, mileageViolationsCount] = await Promise.all([
     prisma.mileageEntry.groupBy({
       by: ['vehicleId'],
-      where: { date: { gte: weekAgo } },
+      where: { date: { gte: startOfCurrentWeek } },
     }),
     prisma.mileageEntry.count({
-      where: { date: { gte: weekAgo }, overLimitByKm: { gt: 0 } }
+      where: { date: { gte: startOfCurrentWeek }, overLimitByKm: { gt: 0 } }
     })
   ]);
 
@@ -90,10 +94,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     netProfitCents: fleetTotals.netProfitCents,
     repairsCents,
     
-    incomeTrend: searchParams.range && searchParams.range !== "all" ? calculateTrend(fleetTotals.incomeCents, prevFleetTotals.incomeCents) : undefined,
-    expenseTrend: searchParams.range && searchParams.range !== "all" ? calculateTrend(fleetTotals.expenseCents, prevFleetTotals.expenseCents, true) : undefined,
-    netProfitTrend: searchParams.range && searchParams.range !== "all" ? calculateTrend(fleetTotals.netProfitCents, prevFleetTotals.netProfitCents) : undefined,
-    repairsTrend: searchParams.range && searchParams.range !== "all" ? calculateTrend(repairsCents, prevRepairsCents, true) : undefined,
+    incomeTrend: hasPeriodFilter ? calculateTrend(fleetTotals.incomeCents, prevFleetTotals.incomeCents) : undefined,
+    expenseTrend: hasPeriodFilter ? calculateTrend(fleetTotals.expenseCents, prevFleetTotals.expenseCents, true) : undefined,
+    netProfitTrend: hasPeriodFilter ? calculateTrend(fleetTotals.netProfitCents, prevFleetTotals.netProfitCents) : undefined,
+    repairsTrend: hasPeriodFilter ? calculateTrend(repairsCents, prevRepairsCents, true) : undefined,
 
     activeCount: activeVehicleCount,
     serviceOverdueCount,
@@ -103,6 +107,77 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     missingMileageCount,
     mileageViolationsCount,
   };
+
+  // Build Today's Priorities from real data
+  const priorities: PriorityItem[] = [];
+  
+  for (const v of vehicles) {
+    // Service overdue
+    if (v.service?.status === "OVERDUE" && v.service.kmRemaining !== null) {
+      priorities.push({
+        vehicleId: v.vehicle.id,
+        severity: "critical",
+        title: `Service overdue by ${Math.abs(v.service.kmRemaining).toLocaleString("en-ZA")} km`,
+        href: `/vehicles/${v.vehicle.id}`,
+      });
+    }
+    
+    // Insurance expired or expiring soon
+    if (v.vehicle.insuranceEndDate) {
+      const daysUntil = differenceInCalendarDays(v.vehicle.insuranceEndDate, today);
+      if (daysUntil < 0) {
+        priorities.push({
+          vehicleId: v.vehicle.id,
+          severity: "critical",
+          title: `Insurance expired ${Math.abs(daysUntil)} day${Math.abs(daysUntil) !== 1 ? "s" : ""} ago`,
+          href: `/vehicles/${v.vehicle.id}`,
+        });
+      } else if (daysUntil <= 14) {
+        priorities.push({
+          vehicleId: v.vehicle.id,
+          severity: "warning",
+          title: `Insurance expires in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}`,
+          href: `/vehicles/${v.vehicle.id}`,
+        });
+      }
+    }
+
+    // Missing mileage this week
+    if (!vehiclesWithRecentMileage.has(v.vehicle.id)) {
+      priorities.push({
+        vehicleId: v.vehicle.id,
+        severity: "warning",
+        title: "Mileage not logged this week",
+        href: "/mileage",
+      });
+    }
+
+    // Service due soon (lower priority than overdue)
+    if (v.service?.status === "DUE_SOON" && v.service.kmRemaining !== null) {
+      priorities.push({
+        vehicleId: v.vehicle.id,
+        severity: "warning",
+        title: `Service due — ${v.service.kmRemaining.toLocaleString("en-ZA")} km remaining`,
+        href: `/vehicles/${v.vehicle.id}`,
+      });
+    }
+  }
+  
+  // Sort: critical first
+  priorities.sort((a, b) => (a.severity === "critical" ? 0 : 1) - (b.severity === "critical" ? 0 : 1));
+
+  // Generate insights from real data
+  const insights = generateInsights({
+    vehicles,
+    fleetIncome: fleetTotals.incomeCents,
+    fleetExpense: fleetTotals.expenseCents,
+    fleetProfit: fleetTotals.netProfitCents,
+    prevFleetIncome: hasPeriodFilter ? prevFleetTotals.incomeCents : undefined,
+    prevFleetExpense: hasPeriodFilter ? prevFleetTotals.expenseCents : undefined,
+    prevFleetProfit: hasPeriodFilter ? prevFleetTotals.netProfitCents : undefined,
+    serviceOverdue: serviceOverdueCount,
+    missingMileage: missingMileageCount,
+  });
 
   const serviceRows = vehicles
     .map((v) => v.service)
@@ -114,14 +189,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
       <div className="animate-fade-in flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-ink">Dashboard</h1>
-          <p className="text-sm text-muted">Fleet overview as of today</p>
+          <p className="text-sm text-muted">Fleet command center — real-time overview</p>
         </div>
         <TimeFilter />
       </div>
 
       <ExtendedKpiCards stats={stats} />
 
+      <TodaysPriorities items={priorities} />
+
       <InsuranceAlerts vehicles={vehicles.map((v) => v.vehicle)} />
+
+      <DashboardInsights insights={insights} />
 
       <section className="animate-slide-up delay-300">
         <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">

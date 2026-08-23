@@ -30,16 +30,17 @@ interface TransactionFormProps {
   /** Called after a successful save AND on cancel — undefined means "standalone page", so the
    *  form falls back to router.push/back instead. A Dialog-hosted form passes this to close itself. */
   onClose?: () => void;
+  initialVehicleId?: string;
 }
 
-export function TransactionForm({ vehicles, transaction, onClose }: TransactionFormProps) {
+export function TransactionForm({ vehicles, transaction, onClose, initialVehicleId }: TransactionFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const isEdit = !!transaction;
 
   const [date, setDate] = useState(transaction ? new Date(transaction.date).toISOString().slice(0, 10) : todayIso());
   const [vehicleId, setVehicleId] = useState<string | undefined>(
-    transaction ? transaction.vehicleId ?? NO_VEHICLE_FILTER_VALUE : undefined
+    transaction ? transaction.vehicleId ?? NO_VEHICLE_FILTER_VALUE : initialVehicleId
   );
   const [category, setCategory] = useState<string | undefined>(transaction?.category);
   const [incomeRand, setIncomeRand] = useState(transaction ? String(centsToRand(transaction.incomeZarCents)) : "");
@@ -58,7 +59,7 @@ export function TransactionForm({ vehicles, transaction, onClose }: TransactionF
       const savedCategory = localStorage.getItem("nita-last-category");
       if (savedCategory && !category) setCategory(savedCategory);
     }
-  }, [isEdit]);
+  }, [isEdit, vehicleId, category]);
 
   const isService = category === "Service";
   const isIncomeCat = category === "Income" || category === "UberFees";
@@ -204,7 +205,7 @@ export function TransactionForm({ vehicles, transaction, onClose }: TransactionF
               onChange={(e) => setIncomeRand(e.target.value)}
               aria-invalid={!!errors.incomeZarCents}
               aria-describedby="txIncome-error"
-              autoFocus={isIncomeCat}
+              autoFocus={Boolean(isIncomeCat)}
             />
             <FieldError id="txIncome-error" message={errors.incomeZarCents} />
           </div>
@@ -221,7 +222,7 @@ export function TransactionForm({ vehicles, transaction, onClose }: TransactionF
               onChange={(e) => setExpenseRand(e.target.value)}
               aria-invalid={!!errors.expenseZarCents}
               aria-describedby="txExpense-error"
-              autoFocus={isExpenseCat}
+              autoFocus={Boolean(isExpenseCat)}
             />
             <FieldError id="txExpense-error" message={errors.expenseZarCents} />
           </div>

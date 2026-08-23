@@ -283,6 +283,8 @@ export function calculateVehicleHealthScore(v: {
   serviceStatus?: "OK" | "DUE_SOON" | "OVERDUE" | "NEEDS_DATA";
   insuranceEndDate?: Date | null;
   hasRecentMileage?: boolean;
+  ageInYears?: number;
+  highRepairFrequency?: boolean;
 }): { score: number; reasons: string[] } {
   let score = 100;
   const reasons: string[] = [];
@@ -322,6 +324,16 @@ export function calculateVehicleHealthScore(v: {
     reasons.push("Missing recent mileage log (-15)");
   }
 
+  if (v.highRepairFrequency) {
+    score -= 20;
+    reasons.push("High frequency of recent repairs (-20)");
+  }
+
+  if (v.ageInYears !== undefined && v.ageInYears > 5) {
+    score -= 10;
+    reasons.push(`Vehicle is older than 5 years (-10)`);
+  }
+
   return { score: Math.max(0, score), reasons };
 }
 
@@ -345,6 +357,10 @@ export function checkVehicleReplacementCriteria(v: {
 
   if (v.totalIncomeCents > 0 && v.repairsCostCents > v.totalIncomeCents * 0.3) {
     reasons.push("Cumulative repair costs exceed 30% of total revenue.");
+  }
+
+  if (v.roiPercent !== null && v.roiPercent < -20 && ageInYears > 3) {
+    reasons.push(`Persistently negative ROI (${v.roiPercent.toFixed(1)}%) on an older vehicle.`);
   }
 
   return {

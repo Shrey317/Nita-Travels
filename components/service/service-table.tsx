@@ -3,6 +3,8 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatKm } from "@/lib/format";
 import { badgeLabel, badgeVariant } from "@/lib/service";
+import { EmptyState } from "@/components/shared/empty-state";
+import { Wrench } from "lucide-react";
 import type { VehicleServiceRowWithEstimate } from "@/lib/db/service";
 
 /** Read-only, fully computed (SRS 15.6). Rows are already sorted OVERDUE -> DUE_SOON -> OK ->
@@ -10,9 +12,11 @@ import type { VehicleServiceRowWithEstimate } from "@/lib/db/service";
 export function ServiceTable({ rows }: { rows: VehicleServiceRowWithEstimate[] }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted">
-        No vehicles yet.
-      </div>
+      <EmptyState
+        title="No vehicles found"
+        description="No vehicles match the current filter, or you haven't added any vehicles yet."
+        icon={Wrench}
+      />
     );
   }
 

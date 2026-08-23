@@ -232,11 +232,11 @@ export async function getRepairsAnomalies(): Promise<RepairAnomaly[]> {
   }
 
   for (const [vehicleId, cost] of costByVehicle.entries()) {
-    if (avgCost > 0 && cost > avgCost * 1.5 && cost > 100000) { // threshold > R1000 and 1.5x average
+    if (avgCost > 0 && cost > avgCost * 2) { 
       anomalies.push({
         vehicleId,
         type: "HIGH_COST",
-        description: `Repair spending is significantly above fleet average.`
+        description: `Repair spending (R${(cost / 100).toFixed(0)}) is more than double the fleet average (R${(avgCost / 100).toFixed(0)}).`
       });
     }
   }

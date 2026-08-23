@@ -1,7 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatZAR } from "@/lib/format";
-import { TrendingUp, TrendingDown, DollarSign, Truck, AlertTriangle, Wrench, ShieldAlert } from "lucide-react";
+import Link from "next/link";
+import { TrendingUp, TrendingDown, DollarSign, Truck, AlertTriangle, Wrench, ShieldAlert, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface TrendData {
   percent: number;
@@ -49,7 +51,8 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
     <div className="space-y-6">
       {/* Financials Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-0">
+        <Link href="/transactions" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-0 transition-all h-full">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-status-green to-emerald-400" />
           <div className="absolute -right-4 -top-4 text-status-green/5 transition-transform duration-500 group-hover:scale-110">
             <TrendingUp className="h-24 w-24" />
@@ -65,8 +68,10 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
             </div>
           </CardContent>
         </Card>
+        </Link>
 
-        <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-75">
+        <Link href="/transactions" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-75 transition-all h-full">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-status-red to-rose-400" />
           <div className="absolute -right-4 -top-4 text-status-red/5 transition-transform duration-500 group-hover:scale-110">
             <TrendingDown className="h-24 w-24" />
@@ -82,14 +87,26 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
             </div>
           </CardContent>
         </Card>
+        </Link>
 
-        <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-150">
+        <Link href="/transactions" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-150 transition-all h-full">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-navy to-navy-light" />
           <div className="absolute -right-4 -top-4 text-navy/5 transition-transform duration-500 group-hover:scale-110">
             <DollarSign className="h-24 w-24" />
           </div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted">Net Profit</CardTitle>
+            <div className="flex items-center gap-1.5">
+              <CardTitle className="text-sm font-medium text-muted">Net Profit</CardTitle>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted/50 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Total Income minus Total Expenses (including repairs).</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </CardHeader>
           <CardContent className="flex items-center justify-between gap-2">
             <div className="flex flex-col w-full">
@@ -101,25 +118,39 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
             </div>
           </CardContent>
         </Card>
+        </Link>
         
-        <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-150">
+        <Link href="/repairs" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-150 transition-all h-full">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 to-amber-500" />
           <div className="absolute -right-4 -top-4 text-orange-500/5 transition-transform duration-500 group-hover:scale-110">
             <Wrench className="h-24 w-24" />
           </div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted">Repairs Cost</CardTitle>
+            <div className="flex items-center gap-1.5">
+              <CardTitle className="text-sm font-medium text-muted">Repairs Cost</CardTitle>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted/50 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Subset of expenses covering unexpected breakdowns (excludes routine service).</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </CardHeader>
           <CardContent>
             <p className="font-mono text-2xl font-semibold text-orange-500">{formatZAR(stats.repairsCents)}</p>
             {renderTrend(stats.repairsTrend)}
           </CardContent>
         </Card>
+        </Link>
       </div>
 
       {/* Operational Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200">
+        <Link href="/vehicles" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200 transition-all h-full">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal to-teal-light" />
           <div className="absolute -right-4 -top-4 text-teal/5 transition-transform duration-500 group-hover:scale-110">
             <Truck className="h-24 w-24" />
@@ -131,8 +162,10 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
             <p className="font-mono text-2xl font-semibold text-ink">{stats.activeCount}</p>
           </CardContent>
         </Card>
+        </Link>
 
-        <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200">
+        <Link href="/service" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200 transition-all h-full">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-status-yellow to-amber-400" />
           <div className="absolute -right-4 -top-4 text-status-yellow/5 transition-transform duration-500 group-hover:scale-110">
             <AlertTriangle className="h-24 w-24" />
@@ -151,8 +184,10 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
             </div>
           </CardContent>
         </Card>
+        </Link>
 
-        <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200">
+        <Link href="/vehicles" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200 transition-all h-full">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-status-red to-rose-400" />
           <div className="absolute -right-4 -top-4 text-status-red/5 transition-transform duration-500 group-hover:scale-110">
             <ShieldAlert className="h-24 w-24" />
@@ -171,8 +206,10 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
             </div>
           </CardContent>
         </Card>
+        </Link>
 
-        <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200">
+        <Link href="/mileage" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light rounded-xl">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover animate-slide-up delay-200 transition-all h-full">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-400" />
           <div className="absolute -right-4 -top-4 text-purple-500/5 transition-transform duration-500 group-hover:scale-110">
             <AlertTriangle className="h-24 w-24" />
@@ -191,6 +228,7 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
             </div>
           </CardContent>
         </Card>
+        </Link>
       </div>
     </div>
   );

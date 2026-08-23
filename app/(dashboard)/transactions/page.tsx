@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { Plus, Download } from "lucide-react";
-import { getTransactions } from "@/lib/db/transactions";
+import { getTransactions, getTransactionById } from "@/lib/db/transactions";
 import { prisma } from "@/lib/db/client";
 import { Button } from "@/components/ui/button";
 import { TransactionFilters } from "@/components/transactions/transaction-filters";
@@ -21,6 +21,7 @@ interface TransactionsPageProps {
     page?: string;
     sortBy?: string;
     sortDir?: string;
+    txId?: string;
   };
 }
 
@@ -29,7 +30,7 @@ export default async function TransactionsPage({ searchParams }: TransactionsPag
   const category = toStringArray(searchParams.category);
   const page = Number(searchParams.page ?? "1") || 1;
 
-  const [vehicles, result] = await Promise.all([
+  const [vehicles, result, specificTx] = await Promise.all([
     prisma.vehicle.findMany({ where: { active: true }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
     getTransactions({
       vehicleId: vehicleId.length ? vehicleId : undefined,
@@ -42,7 +43,12 @@ export default async function TransactionsPage({ searchParams }: TransactionsPag
       sortBy: searchParams.sortBy,
       sortDir: searchParams.sortDir === "asc" ? "asc" : "desc",
     }),
+    searchParams.txId ? getTransactionById(searchParams.txId) : Promise.resolve(null),
   ]);
+
+  if (specificTx && !result.items.some((t) => t.id === specificTx.id)) {
+    result.items.unshift(specificTx);
+  }
 
   const exportParams = new URLSearchParams();
   for (const v of vehicleId) exportParams.append("vehicleId", v);
@@ -75,7 +81,7 @@ export default async function TransactionsPage({ searchParams }: TransactionsPag
       </div>
 
       <TransactionFilters vehicles={vehicles} />
-      <TransactionTable transactions={result.items} vehicles={vehicles} />
+      <TransactionTable transactions={result.items} vehicles={vehicles} initialEditingId={searchParams.txId} />
       <Pagination page={result.page} limit={result.limit} total={result.total} />
     </div>
   );

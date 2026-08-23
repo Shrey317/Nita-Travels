@@ -1,4 +1,4 @@
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from "date-fns";
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subDays, subWeeks } from "date-fns";
 
 export type DateRange = { from?: Date; to?: Date };
 
@@ -8,8 +8,16 @@ export function parseDateRange(rangeStr?: string): DateRange {
   switch (rangeStr) {
     case "today":
       return { from: startOfDay(now), to: endOfDay(now) };
+    case "yesterday": {
+      const yesterday = subDays(now, 1);
+      return { from: startOfDay(yesterday), to: endOfDay(yesterday) };
+    }
     case "week":
       return { from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }) };
+    case "last-week": {
+      const lastWeek = subWeeks(now, 1);
+      return { from: startOfWeek(lastWeek, { weekStartsOn: 1 }), to: endOfWeek(lastWeek, { weekStartsOn: 1 }) };
+    }
     case "month":
       return { from: startOfMonth(now), to: endOfMonth(now) };
     case "last-month": {

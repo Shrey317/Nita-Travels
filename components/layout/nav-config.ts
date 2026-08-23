@@ -1,8 +1,9 @@
+import type { LucideIcon } from "lucide-react";
 import { LayoutDashboard, Car, Receipt, Wrench, Gauge, ClipboardCheck, StickyNote, CalendarRange, BarChart3 } from "lucide-react";
 
 export type NavGroup = {
   label: string;
-  items: { href: string; label: string; icon: any }[];
+  items: { href: string; label: string; icon: LucideIcon }[];
 };
 
 export const NAV_GROUPS: NavGroup[] = [

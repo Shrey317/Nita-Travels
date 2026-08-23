@@ -4,13 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import useSWR from "swr";
 import { Menu, X, LogOut, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { signOutAction } from "@/app/(dashboard)/actions";
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 function NavLinks({ onNavigate, alwaysShowLabel = false }: { onNavigate?: () => void; alwaysShowLabel?: boolean }) {
   const pathname = usePathname();
+  const { data: badges } = useSWR("/api/nav-badges", fetcher, { refreshInterval: 60000 });
   return (
     <nav className="flex-1 space-y-6 px-3" aria-label="Main navigation">
       {NAV_GROUPS.map((group) => (
@@ -39,7 +43,17 @@ function NavLinks({ onNavigate, alwaysShowLabel = false }: { onNavigate?: () => 
                   <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-teal-light shadow-glow" />
                 )}
                 <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                <span className={cn("truncate", alwaysShowLabel ? "inline" : "hidden lg:inline")}>{item.label}</span>
+                <span className={cn("truncate flex-1", alwaysShowLabel ? "inline" : "hidden lg:inline")}>{item.label}</span>
+                {item.label === "Service" && badges?.serviceCount > 0 && (
+                  <span className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full bg-status-red text-[10px] font-bold text-white">
+                    {badges.serviceCount}
+                  </span>
+                )}
+                {item.label === "Mileage" && badges?.mileageCount > 0 && (
+                  <span className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full bg-status-yellow text-[10px] font-bold text-ink">
+                    {badges.mileageCount}
+                  </span>
+                )}
               </Link>
             );
           })}

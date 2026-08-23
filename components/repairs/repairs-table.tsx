@@ -2,15 +2,19 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { PhotoThumbnails } from "@/components/shared/photo-thumbnails";
 import { formatDate, formatZAR, formatKm, formatMonthKey, formatVehicleLabel } from "@/lib/format";
 import { CATEGORY_LABELS } from "@/lib/constants";
+import { EmptyState } from "@/components/shared/empty-state";
+import { Wrench } from "lucide-react";
 import type { Transaction } from "@prisma/client";
 
 /** Read-only filtered view: Transactions WHERE category IN (Repairs, BrakePads, Tyres) — SRS 15.7. */
 export function RepairsTable({ transactions }: { transactions: Transaction[] }) {
   if (transactions.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted">
-        No repairs match these filters.
-      </div>
+      <EmptyState
+        title="No repairs"
+        description="No repair logs match these filters."
+        icon={Wrench}
+      />
     );
   }
 

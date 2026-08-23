@@ -16,6 +16,7 @@ import { FLEET_WIDE_VEHICLE_ID, NO_VEHICLE_FILTER_VALUE } from "@/lib/constants"
 
 interface NoteFormProps {
   vehicles: { id: string; registration: string }[];
+  initialVehicleId?: string;
 }
 
 function todayIso(): string {
@@ -23,12 +24,12 @@ function todayIso(): string {
 }
 
 /** No edit path exists (SRS 11: delete and re-enter only), so this form only ever creates. */
-export function NoteForm({ vehicles }: NoteFormProps) {
+export function NoteForm({ vehicles, initialVehicleId }: NoteFormProps) {
   const router = useRouter();
   const { toast } = useToast();
 
   const [date, setDate] = useState(todayIso());
-  const [vehicleId, setVehicleId] = useState<string>(NO_VEHICLE_FILTER_VALUE);
+  const [vehicleId, setVehicleId] = useState<string>(initialVehicleId ?? NO_VEHICLE_FILTER_VALUE);
   const [note, setNote] = useState("");
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});

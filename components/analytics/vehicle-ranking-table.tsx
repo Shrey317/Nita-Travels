@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { formatZAR } from "@/lib/format";
+import { EmptyState } from "@/components/shared/empty-state";
+import { BarChart3 } from "lucide-react";
 import type { VehicleRankingRow } from "@/lib/db/analytics";
 
 export function VehicleRankingTable({ rows }: { rows: VehicleRankingRow[] }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted">
-        No vehicles yet.
-      </div>
+      <EmptyState
+        title="No ranking data"
+        description="No vehicles available to rank for this period."
+        icon={BarChart3}
+      />
     );
   }
 

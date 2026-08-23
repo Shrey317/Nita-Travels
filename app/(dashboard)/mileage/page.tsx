@@ -12,6 +12,7 @@ import { vehicleIdOptions } from "@/components/shared/vehicle-options";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { toStringArray } from "@/lib/utils";
 import { MileageAlerts } from "@/components/mileage/mileage-alerts";
+import { startOfWeek } from "date-fns";
 
 interface MileagePageProps {
   searchParams: { vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string };
@@ -32,9 +33,9 @@ export default async function MileagePage({ searchParams }: MileagePageProps) {
     }),
   ]);
 
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
   const recentEntries = await prisma.mileageEntry.findMany({
-    where: { date: { gte: weekAgo } },
+    where: { date: { gte: startOfCurrentWeek } },
     orderBy: { date: 'desc' }
   });
 
@@ -48,7 +49,7 @@ export default async function MileagePage({ searchParams }: MileagePageProps) {
       processed.add(e.vehicleId);
       if (e.overLimitByKm && e.overLimitByKm > 0) {
         const v = vehicles.find(veh => veh.id === e.vehicleId);
-        if (v) overLimitVehicles.push({ vehicle: v as any, overBy: e.overLimitByKm });
+        if (v) overLimitVehicles.push({ vehicle: v, overBy: e.overLimitByKm });
       }
     }
   }
@@ -68,7 +69,7 @@ export default async function MileagePage({ searchParams }: MileagePageProps) {
         </Button>
       </div>
 
-      <MileageAlerts missingMileageVehicles={missingMileageVehicles as any} overLimitVehicles={overLimitVehicles} />
+      <MileageAlerts missingMileageVehicles={missingMileageVehicles} overLimitVehicles={overLimitVehicles} />
 
       <VehicleDateFilters vehicleOptions={vehicleIdOptions(vehicles)} idPrefix="mileage" />
       <MileageTable entries={result.items} />

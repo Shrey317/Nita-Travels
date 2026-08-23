@@ -17,37 +17,38 @@
  * blocking it. A bug in rate-limiting code should never be the reason the admin can't log in.
  */
 
+import { prisma } from "@/lib/db/client";
+
 const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const MAX_ATTEMPTS = 10;
 
-interface Bucket {
-  count: number;
-  windowStart: number;
-}
-
-const attempts = new Map<string, Bucket>();
-
-// Bound memory use — an attacker cycling through many fake usernames shouldn't grow this map
-// without limit. Well above what one admin account's real key churn would ever need.
-const MAX_TRACKED_KEYS = 1000;
-
 /** Call before attempting authentication. Returns whether the attempt is allowed. */
-export function checkLoginRateLimit(key: string): { allowed: boolean; retryAfterSeconds?: number } {
+export async function checkLoginRateLimit(key: string): Promise<{ allowed: boolean; retryAfterSeconds?: number }> {
   try {
-    const now = Date.now();
-    const bucket = attempts.get(key);
+    const now = new Date();
+    
+    // Clean up expired tokens for this key
+    await prisma.rateLimit.deleteMany({
+      where: { key, expiresAt: { lt: now } }
+    });
 
-    if (!bucket || now - bucket.windowStart > WINDOW_MS) {
-      attempts.set(key, { count: 1, windowStart: now });
-      return { allowed: true };
-    }
+    const record = await prisma.rateLimit.upsert({
+      where: { key },
+      update: {
+        points: { increment: 1 }
+      },
+      create: {
+        key,
+        points: 1,
+        expiresAt: new Date(now.getTime() + WINDOW_MS)
+      }
+    });
 
-    if (bucket.count >= MAX_ATTEMPTS) {
-      const retryAfterSeconds = Math.ceil((bucket.windowStart + WINDOW_MS - now) / 1000);
+    if (record.points > MAX_ATTEMPTS) {
+      const retryAfterSeconds = Math.ceil((record.expiresAt.getTime() - now.getTime()) / 1000);
       return { allowed: false, retryAfterSeconds: Math.max(retryAfterSeconds, 1) };
     }
 
-    bucket.count += 1;
     return { allowed: true };
   } catch (error) {
     console.error("Rate limiter error — failing open:", error);
@@ -56,15 +57,13 @@ export function checkLoginRateLimit(key: string): { allowed: boolean; retryAfter
 }
 
 /** Call after a successful login so a legitimate user's earlier typos don't linger against them. */
-export function clearLoginRateLimit(key: string): void {
+export async function clearLoginRateLimit(key: string): Promise<void> {
   try {
-    attempts.delete(key);
-    if (attempts.size > MAX_TRACKED_KEYS) {
-      const oldestKey = attempts.keys().next().value;
-      if (oldestKey !== undefined) attempts.delete(oldestKey);
-    }
+    await prisma.rateLimit.delete({
+      where: { key }
+    });
   } catch (error) {
-    console.error("Rate limiter cleanup error (non-fatal):", error);
+    // Ignore if not found
   }
 }
 

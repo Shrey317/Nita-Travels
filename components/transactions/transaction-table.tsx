@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Pencil, Receipt } from "lucide-react";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { SortableHeader } from "@/components/shared/sortable-header";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DeleteConfirmDialog } from "@/components/shared/delete-confirm-dialog";
 import { TransactionForm } from "@/components/transactions/transaction-form";
+import { EmptyState } from "@/components/shared/empty-state";
 import { formatDate, formatZAR, formatKm, formatMonthKey, formatVehicleLabel } from "@/lib/format";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import type { Transaction } from "@prisma/client";
@@ -16,13 +17,14 @@ import type { Transaction } from "@prisma/client";
 interface TransactionTableProps {
   transactions: Transaction[];
   vehicles: { id: string; registration: string }[];
+  initialEditingId?: string;
 }
 
 /** Inline edit (Dialog) and delete (AlertDialog) per row, per SRS 15.4 — no separate edit
  *  page/route exists for transactions. */
-export function TransactionTable({ transactions, vehicles }: TransactionTableProps) {
+export function TransactionTable({ transactions, vehicles, initialEditingId }: TransactionTableProps) {
   const router = useRouter();
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(initialEditingId ?? null);
   const editingTransaction = transactions.find((t) => t.id === editingId);
 
   async function handleDelete(id: string) {
@@ -36,9 +38,11 @@ export function TransactionTable({ transactions, vehicles }: TransactionTablePro
 
   if (transactions.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted">
-        No transactions match these filters.
-      </div>
+      <EmptyState
+        title="No transactions"
+        description="No transactions match these filters. Try adjusting your date range or category."
+        icon={Receipt}
+      />
     );
   }
 

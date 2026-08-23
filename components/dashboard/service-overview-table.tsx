@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatKm } from "@/lib/format";
-import { badgeLabel, badgeVariant } from "@/lib/service";
+import { badgeVariant, badgeLabel } from "@/lib/service";
+import { EmptyState } from "@/components/shared/empty-state";
+import { Wrench } from "lucide-react";
 import type { VehicleServiceRow } from "@/lib/db/service";
 
 /** SRS 15.1: no service transaction with mileageKm -> show "—" for date/km and NEEDS_DATA status.
@@ -10,9 +12,11 @@ import type { VehicleServiceRow } from "@/lib/db/service";
 export function ServiceOverviewTable({ rows }: { rows: VehicleServiceRow[] }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted">
-        No vehicles yet.
-      </div>
+      <EmptyState
+        title="No service records"
+        description="No service records found. Start logging mileage and repairs to track service schedules."
+        icon={Wrench}
+      />
     );
   }
 

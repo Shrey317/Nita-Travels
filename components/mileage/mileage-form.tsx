@@ -16,18 +16,19 @@ import { formatKm } from "@/lib/format";
 
 interface MileageFormProps {
   vehicles: { id: string; registration: string }[];
+  initialVehicleId?: string;
 }
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function MileageForm({ vehicles }: MileageFormProps) {
+export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
   const router = useRouter();
   const { toast } = useToast();
 
   const [date, setDate] = useState(todayIso());
-  const [vehicleId, setVehicleId] = useState<string | undefined>();
+  const [vehicleId, setVehicleId] = useState<string | undefined>(initialVehicleId);
   const [currentMileageKm, setCurrentMileageKm] = useState("");
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [previousMileageKm, setPreviousMileageKm] = useState<number | null>(null);

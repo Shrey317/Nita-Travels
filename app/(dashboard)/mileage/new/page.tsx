@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/db/client";
 import { MileageForm } from "@/components/mileage/mileage-form";
 
-export default async function NewMileagePage() {
+export default async function NewMileagePage({ searchParams }: { searchParams: { vehicleId?: string } }) {
   const vehicles = await prisma.vehicle.findMany({
     where: { active: true },
     select: { id: true, registration: true },
@@ -17,7 +17,7 @@ export default async function NewMileagePage() {
         <p className="text-sm text-muted">Previous mileage is fetched automatically — you only enter the new reading.</p>
       </div>
       <div className="rounded-xl border border-border bg-card p-6">
-        <MileageForm vehicles={vehicles} />
+        <MileageForm vehicles={vehicles} initialVehicleId={searchParams.vehicleId} />
       </div>
     </div>
   );
