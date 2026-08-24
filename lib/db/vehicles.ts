@@ -83,7 +83,7 @@ export async function getVehiclesWithFinancials(dateFrom?: Date, dateTo?: Date, 
 export interface VehicleDetail extends VehicleSummary {
   emiBalanceCents: number;
   roiPercent: number | null;
-  recentRepairs: any[];
+  recentRepairs: { id: string }[];
 }
 
 /** Full detail for the Vehicle Profile page (SRS 15.3). Not filtered by `active` — a
@@ -285,93 +285,3 @@ export async function getVehicleMonthlyFinancials(id: string): Promise<MonthlyFi
   return Array.from(grouped.values());
 }
 
-export function calculateVehicleHealthScore(v: {
-  active: boolean;
-  serviceStatus?: "OK" | "DUE_SOON" | "OVERDUE" | "NEEDS_DATA";
-  insuranceEndDate?: Date | null;
-  hasRecentMileage?: boolean;
-  ageInYears?: number;
-  highRepairFrequency?: boolean;
-}): { score: number; reasons: string[] } {
-  let score = 100;
-  const reasons: string[] = [];
-
-  if (!v.active) {
-    return { score: 0, reasons: ["Vehicle is inactive"] };
-  }
-
-  if (v.serviceStatus === "OVERDUE") {
-    score -= 25;
-    reasons.push("Service is overdue (-25)");
-  } else if (v.serviceStatus === "DUE_SOON") {
-    score -= 10;
-    reasons.push("Service is due soon (-10)");
-  } else if (v.serviceStatus === "NEEDS_DATA") {
-    score -= 5;
-    reasons.push("Missing service records (-5)");
-  }
-
-  if (v.insuranceEndDate) {
-    const today = new Date();
-    const end = v.insuranceEndDate.getTime();
-    if (end < today.getTime()) {
-      score -= 25;
-      reasons.push("Insurance is expired (-25)");
-    } else if (end - today.getTime() < 30 * 24 * 60 * 60 * 1000) {
-      score -= 10;
-      reasons.push("Insurance expires soon (-10)");
-    }
-  } else {
-    score -= 15;
-    reasons.push("No insurance data (-15)");
-  }
-
-  if (v.hasRecentMileage === false) {
-    score -= 15;
-    reasons.push("Missing recent mileage log (-15)");
-  }
-
-  if (v.highRepairFrequency) {
-    score -= 20;
-    reasons.push("High frequency of recent repairs (-20)");
-  }
-
-  if (v.ageInYears !== undefined && v.ageInYears > 5) {
-    score -= 10;
-    reasons.push(`Vehicle is older than 5 years (-10)`);
-  }
-
-  return { score: Math.max(0, score), reasons };
-}
-
-export function checkVehicleReplacementCriteria(v: {
-  currentMileageKm: number;
-  purchaseDate: Date;
-  roiPercent: number | null;
-  repairsCostCents: number;
-  totalIncomeCents: number;
-}): { recommended: boolean; reasons: string[] } {
-  const reasons: string[] = [];
-  
-  if (v.currentMileageKm > 300000) {
-    reasons.push("Mileage exceeds 300,000 km.");
-  }
-
-  const ageInYears = (new Date().getTime() - v.purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-  if (ageInYears > 5) {
-    reasons.push(`Vehicle age is over 5 years (${ageInYears.toFixed(1)} years).`);
-  }
-
-  if (v.totalIncomeCents > 0 && v.repairsCostCents > v.totalIncomeCents * 0.3) {
-    reasons.push("Cumulative repair costs exceed 30% of total revenue.");
-  }
-
-  if (v.roiPercent !== null && v.roiPercent < -20 && ageInYears > 3) {
-    reasons.push(`Persistently negative ROI (${v.roiPercent.toFixed(1)}%) on an older vehicle.`);
-  }
-
-  return {
-    recommended: reasons.length >= 2,
-    reasons
-  };
-}

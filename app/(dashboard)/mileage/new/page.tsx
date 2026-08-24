@@ -5,7 +5,7 @@ import { MileageForm } from "@/components/mileage/mileage-form";
 
 export default async function NewMileagePage({ searchParams }: { searchParams: { vehicleId?: string } }) {
   const vehicles = await prisma.vehicle.findMany({
-    where: { active: true },
+    where: { active: true, deletedAt: null },
     select: { id: true, registration: true },
     orderBy: { id: "asc" },
   });

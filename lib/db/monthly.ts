@@ -67,6 +67,7 @@ export async function getMonthlyBreakdown(): Promise<MonthlyRow[]> {
 
   const transactions = await prisma.transaction.findMany({
     where: {
+      deletedAt: null,
       date: {
         gte: new Date(Date.UTC(RANGE_START_YEAR, RANGE_START_MONTH, 1)),
         lt: new Date(Date.UTC(RANGE_END_YEAR, RANGE_END_MONTH + 1, 1)),

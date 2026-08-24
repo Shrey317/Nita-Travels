@@ -19,7 +19,7 @@ export default async function NotesPage({ searchParams }: NotesPageProps) {
   const page = Number(searchParams.page ?? "1") || 1;
 
   const [vehicles, result] = await Promise.all([
-    prisma.vehicle.findMany({ where: { active: true }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
+    prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
     getNotes({
       vehicleId: vehicleIdFilter.length ? vehicleIdFilter : undefined,
       dateFrom: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,

@@ -5,7 +5,7 @@ import { TransactionForm } from "@/components/transactions/transaction-form";
 
 export default async function NewTransactionPage({ searchParams }: { searchParams: { vehicleId?: string } }) {
   const vehicles = await prisma.vehicle.findMany({
-    where: { active: true },
+    where: { active: true, deletedAt: null },
     select: { id: true, registration: true },
     orderBy: { id: "asc" },
   });

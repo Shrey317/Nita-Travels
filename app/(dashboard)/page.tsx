@@ -43,7 +43,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     getFleetTotals(currentRange.from, currentRange.to),
     getVehiclesWithFinancials(prevRange.from, prevRange.to),
     getFleetTotals(prevRange.from, prevRange.to),
-    prisma.vehicle.count({ where: { active: true } }),
+    prisma.vehicle.count({ where: { active: true, deletedAt: null } }),
   ]);
 
   const today = new Date();

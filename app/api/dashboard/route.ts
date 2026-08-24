@@ -20,7 +20,7 @@ export async function GET() {
     const [vehicles, fleetTotals, activeVehicleCount] = await Promise.all([
       getVehiclesWithFinancials(),
       getFleetTotals(),
-      prisma.vehicle.count({ where: { active: true } }),
+      prisma.vehicle.count({ where: { active: true, deletedAt: null } }),
     ]);
 
     const serviceOverview = vehicles

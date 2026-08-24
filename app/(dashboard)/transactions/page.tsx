@@ -31,7 +31,7 @@ export default async function TransactionsPage({ searchParams }: TransactionsPag
   const page = Number(searchParams.page ?? "1") || 1;
 
   const [vehicles, result, specificTx] = await Promise.all([
-    prisma.vehicle.findMany({ where: { active: true }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
+    prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
     getTransactions({
       vehicleId: vehicleId.length ? vehicleId : undefined,
       category: category.length ? category : undefined,

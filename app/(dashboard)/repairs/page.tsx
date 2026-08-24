@@ -20,7 +20,7 @@ export default async function RepairsPage({ searchParams }: RepairsPageProps) {
   const page = Number(searchParams.page ?? "1") || 1;
 
   const [vehicles, summary, anomalies, result] = await Promise.all([
-    prisma.vehicle.findMany({ where: { active: true }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
+    prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
     getRepairsSummary(),
     getRepairsAnomalies(),
     getTransactions({

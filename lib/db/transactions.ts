@@ -122,7 +122,7 @@ export async function createTransaction(input: TransactionInput): Promise<Transa
 /** Merges the PATCH body onto the existing row, validates the complete result, then writes —
  *  see vehicles.schema's equivalent comment for why this matters for cross-field rules. */
 export async function updateTransaction(id: string, input: TransactionUpdateInput): Promise<Transaction> {
-  const existing = await prisma.transaction.findUnique({ where: { id } });
+  const existing = await prisma.transaction.findUnique({ where: { id, deletedAt: null } });
   if (!existing) throw new NotFoundError(`Transaction ${id} not found`);
 
   const partial = transactionUpdateSchema.parse(input);
