@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Nita Travels Fleet Management",
+  title: "Nita Travels",
   description: "Fleet management system for Nita Travels — vehicles, transactions, mileage, and service tracking.",
   // Internal, authenticated tool handling fleet financial data — it should never be crawled or
   // show up in search results. (Belt-and-suspenders with the X-Robots-Tag header in
@@ -25,8 +25,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased">
         {/* Inline script prevents flash of wrong theme on page load by setting the `dark` class
             before React hydrates. Runs synchronously before any content paints. */}
-        <script dangerouslySetInnerHTML={{ __html:
-          `try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}`
+        <script dangerouslySetInnerHTML={{
+          __html:
+            `try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}`
         }} />
         <ThemeProvider>
           <TooltipProvider>{children}</TooltipProvider>

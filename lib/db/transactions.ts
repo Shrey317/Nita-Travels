@@ -103,7 +103,7 @@ async function syncVehicleMileageFromService(
   category: string,
   mileageKm: number | null | undefined
 ): Promise<void> {
-  if (category !== "Service" || mileageKm == null || !vehicleId || vehicleId === FLEET_WIDE_VEHICLE_ID) return;
+  if (mileageKm == null || !vehicleId || vehicleId === FLEET_WIDE_VEHICLE_ID) return;
   const vehicle = await tx.vehicle.findUnique({ where: { id: vehicleId } });
   if (vehicle && mileageKm > vehicle.currentMileageKm) {
     await tx.vehicle.update({ where: { id: vehicleId }, data: { currentMileageKm: mileageKm } });
@@ -273,7 +273,7 @@ export async function exportTransactionsToCsv(filters: Omit<TransactionFilters, 
         row.category,
         row.incomeZarCents ? formatZAR(row.incomeZarCents) : "",
         row.expenseZarCents ? formatZAR(row.expenseZarCents) : "",
-        row.category === "Service" ? formatKm(row.mileageKm) : "",
+        row.mileageKm != null ? formatKm(row.mileageKm) : "",
         row.notes ?? "",
       ]
         .map((v) => csvEscape(String(v)))

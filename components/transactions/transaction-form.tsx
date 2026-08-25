@@ -62,6 +62,12 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
   }, [isEdit, vehicleId, category]);
 
   const isService = category === "Service";
+  const showMileageInput =
+    category === "Service" ||
+    category === "Repairs" ||
+    category === "Tyres" ||
+    category === "BrakePads" ||
+    category === "Maintenance";
   const isIncomeCat = category === "Income" || category === "UberFees";
   const isExpenseCat = category && !isIncomeCat;
   
@@ -75,7 +81,7 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
       incomeZarCents: randToCents(Number(incomeRand || 0)),
       expenseZarCents: randToCents(Number(expenseRand || 0)),
       notes: notes.trim() || null,
-      mileageKm: isService && mileageKm ? Number(mileageKm) : null,
+      mileageKm: showMileageInput && mileageKm ? Number(mileageKm) : null,
       photoUrls,
     };
   }
@@ -177,9 +183,9 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
           </Select>
           <FieldError id="txCategory-error" message={errors.category} />
         </div>
-        {isService && (
+        {showMileageInput && (
           <div className="space-y-2">
-            <Label htmlFor="txMileage">Mileage at Service (km)</Label>
+            <Label htmlFor="txMileage">Mileage at {category ? categoryLabel(category) : "Service"} (km)</Label>
             <Input
               id="txMileage"
               type="number"
@@ -188,7 +194,7 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
               onChange={(e) => setMileageKm(e.target.value)}
               aria-invalid={!!errors.mileageKm}
               aria-describedby="txMileage-error"
-              required
+              required={isService}
             />
             <FieldError id="txMileage-error" message={errors.mileageKm} />
           </div>
