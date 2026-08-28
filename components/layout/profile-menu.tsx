@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { User, LogOut, Moon, Sun, Keyboard, Monitor } from "lucide-react";
 import { signOutAction } from "@/app/(dashboard)/actions";
 import { useTheme } from "@/components/layout/theme-provider";
@@ -145,7 +146,7 @@ export function ProfileMenu() {
       </div>
 
       {/* Keyboard Shortcuts Dialog */}
-      {shortcutsOpen && (
+      {shortcutsOpen && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-navy/70 backdrop-blur-sm">
           <div
             className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-card-elevated animate-scale-in"
@@ -173,7 +174,8 @@ export function ProfileMenu() {
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

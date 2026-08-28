@@ -32,19 +32,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         const expectedUsername = process.env.ADMIN_USERNAME;
-        const passwordHash = process.env.ADMIN_PASSWORD_HASH;
+        const passwordHash = process.env.ADMIN_PASSWORD_HASH?.replace(/\\/g, ''); // Fix escaped dollar signs from Vercel
+
         if (!expectedUsername || !passwordHash) {
-          // Misconfigured environment — fail closed, and don't hint at which var is missing.
           console.error("Auth misconfigured: ADMIN_USERNAME or ADMIN_PASSWORD_HASH is not set");
           return null;
         }
+        
         if (username !== expectedUsername) return null;
 
         const passwordMatches = await bcrypt.compare(password, passwordHash);
         if (!passwordMatches) return null;
 
-        await clearLoginRateLimit(rateLimitKey);
-        return { id: "admin", name: "Nita Travels Admin" };
+        await clearLoginRateLimit(rateLimitKey).catch(() => {});
+        return { id: "admin", name: "Nita Travels Admin", username: "admin", role: "ADMIN" };
       },
     }),
   ],
