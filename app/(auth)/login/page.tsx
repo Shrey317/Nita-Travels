@@ -4,6 +4,7 @@ import { signIn } from "@/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "./password-input";
 import { Button } from "@/components/ui/button";
 import { Truck } from "lucide-react";
 
@@ -53,7 +54,7 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" autoComplete="current-password" required />
+              <PasswordInput />
             </div>
             {searchParams?.error && (
               <p role="alert" className="animate-slide-up text-sm font-medium text-status-error">

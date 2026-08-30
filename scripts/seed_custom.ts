@@ -423,6 +423,13 @@ async function run() {
     let mileage: number | null = parseInt((mileageStr || '').replace(/[" ,]/g, ''), 10);
     if (isNaN(mileage)) mileage = null;
 
+    if (mileage !== null && vehicleId !== 'ALLCR' && vehicleId !== '') {
+      const v = vehiclesMap.get(vehicleId);
+      if (v && mileage > v.currentMileageKm) {
+        v.currentMileageKm = mileage;
+      }
+    }
+
     transactions.push({
       date,
       vehicleId: (vehicleId === '' || vehicleId === 'ALLCR') ? 'ALLCR' : vehicleId,
@@ -435,6 +442,71 @@ async function run() {
   }
 
   console.log(`Found ${vehiclesMap.size} vehicles and ${transactions.length} transactions.`);
+
+  console.log("Parsing Mileage CSV data...");
+  const rawMileageCsv = fs.readFileSync('./scripts/mileage.csv', 'utf8');
+  const mileageLines = rawMileageCsv.split('\n');
+  const mileageEntries = [];
+
+  for (let i = 1; i < mileageLines.length; i++) {
+    const line = mileageLines[i]!.trim();
+    if (!line || line.startsWith(',') || line.includes('Enter Date') || line.includes('TIP:')) continue;
+    if (line.startsWith('DATE,VEHICLE ID') || line.startsWith('NITA TRAVELS')) continue;
+
+    const cols = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let char of line) {
+      if (char === '"') inQuotes = !inQuotes;
+      else if (char === ',' && !inQuotes) { cols.push(cur); cur = ''; }
+      else cur += char;
+    }
+    cols.push(cur); // last col
+
+    if (cols.length < 8) continue;
+
+    const [dateStr, vehicleId, reg, prevStr, curStr, distStr, weekStr, limitStr, statusStr] = cols;
+
+    if (!vehicleId || !curStr || curStr === '-' || vehicleId === '') continue;
+
+    const date = new Date((dateStr || '') + ' UTC');
+    if (isNaN(date.getTime())) continue;
+
+    const currentMileageKm = parseInt(curStr.replace(/[" ,]/g, ''), 10);
+    if (isNaN(currentMileageKm)) continue;
+
+    let distanceDrivenKm = parseInt((distStr || '').replace(/[" ,-]/g, ''), 10);
+    if (isNaN(distanceDrivenKm)) distanceDrivenKm = 0;
+
+    let previousMileageKm = parseInt((prevStr || '').replace(/[" ,-]/g, ''), 10);
+    if (isNaN(previousMileageKm)) previousMileageKm = currentMileageKm - distanceDrivenKm;
+
+    const [isoWeekStr, isoYearStr] = (weekStr || '').split('-');
+    const isoWeek = parseInt(isoWeekStr || '1', 10);
+    const isoYear = parseInt(isoYearStr || '2026', 10);
+
+    const weeklyLimitKm = parseInt((limitStr || '').replace(/[" ,]/g, ''), 10) || 2000;
+    const overLimitByKm = distanceDrivenKm > weeklyLimitKm ? distanceDrivenKm - weeklyLimitKm : null;
+
+    mileageEntries.push({
+      date,
+      vehicleId,
+      previousMileageKm,
+      currentMileageKm,
+      distanceDrivenKm,
+      isoWeek,
+      isoYear,
+      weeklyLimitKm,
+      overLimitByKm,
+    });
+
+    const v = vehiclesMap.get(vehicleId);
+    if (v && currentMileageKm > v.currentMileageKm) {
+      v.currentMileageKm = currentMileageKm;
+    }
+  }
+
+  console.log(`Found ${mileageEntries.length} mileage entries.`);
 
   console.log("Clearing existing data...");
   await prisma.transaction.deleteMany();
@@ -450,6 +522,11 @@ async function run() {
   console.log("Inserting transactions...");
   await prisma.transaction.createMany({
     data: transactions
+  });
+
+  console.log("Inserting mileage entries...");
+  await prisma.mileageEntry.createMany({
+    data: mileageEntries
   });
 
   console.log("Seed complete! All your custom Excel data has been inserted seamlessly.");
