@@ -28,7 +28,7 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
   const detail = await getVehicleDetail(params.id);
   if (!detail) notFound();
 
-  const { vehicle, incomeCents, expenseCents, repairsCents, netProfitCents, emiBalanceCents, roiPercent, kmSincePurchase, service, recentRepairs } =
+  const { vehicle, incomeCents, expenseCents, repairsCents, netProfitCents, emiBalanceCents, roiPercent, kmSincePurchase, service, recentRepairs, highRepairCost } =
     detail;
 
   const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -43,9 +43,8 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
     insuranceEndDate: vehicle.insuranceEndDate,
     hasRecentMileage,
     highRepairFrequency: recentRepairs.length > 2,
-    highRepairCost: false,
+    highRepairCost,
     roiPercent: roiPercent,
-    downtimeDays: 0,
   });
 
   const { recommended: replaceRecommended, reasons: replaceReasons } = checkVehicleReplacementCriteria({

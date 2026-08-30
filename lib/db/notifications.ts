@@ -8,7 +8,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { getServiceStatusAllVehicles } from "@/lib/db/service";
-import { differenceInCalendarDays } from "date-fns";
+import { differenceInCalendarDays, startOfWeek } from "date-fns";
 
 export type NotificationPriority = "critical" | "warning" | "info";
 
@@ -114,10 +114,10 @@ export async function getFleetNotifications(): Promise<FleetNotification[]> {
   }
 
   // Missing mileage notifications
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 1 });
   const recentMileageByVehicle = await prisma.mileageEntry.groupBy({
     by: ["vehicleId"],
-    where: { date: { gte: weekAgo } },
+    where: { date: { gte: startOfCurrentWeek } },
   });
   const vehiclesWithMileage = new Set(recentMileageByVehicle.map((e) => e.vehicleId));
 
@@ -139,7 +139,7 @@ export async function getFleetNotifications(): Promise<FleetNotification[]> {
   // Mileage violation notifications (most recent entry over limit)
   const recentOverLimit = await prisma.mileageEntry.findMany({
     where: {
-      date: { gte: weekAgo },
+      date: { gte: startOfCurrentWeek },
       overLimitByKm: { gt: 0 },
     },
     distinct: ["vehicleId"],
@@ -149,7 +149,9 @@ export async function getFleetNotifications(): Promise<FleetNotification[]> {
 
   for (const entry of recentOverLimit) {
     const v = vehicleMap.get(entry.vehicleId);
-    const vehicleName = v ? `${v.make} ${v.model} (${entry.vehicleId})` : entry.vehicleId;
+    if (!v) continue; // Task 4: Skip inactive/deleted vehicles
+
+    const vehicleName = `${v.make} ${v.model} (${entry.vehicleId})`;
     notifications.push({
       id: `mil-over-${entry.vehicleId}`,
       priority: "warning",

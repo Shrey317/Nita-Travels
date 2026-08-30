@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Nita Fleet Core Workflows', () => {
-  // Use the admin credentials configured in .env for tests
-  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-  const adminPassword = process.env.ADMIN_PASSWORD_HASH || 'password'; // Need the raw password here. In real testing, use a test env var.
+  // Use the test credentials injected via playwright.config.ts
+  const adminUsername = process.env.TEST_USERNAME as string;
+  const adminPassword = process.env.TEST_PASSWORD as string;
   
   // Since we don't know the plain text password in the env right now (only hash), 
   // we'll write tests assuming a logged-in state or skip auth for now in a mock.

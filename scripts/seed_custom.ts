@@ -1,5 +1,17 @@
 import { PrismaClient, Category } from '@prisma/client';
+// @ts-ignore: types for csv-parse/sync may be missing but script runs correctly in tsx
+import { parse } from "csv-parse/sync";
 import * as fs from 'fs';
+
+if (
+  process.env.NODE_ENV === "production" || 
+  process.env.VERCEL_ENV === "production" ||
+  /prod/i.test(process.env.DATABASE_URL || "") ||
+  process.env.DATABASE_URL?.includes("amazonaws")
+) {
+  console.error("CRITICAL: Destructive seed script aborted. Production environment or database detected.");
+  process.exit(1);
+}
 
 const prisma = new PrismaClient();
 

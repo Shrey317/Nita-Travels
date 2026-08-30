@@ -11,8 +11,8 @@ test.describe('Core Fleet Workflow', () => {
     // In a real test, we would first login. For now, we assume the test setup handles it or we expect a redirect.
     // Assuming we land on dashboard after auth:
     if (page.url().includes('/login')) {
-      await page.fill('input[name="username"]', 'admin');
-      await page.fill('input[name="password"]', 'nita123'); // example creds
+      await page.fill('input[name="username"]', process.env.TEST_USERNAME as string);
+      await page.fill('input[name="password"]', process.env.TEST_PASSWORD as string);
       await page.click('button[type="submit"]');
     }
     

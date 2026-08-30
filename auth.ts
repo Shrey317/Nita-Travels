@@ -31,17 +31,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        const expectedUsername = process.env.ADMIN_USERNAME;
-        const passwordHash = process.env.ADMIN_PASSWORD_HASH?.replace(/\\/g, ''); // Fix escaped dollar signs from Vercel
+        const isTestMode = process.env.PLAYWRIGHT_TEST === "true";
+        const expectedUsername = isTestMode && process.env.TEST_USERNAME ? process.env.TEST_USERNAME : process.env.ADMIN_USERNAME;
+        let expectedPasswordHash = process.env.ADMIN_PASSWORD_HASH?.replace(/\\/g, '');
 
-        if (!expectedUsername || !passwordHash) {
-          console.error("Auth misconfigured: ADMIN_USERNAME or ADMIN_PASSWORD_HASH is not set");
+        // If testing and a plaintext test password is provided, hash it on the fly 
+        // so that the exact same bcrypt.compare() code path is exercised.
+        if (isTestMode && process.env.TEST_PASSWORD) {
+          expectedPasswordHash = bcrypt.hashSync(process.env.TEST_PASSWORD, 10);
+        }
+
+        if (!expectedUsername || !expectedPasswordHash) {
+          console.error("Missing credentials in environment variables.");
           return null;
         }
         
         if (username !== expectedUsername) return null;
 
-        const passwordMatches = await bcrypt.compare(password, passwordHash);
+        const passwordMatches = await bcrypt.compare(password, expectedPasswordHash);
         if (!passwordMatches) return null;
 
         await clearLoginRateLimit(rateLimitKey).catch(() => {});

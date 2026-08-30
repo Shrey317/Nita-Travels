@@ -8,6 +8,15 @@ import { PrismaClient } from "@prisma/client";
  */
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
+if (process.env.APP_ENV === "test") {
+  if (!process.env.TEST_DATABASE_URL) {
+    console.error("SAFETY ABORT: TEST_DATABASE_URL is missing but APP_ENV=test is set.");
+    process.exit(1);
+  }
+  // Force Prisma to use the test database
+  process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({

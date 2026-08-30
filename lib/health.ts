@@ -11,7 +11,6 @@ export interface HealthScoreResult {
     insurance: { score: number; max: number };
     mileage: { score: number; max: number };
     repairs: { score: number; max: number };
-    downtime: { score: number; max: number };
     financial: { score: number; max: number };
   };
   reasons: string[];
@@ -25,12 +24,11 @@ export interface HealthInput {
   highRepairFrequency?: boolean;
   highRepairCost?: boolean;
   roiPercent?: number | null;
-  downtimeDays?: number;
 }
 
 /**
  * Calculates a detailed vehicle health score out of 100 based on a transparent weighting model:
- * Service (20%), Insurance (15%), Mileage (15%), Repairs (20%), Downtime (10%), Financial (20%).
+ * Service (20%), Insurance (15%), Mileage (15%), Repairs (25%), Financial (25%).
  */
 export function calculateVehicleHealthScore(v: HealthInput): HealthScoreResult {
   const result: HealthScoreResult = {
@@ -39,9 +37,8 @@ export function calculateVehicleHealthScore(v: HealthInput): HealthScoreResult {
       service: { score: 20, max: 20 },
       insurance: { score: 15, max: 15 },
       mileage: { score: 15, max: 15 },
-      repairs: { score: 20, max: 20 },
-      downtime: { score: 10, max: 10 },
-      financial: { score: 20, max: 20 },
+      repairs: { score: 25, max: 25 },
+      financial: { score: 25, max: 25 },
     },
     reasons: [],
   };
@@ -51,7 +48,6 @@ export function calculateVehicleHealthScore(v: HealthInput): HealthScoreResult {
     result.categories.insurance.score = 0;
     result.categories.mileage.score = 0;
     result.categories.repairs.score = 0;
-    result.categories.downtime.score = 0;
     result.categories.financial.score = 0;
     result.reasons.push("Vehicle is inactive (Score: 0)");
     return result;
@@ -91,38 +87,29 @@ export function calculateVehicleHealthScore(v: HealthInput): HealthScoreResult {
     result.reasons.push("Missing recent mileage log (-15 pts)");
   }
 
-  // 4. Repairs (20%)
+  // 4. Repairs (25%)
   if (v.highRepairFrequency) {
-    result.categories.repairs.score -= 10;
-    result.reasons.push("High frequency of recent repairs (-10 pts)");
+    result.categories.repairs.score -= 12;
+    result.reasons.push("High frequency of recent repairs (-12 pts)");
   }
   if (v.highRepairCost) {
-    result.categories.repairs.score -= 10;
-    result.reasons.push("Repair spending is double the fleet average (-10 pts)");
+    result.categories.repairs.score -= 13;
+    result.reasons.push("Repair spending is double the fleet average (-13 pts)");
   }
   result.categories.repairs.score = Math.max(0, result.categories.repairs.score);
 
-  // 5. Downtime (10%)
-  if (v.downtimeDays !== undefined && v.downtimeDays > 7) {
-    result.categories.downtime.score = 0;
-    result.reasons.push(`High downtime: ${v.downtimeDays} days (-10 pts)`);
-  } else if (v.downtimeDays !== undefined && v.downtimeDays > 3) {
-    result.categories.downtime.score = 5;
-    result.reasons.push(`Moderate downtime: ${v.downtimeDays} days (-5 pts)`);
-  }
-
-  // 6. Financial (20%)
+  // 5. Financial (25%)
   if (v.roiPercent !== undefined && v.roiPercent !== null) {
     if (v.roiPercent < -10) {
       result.categories.financial.score = 0;
-      result.reasons.push(`Very poor ROI: ${v.roiPercent.toFixed(1)}% (-20 pts)`);
+      result.reasons.push(`Very poor ROI: ${v.roiPercent.toFixed(1)}% (-25 pts)`);
     } else if (v.roiPercent < 0) {
       result.categories.financial.score = 10;
-      result.reasons.push(`Negative ROI: ${v.roiPercent.toFixed(1)}% (-10 pts)`);
+      result.reasons.push(`Negative ROI: ${v.roiPercent.toFixed(1)}% (-15 pts)`);
     }
   } else {
     result.categories.financial.score = 10;
-    result.reasons.push("Insufficient financial data for full score (-10 pts)");
+    result.reasons.push("Insufficient financial data for full score (-15 pts)");
   }
 
   result.score =
@@ -130,7 +117,6 @@ export function calculateVehicleHealthScore(v: HealthInput): HealthScoreResult {
     result.categories.insurance.score +
     result.categories.mileage.score +
     result.categories.repairs.score +
-    result.categories.downtime.score +
     result.categories.financial.score;
 
   return result;
@@ -142,7 +128,6 @@ export interface ReplacementInput {
   roiPercent: number | null;
   repairsCostCents: number;
   totalIncomeCents: number;
-  downtimeDays?: number;
   profitPerKmCents?: number | null;
 }
 
@@ -164,10 +149,6 @@ export function checkVehicleReplacementCriteria(v: ReplacementInput): { recommen
 
   if (v.roiPercent !== null && v.roiPercent < -20 && ageInYears > 3) {
     reasons.push(`Persistently negative ROI (${v.roiPercent.toFixed(1)}%) on an older vehicle`);
-  }
-
-  if (v.downtimeDays !== undefined && v.downtimeDays > 14) {
-    reasons.push(`Excessive downtime (${v.downtimeDays} days)`);
   }
 
   if (v.profitPerKmCents !== undefined && v.profitPerKmCents !== null && v.profitPerKmCents < 0) {

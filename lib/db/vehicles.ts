@@ -84,6 +84,7 @@ export interface VehicleDetail extends VehicleSummary {
   emiBalanceCents: number;
   roiPercent: number | null;
   recentRepairs: { id: string }[];
+  highRepairCost: boolean;
 }
 
 /** Full detail for the Vehicle Profile page (SRS 15.3). Not filtered by `active` — a
@@ -92,7 +93,11 @@ export async function getVehicleDetail(id: string): Promise<VehicleDetail | null
   const vehicle = await prisma.vehicle.findUnique({ where: { id, deletedAt: null } });
   if (!vehicle) return null;
 
-  const [incomeExpense, repairs, latestService, recentRepairs] = await Promise.all([
+  const twelveMonthsAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+  const activeVehicles = await prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true } });
+  const activeVehicleIds = activeVehicles.map(v => v.id);
+
+  const [incomeExpense, repairs, latestService, recentRepairs, vehicleRepairs12m, fleetRepairs12m] = await Promise.all([
     prisma.transaction.aggregate({
       where: { vehicleId: id, deletedAt: null },
       _sum: { incomeZarCents: true, expenseZarCents: true },
@@ -106,11 +111,24 @@ export async function getVehicleDetail(id: string): Promise<VehicleDetail | null
       where: { vehicleId: id, category: { in: [...REPAIR_CATEGORIES] }, deletedAt: null, date: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
       select: { id: true }
     }),
+    prisma.transaction.aggregate({
+      where: { vehicleId: id, category: { in: [...REPAIR_CATEGORIES] }, deletedAt: null, date: { gte: twelveMonthsAgo } },
+      _sum: { expenseZarCents: true }
+    }),
+    prisma.transaction.aggregate({
+      where: { vehicleId: { in: activeVehicleIds }, category: { in: [...REPAIR_CATEGORIES] }, deletedAt: null, date: { gte: twelveMonthsAgo } },
+      _sum: { expenseZarCents: true }
+    }),
   ]);
 
   const incomeCents = incomeExpense._sum.incomeZarCents ?? 0;
   const expenseCents = incomeExpense._sum.expenseZarCents ?? 0;
   const netProfitCents = incomeCents - expenseCents;
+
+  const vRepairs12m = vehicleRepairs12m._sum.expenseZarCents ?? 0;
+  const fRepairs12m = fleetRepairs12m._sum.expenseZarCents ?? 0;
+  const fleetAvgRepairCost = activeVehicleIds.length > 0 ? fRepairs12m / activeVehicleIds.length : 0;
+  const highRepairCost = fleetAvgRepairCost > 0 && vRepairs12m > fleetAvgRepairCost * 2;
 
   const { nextSvcKm, kmRemaining, status } = deriveServiceStatus(
     latestService?.mileageKm ?? null,
@@ -139,6 +157,7 @@ export async function getVehicleDetail(id: string): Promise<VehicleDetail | null
       status,
     },
     recentRepairs,
+    highRepairCost,
   };
 }
 

@@ -69,6 +69,14 @@ export async function getPreviousMileage(vehicleId: string): Promise<number> {
 
 export async function createMileageEntry(input: MileageEntryInput): Promise<MileageEntry> {
   const data = mileageEntrySchema.parse(input);
+
+  // Task 2: Prevent new entries for soft-deleted/inactive vehicles
+  const vehicle = await prisma.vehicle.findUnique({ where: { id: data.vehicleId } });
+  if (!vehicle) throw new NotFoundError(`Vehicle ${data.vehicleId} not found`);
+  if (!vehicle.active || vehicle.deletedAt) {
+    throw new ValidationError("Cannot add mileage entries to a deactivated or deleted vehicle", "vehicleId");
+  }
+
   const previousMileageKm = await getPreviousMileage(data.vehicleId);
 
   const errorMsg = validateMileageReading(data.currentMileageKm, previousMileageKm);
@@ -93,14 +101,53 @@ export async function createMileageEntry(input: MileageEntryInput): Promise<Mile
       },
     });
 
-    // Same "only ever move forward" sync rule as Service transactions (SRS 15.8).
-    const vehicle = await tx.vehicle.findUniqueOrThrow({ where: { id: data.vehicleId } });
-    if (data.currentMileageKm > vehicle.currentMileageKm) {
-      await tx.vehicle.update({ where: { id: data.vehicleId }, data: { currentMileageKm: data.currentMileageKm } });
-    }
+    // Re-sync chain and max mileage (handles out-of-order inserts gracefully)
+    await recalculateMileageChain(tx, data.vehicleId);
 
     return created;
   }, TRANSACTION_OPTIONS);
+}
+
+/** Recalculates the historical chain to bridge gaps after an edit, delete, or out-of-order insert. */
+async function recalculateMileageChain(tx: Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">, vehicleId: string): Promise<void> {
+  const entries = await tx.mileageEntry.findMany({
+    where: { vehicleId },
+    orderBy: { date: "asc" }
+  });
+
+  if (entries.length > 0) {
+    // The very first entry in the chain acts as the anchor.
+    let prev = entries[0]!.previousMileageKm;
+    for (const entry of entries) {
+      if (entry.previousMileageKm !== prev) {
+        const derived = buildMileageEntry(entry.date, entry.currentMileageKm, prev, entry.weeklyLimitKm);
+        await tx.mileageEntry.update({
+          where: { id: entry.id },
+          data: {
+            previousMileageKm: prev,
+            distanceDrivenKm: derived.distanceDrivenKm,
+            overLimitByKm: derived.overLimitByKm
+          }
+        });
+      }
+      prev = entry.currentMileageKm;
+    }
+  }
+
+  // Finally, re-sync vehicle's currentMileageKm to the max of all MileageEntry and Transaction
+  const [maxEntry, maxTx, vehicle] = await Promise.all([
+    tx.mileageEntry.findFirst({ where: { vehicleId }, orderBy: { currentMileageKm: "desc" }, select: { currentMileageKm: true } }),
+    tx.transaction.findFirst({ where: { vehicleId, mileageKm: { not: null }, deletedAt: null }, orderBy: { mileageKm: "desc" }, select: { mileageKm: true } }),
+    tx.vehicle.findUniqueOrThrow({ where: { id: vehicleId } })
+  ]);
+  const highestKm = Math.max(
+    maxEntry?.currentMileageKm ?? 0,
+    maxTx?.mileageKm ?? 0,
+    vehicle.mileageAtPurchaseKm // Absolute floor
+  );
+  if (highestKm !== vehicle.currentMileageKm) {
+    await tx.vehicle.update({ where: { id: vehicleId }, data: { currentMileageKm: highestKm } });
+  }
 }
 
 export interface UpdateMileageInput {
@@ -134,19 +181,8 @@ export async function updateMileageEntry(id: string, input: UpdateMileageInput):
       },
     });
 
-    // Re-sync the vehicle's currentMileageKm: find the highest reading across all entries.
-    const maxEntry = await tx.mileageEntry.findFirst({
-      where: { vehicleId: existing.vehicleId },
-      orderBy: { currentMileageKm: "desc" },
-      select: { currentMileageKm: true },
-    });
-    if (maxEntry) {
-      const vehicle = await tx.vehicle.findUniqueOrThrow({ where: { id: existing.vehicleId } });
-      const highestKm = Math.max(maxEntry.currentMileageKm, vehicle.currentMileageKm);
-      if (highestKm !== vehicle.currentMileageKm) {
-        await tx.vehicle.update({ where: { id: existing.vehicleId }, data: { currentMileageKm: highestKm } });
-      }
-    }
+    // Re-sync the vehicle's chain and max mileage
+    await recalculateMileageChain(tx, existing.vehicleId);
 
     return updated;
   }, TRANSACTION_OPTIONS);
@@ -155,5 +191,9 @@ export async function updateMileageEntry(id: string, input: UpdateMileageInput):
 export async function deleteMileageEntry(id: string): Promise<void> {
   const existing = await prisma.mileageEntry.findUnique({ where: { id } });
   if (!existing) throw new NotFoundError(`Mileage entry ${id} not found`);
-  await prisma.mileageEntry.delete({ where: { id } });
+  
+  await prisma.$transaction(async (tx) => {
+    await tx.mileageEntry.delete({ where: { id } });
+    await recalculateMileageChain(tx, existing.vehicleId);
+  }, TRANSACTION_OPTIONS);
 }

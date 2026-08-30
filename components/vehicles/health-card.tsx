@@ -14,7 +14,6 @@ interface VehicleHealthCardProps {
     insurance: HealthCategory;
     mileage: HealthCategory;
     repairs: HealthCategory;
-    downtime: HealthCategory;
     financial: HealthCategory;
   };
 }
@@ -86,7 +85,6 @@ export function VehicleHealthCard({ score, reasons, categories }: VehicleHealthC
           <CategoryBar label="Insurance" value={categories.insurance.score} max={categories.insurance.max} />
           <CategoryBar label="Mileage" value={categories.mileage.score} max={categories.mileage.max} />
           <CategoryBar label="Repairs" value={categories.repairs.score} max={categories.repairs.max} />
-          <CategoryBar label="Downtime" value={categories.downtime.score} max={categories.downtime.max} />
           <CategoryBar label="Financial" value={categories.financial.score} max={categories.financial.max} />
         </div>
 
