@@ -323,9 +323,9 @@ function parseDate(val: string): Date | null {
   if (!val) return null;
   const parts = val.split('/');
   if (parts.length === 3) {
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
+    const day = parseInt(parts[0]!, 10);
+    const month = parseInt(parts[1]!, 10) - 1;
+    const year = parseInt(parts[2]!, 10);
     return new Date(Date.UTC(year, month, day));
   }
   return null;
@@ -360,7 +360,7 @@ async function run() {
 
   // Skip header, skip empty/garbage lines
   for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const line = lines[i]!.trim();
     if (!line || line.startsWith(',')) continue;
 
     // Simple CSV parser for quoted fields
@@ -390,8 +390,8 @@ async function run() {
         let reg2 = null;
         if (reg1.includes('/')) {
           const parts = reg1.split('/');
-          reg1 = parts[0].trim();
-          reg2 = parts[1].trim();
+          reg1 = parts[0]!.trim();
+          reg2 = parts[1]!.trim();
         }
 
         vehiclesMap.set(vehicleId, {
@@ -410,17 +410,17 @@ async function run() {
     }
 
     // Map Transaction
-    const date = parseDate(dateStr);
+    const date = parseDate(dateStr || '');
     if (!date) continue;
 
-    const incomeCents = parseAmount(incomeStr);
-    const expenseCents = parseAmount(expenseStr);
+    const incomeCents = parseAmount(incomeStr || '');
+    const expenseCents = parseAmount(expenseStr || '');
 
     if (incomeCents === 0 && expenseCents === 0) continue; // skip blank rows
 
     const category = mapCategory(expenseType || '', incomeCents, expenseCents);
 
-    let mileage = parseInt((mileageStr || '').replace(/[" ,]/g, ''), 10);
+    let mileage: number | null = parseInt((mileageStr || '').replace(/[" ,]/g, ''), 10);
     if (isNaN(mileage)) mileage = null;
 
     transactions.push({
