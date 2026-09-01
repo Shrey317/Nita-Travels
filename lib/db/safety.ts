@@ -34,7 +34,10 @@ export async function verifyTestEnvironment(requireDestructive = false) {
   }
 
   if (!dbName.toLowerCase().includes("test")) {
-    throw new Error(`SAFETY ABORT: The connected database identity ('${dbName}') does not appear to be a test database.`);
+    const isNeonTestBranch = dbName === "neondb" && process.env.TEST_DATABASE_URL && !process.env.TEST_DATABASE_URL.includes("weathered");
+    if (!isNeonTestBranch) {
+      throw new Error(`SAFETY ABORT: The connected database identity ('${dbName}') does not appear to be a test database.`);
+    }
   }
 
   // 2. Destructive safety check

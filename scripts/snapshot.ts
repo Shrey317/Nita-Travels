@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
+import { format } from "date-fns";
 
 function hashObject(obj: any) {
   return crypto.createHash("sha256").update(JSON.stringify(obj)).digest("hex");
@@ -10,6 +11,22 @@ function hashObject(obj: any) {
 async function main() {
   const isPost = process.argv.includes("--post");
   const isProd = process.argv.includes("--prod");
+  
+  if (!isProd) {
+    const envTestPath = path.join(process.cwd(), ".env.test");
+    if (fs.existsSync(envTestPath)) {
+      const envContent = fs.readFileSync(envTestPath, "utf-8");
+      envContent.split("\n").forEach((line) => {
+        if (line.startsWith("TEST_DATABASE_URL=")) {
+          const val = line.split("=")[1];
+          if (val) {
+            process.env.TEST_DATABASE_URL = val.replace(/"/g, "").trim();
+            process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+          }
+        }
+      });
+    }
+  }
 
   const prisma = new PrismaClient();
   let dbName = "unknown";
@@ -17,7 +34,7 @@ async function main() {
   try {
     const res: any = await prisma.$queryRaw`SELECT current_database() as db`;
     dbName = res[0].db;
-    host = new URL(process.env.DATABASE_URL || "").hostname;
+    host = process.env.TEST_DATABASE_URL ? new URL(process.env.TEST_DATABASE_URL).hostname : "unknown";
   } catch (e: any) {
     console.warn("Could not retrieve DB info:", e.message);
   }
@@ -122,10 +139,18 @@ async function main() {
   }
 
   const prefix = isProd ? "prod-" : "";
-  const filename = isPost ? `${prefix}post-test.json` : `${prefix}pre-test.json`;
+  const timestamp = format(new Date(), "yyyyMMdd-HHmmss");
+  const baseFilename = isPost ? `${prefix}post-test` : `${prefix}pre-test`;
+  const filename = `${baseFilename}-${timestamp}.json`;
+  const latestFilename = `${baseFilename}.json`;
+  
   const filePath = path.join(outputDir, filename);
+  const latestFilePath = path.join(outputDir, latestFilename);
 
-  fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2));
+  const outStr = JSON.stringify(snapshot, null, 2);
+  fs.writeFileSync(filePath, outStr);
+  fs.writeFileSync(latestFilePath, outStr);
+  
   console.log(`Snapshot saved to ${filePath}`);
   
   console.log("\nSnapshot Summary:");

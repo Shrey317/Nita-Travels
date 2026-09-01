@@ -1,5 +1,4 @@
 import { verifyTestEnvironment } from '../lib/db/safety';
-import { prisma } from '../lib/db/client';
 
 async function globalSetup() {
   console.log("=== PLAYWRIGHT GLOBAL SETUP ===");

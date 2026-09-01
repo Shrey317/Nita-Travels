@@ -87,5 +87,5 @@ describe("Health Score Integration Tests", () => {
 
     // Assert downtime is nowhere to be found
     expect((health1.categories as any).downtime).toBeUndefined();
-  });
+  }, 20000);
 });

@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-08-31T21:37:03.857Z",
+  "environment": "unknown",
+  "databaseName": "neondb",
+  "databaseHost": "ep-still-band-at3sw3g6-pooler.c-9.us-east-1.aws.neon.tech",
+  "counts": {
+    "Vehicle": 0,
+    "Transaction": 0,
+    "MileageEntry": 0,
+    "VehicleNote": 0,
+    "Service": 0,
+    "Repair": 0
+  },
+  "hashes": {
+    "Vehicle": {},
+    "Transaction": {},
+    "MileageEntry": {},
+    "VehicleNote": {}
+  }
+}

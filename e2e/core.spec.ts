@@ -17,7 +17,7 @@ test.describe('Nita Fleet Core Workflows', () => {
     
     // Check for login form elements
     await expect(page.getByLabel(/username/i)).toBeVisible();
-    await expect(page.getByLabel(/password/i)).toBeVisible();
+    await expect(page.locator('input[name="password"]')).toBeVisible();
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
   });
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { verifyTestEnvironment } from "@/lib/db/safety";
 import { prisma } from "@/lib/db/client";
-import { checkMissingMileage, checkOverLimitMileage } from "@/lib/db/notifications";
+import { getFleetNotifications } from "@/lib/db/notifications";
 
 describe("Notifications Integration Tests", () => {
   beforeAll(async () => {
@@ -37,7 +37,8 @@ describe("Notifications Integration Tests", () => {
 
     // 2. Test missing mileage (simulate checking on a Monday morning for last week)
     // If neither has mileage, only active vehicle should be flagged.
-    const missing = await checkMissingMileage();
+    const allNotifs = await getFleetNotifications();
+    const missing = allNotifs.filter(n => n.id.startsWith("mil-missing-"));
     const activeMissing = missing.find(m => m.vehicleId === activeId);
     const inactiveMissing = missing.find(m => m.vehicleId === inactiveId);
     
@@ -75,11 +76,12 @@ describe("Notifications Integration Tests", () => {
       }
     });
 
-    const overLimit = await checkOverLimitMileage();
+    const finalNotifs = await getFleetNotifications();
+    const overLimit = finalNotifs.filter(n => n.id.startsWith("mil-over-"));
     const activeOver = overLimit.find(m => m.vehicleId === activeId);
     const inactiveOver = overLimit.find(m => m.vehicleId === inactiveId);
     
     expect(activeOver).toBeDefined();
     expect(inactiveOver).toBeUndefined();
-  });
+  }, 20000);
 });

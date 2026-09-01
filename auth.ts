@@ -25,13 +25,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Rate-limit by username+IP so this only throttles repeated guesses against one
         // account/source, not every login attempt from behind a shared IP (office wifi, etc.).
         const rateLimitKey = `${username}:${getClientIp(request)}`;
-        const { allowed } = await checkLoginRateLimit(rateLimitKey);
-        if (!allowed) {
-          console.warn(`Login rate limit hit for key: ${rateLimitKey.split(":")[1]}`);
-          return null;
+        const isTestMode = process.env.PLAYWRIGHT_TEST === "true";
+
+        if (!isTestMode) {
+          const { allowed } = await checkLoginRateLimit(rateLimitKey);
+          if (!allowed) {
+            console.warn(`Login rate limit hit for key: ${rateLimitKey.split(":")[1]}`);
+            return null;
+          }
         }
 
-        const isTestMode = process.env.PLAYWRIGHT_TEST === "true";
         const expectedUsername = isTestMode && process.env.TEST_USERNAME ? process.env.TEST_USERNAME : process.env.ADMIN_USERNAME;
         let expectedPasswordHash = process.env.ADMIN_PASSWORD_HASH?.replace(/\\/g, '');
 
@@ -41,6 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           expectedPasswordHash = bcrypt.hashSync(process.env.TEST_PASSWORD, 10);
         }
 
+        console.log("[auth.ts] isTestMode:", isTestMode, "TEST_USERNAME:", process.env.TEST_USERNAME, "TEST_PASSWORD:", !!process.env.TEST_PASSWORD);
         if (!expectedUsername || !expectedPasswordHash) {
           console.error("Missing credentials in environment variables.");
           return null;

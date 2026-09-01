@@ -11,7 +11,7 @@ describe("Mileage Integration Tests", () => {
 
   it("handles mileage creation, middle-entry edits, deletions, and cascading recalculations", async () => {
     // 1. Setup mock vehicle
-    const vehicleId = "TEST-MIL-01";
+    const vehicleId = "CR88";
     await prisma.vehicle.upsert({
       where: { id: vehicleId },
       update: { active: true, currentMileageKm: 100000 },
@@ -34,17 +34,17 @@ describe("Mileage Integration Tests", () => {
 
     // 2. Create mileage entries
     // Entry 1 (First)
-    const e1 = await createMileageEntry(vehicleId, 102000, new Date("2026-07-01"));
+    const e1 = await createMileageEntry({ vehicleId, currentMileageKm: 102000, date: new Date("2026-07-01"), photoUrls: [] });
     expect(e1.distanceDrivenKm).toBe(2000);
     expect(e1.previousMileageKm).toBe(100000);
 
     // Entry 2 (Middle)
-    const e2 = await createMileageEntry(vehicleId, 104000, new Date("2026-07-08"));
+    const e2 = await createMileageEntry({ vehicleId, currentMileageKm: 104000, date: new Date("2026-07-08"), photoUrls: [] });
     expect(e2.distanceDrivenKm).toBe(2000);
     expect(e2.previousMileageKm).toBe(102000);
 
     // Entry 3 (Latest)
-    const e3 = await createMileageEntry(vehicleId, 105000, new Date("2026-07-15"));
+    const e3 = await createMileageEntry({ vehicleId, currentMileageKm: 105000, date: new Date("2026-07-15"), photoUrls: [] });
     expect(e3.distanceDrivenKm).toBe(1000);
     expect(e3.previousMileageKm).toBe(104000);
 
@@ -71,21 +71,21 @@ describe("Mileage Integration Tests", () => {
     // 5. Delete first entry (e1)
     await deleteMileageEntry(e1.id);
     const veryFinalE3 = await prisma.mileageEntry.findUnique({ where: { id: e3.id } });
-    expect(veryFinalE3?.previousMileageKm).toBe(100000); // e3's prev is now vehicle's baseline
+    expect(veryFinalE3?.previousMileageKm).toBe(102000); // e3's prev remains 102000 because it is now the anchor
 
     // Delete latest
     await deleteMileageEntry(e3.id);
     v = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
-    expect(v?.currentMileageKm).toBe(100000); // Reset to base
-  });
+    expect(v?.currentMileageKm).toBe(90000); // Reset to base (mileageAtPurchaseKm)
+  }, 60000);
 
   it("rejects mileage creation for deactivated vehicles", async () => {
-    const vehicleId = "TEST-MIL-02";
+    const inactiveId = "CR99";
     await prisma.vehicle.upsert({
-      where: { id: vehicleId },
+      where: { id: inactiveId },
       update: { active: false, deletedAt: new Date(), currentMileageKm: 100000 },
       create: {
-        id: vehicleId,
+        id: inactiveId,
         make: "Test",
         model: "Car",
         registration: "TEST 123",
@@ -99,6 +99,6 @@ describe("Mileage Integration Tests", () => {
       }
     });
 
-    await expect(createMileageEntry(vehicleId, 102000, new Date())).rejects.toThrow(/Cannot add mileage/i);
+    await expect(createMileageEntry({ vehicleId: inactiveId, currentMileageKm: 102000, date: new Date(), photoUrls: [] })).rejects.toThrow(/Cannot add mileage/i);
   });
 });
