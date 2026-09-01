@@ -26,9 +26,29 @@ async function main() {
         }
       });
     }
+  } else {
+    // Load .env for production snapshot
+    const envPath = path.join(process.cwd(), ".env");
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, "utf-8");
+      envContent.split("\n").forEach((line) => {
+        if (line.startsWith("DATABASE_URL=")) {
+          const val = line.split("=")[1];
+          if (val) {
+            process.env.DATABASE_URL = val.replace(/"/g, "").trim();
+          }
+        }
+      });
+    }
   }
 
-  const prisma = new PrismaClient();
+  const prisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL
+      }
+    }
+  });
   let dbName = "unknown";
   let host = "unknown";
   try {
