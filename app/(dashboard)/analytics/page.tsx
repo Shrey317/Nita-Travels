@@ -5,6 +5,9 @@ import { CategoryBreakdownTable } from "@/components/analytics/category-breakdow
 import { VehicleRankingTable } from "@/components/analytics/vehicle-ranking-table";
 import { VehicleNetProfitChart } from "@/components/analytics/vehicle-net-profit-chart";
 import { ExpenseByCategoryPie } from "@/components/analytics/expense-by-category-pie";
+import { PageHeader } from "@/components/shared/page-header";
+import { SectionHeading } from "@/components/shared/section-heading";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default async function AnalyticsPage() {
   const [categoryBreakdown, vehicleRanking] = await Promise.all([
@@ -14,29 +17,34 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Analytics</h1>
-        <p className="text-sm text-muted">Fleet performance, by category and by vehicle.</p>
-      </div>
+      <PageHeader title="Analytics" description="Fleet performance, by category and by vehicle." />
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight text-ink">By Category</h2>
+        <SectionHeading title="By Category" />
         <CategoryBreakdownTable rows={categoryBreakdown} />
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight text-ink">Vehicle Performance Ranking</h2>
+        <SectionHeading title="Vehicle Performance Ranking" />
         <VehicleRankingTable rows={vehicleRanking} />
       </section>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold tracking-tight text-ink">Net P/L by Vehicle</h2>
-          <VehicleNetProfitChart rows={vehicleRanking} />
+          <SectionHeading title="Net P/L by Vehicle" />
+          <Card>
+            <CardContent className="pt-6">
+              <VehicleNetProfitChart rows={vehicleRanking} />
+            </CardContent>
+          </Card>
         </section>
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold tracking-tight text-ink">Expense by Category</h2>
-          <ExpenseByCategoryPie rows={categoryBreakdown} />
+          <SectionHeading title="Expense by Category" />
+          <Card>
+            <CardContent className="pt-6">
+              <ExpenseByCategoryPie rows={categoryBreakdown} />
+            </CardContent>
+          </Card>
         </section>
       </div>
     </div>

@@ -25,7 +25,7 @@ export function DashboardInsights({ insights }: { insights: InsightItem[] }) {
   if (insights.length === 0) return null;
 
   return (
-    <Card className="animate-slide-up delay-300">
+    <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
           <span className="inline-block h-5 w-1 rounded-full bg-gradient-to-b from-teal to-teal-light" />

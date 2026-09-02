@@ -4,7 +4,7 @@ export async function verifyTestEnvironment(requireDestructive = false) {
   if (process.env.APP_ENV !== "test") {
     throw new Error("SAFETY ABORT: APP_ENV === 'test' is required.");
   }
-  
+
   if (!process.env.TEST_DATABASE_URL) {
     throw new Error("SAFETY ABORT: TEST_DATABASE_URL is required.");
   }

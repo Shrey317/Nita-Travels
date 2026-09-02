@@ -10,3 +10,4 @@ dist
 coverage
 CHANGES.md
 .vercel
+.env.prod

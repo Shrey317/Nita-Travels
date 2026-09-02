@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { TransactionFilters } from "@/components/transactions/transaction-filters";
 import { TransactionTable } from "@/components/transactions/transaction-table";
 import { Pagination } from "@/components/shared/pagination";
+import { PageHeader } from "@/components/shared/page-header";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { toStringArray } from "@/lib/utils";
 
@@ -59,26 +60,20 @@ export default async function TransactionsPage({ searchParams }: TransactionsPag
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">Transactions</h1>
-          <p className="text-sm text-muted">{result.total} total</p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <a href={`/api/transactions/export?${exportParams.toString()}`}>
-              <Download className="h-4 w-4" />
-              Export CSV
-            </a>
-          </Button>
-          <Button asChild>
-            <Link href="/transactions/new">
-              <Plus className="h-4 w-4" />
-              Add Transaction
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <PageHeader title="Transactions" description={`${result.total} total`}>
+        <Button asChild variant="outline">
+          <a href={`/api/transactions/export?${exportParams.toString()}`}>
+            <Download className="h-4 w-4" />
+            Export CSV
+          </a>
+        </Button>
+        <Button asChild>
+          <Link href="/transactions/new">
+            <Plus className="h-4 w-4" />
+            Add Transaction
+          </Link>
+        </Button>
+      </PageHeader>
 
       <TransactionFilters vehicles={vehicles} />
       <TransactionTable transactions={result.items} vehicles={vehicles} initialEditingId={searchParams.txId} />

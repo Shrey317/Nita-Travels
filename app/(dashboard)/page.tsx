@@ -11,6 +11,8 @@ import { ServiceOverviewTable } from "@/components/dashboard/service-overview-ta
 import { TimeFilter } from "@/components/dashboard/time-filter";
 import { TodaysPriorities, type PriorityItem } from "@/components/dashboard/todays-priorities";
 import { DashboardInsights, generateInsights } from "@/components/dashboard/dashboard-insights";
+import { PageHeader } from "@/components/shared/page-header";
+import { SectionHeading } from "@/components/shared/section-heading";
 import { parseDateRange, getPreviousPeriod } from "@/lib/date-ranges";
 import { differenceInCalendarDays, startOfWeek } from "date-fns";
 
@@ -186,13 +188,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
   return (
     <div className="space-y-8">
-      <div className="animate-fade-in flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">Dashboard</h1>
-          <p className="text-sm text-muted">Fleet command center — real-time overview</p>
-        </div>
+      <PageHeader title="Dashboard" description="Fleet command center — real-time overview">
         <TimeFilter />
-      </div>
+      </PageHeader>
 
       <TodaysPriorities items={priorities} />
 
@@ -202,19 +200,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
       <DashboardInsights insights={insights} />
 
-      <section className="animate-slide-up delay-300">
-        <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
-          <span className="inline-block h-5 w-1 rounded-full bg-brand-blue" />
-          Per-Vehicle Financial Summary
-        </h2>
+      <section className="space-y-3">
+        <SectionHeading title="Per-Vehicle Financial Summary" />
         <VehicleSummaryTable vehicles={vehicles} fleetTotals={fleetTotals} />
       </section>
 
-      <section className="animate-slide-up delay-400">
-        <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
-          <span className="inline-block h-5 w-1 rounded-full bg-brand-blue" />
-          Service Status Overview
-        </h2>
+      <section className="space-y-3">
+        <SectionHeading title="Service Status Overview" />
         <ServiceOverviewTable rows={serviceRows} />
       </section>
     </div>

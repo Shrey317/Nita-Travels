@@ -61,12 +61,35 @@ describe("Health Score Integration Tests", () => {
     expect(v1Detail).toBeDefined();
     expect(v2Detail).toBeDefined();
 
-    // The logic: fleet average = (1000000 + 100000 + other active vehicle repairs) / total active vehicles
-    // v1 is R10,000. It should definitely be > fleetAvg * 2.
-    // v2 is R1,000. It should not be.
-    // Wait, since we are on a test DB, there might be other vehicles, but v1 is massive.
-    // Let's assume v1 triggered highRepairCost if the other vehicles don't skew the average to R50,000+.
-    // It's safer to just verify the boolean is correctly calculated based on whatever the average is.
+    // The logic: fleet average = total repairs over 12 months / total active vehicles
+    // Total active vehicles = 2 (v1, v2) (since we cleared DB for this test)
+    // Wait, since we are using a shared test DB, other tests might have added vehicles.
+    // To be deterministic, we calculate the exact fleet average manually:
+    const activeVehicles = await prisma.vehicle.findMany({ where: { active: true }, select: { id: true } });
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    
+    const allRepairs = await prisma.transaction.aggregate({
+      where: {
+        category: "Repairs",
+        date: { gte: oneYearAgo },
+        vehicleId: { in: activeVehicles.map(v => v.id) }
+      },
+      _sum: {
+        expenseZarCents: true
+      }
+    });
+
+    const totalRepairCents = allRepairs._sum?.expenseZarCents || 0;
+    const fleetAverage = activeVehicles.length > 0 ? totalRepairCents / activeVehicles.length : 0;
+    
+    // v1 repairs = 1000000. Check if it's > 2x fleetAvg
+    const v1HighRepairCostExpected = 1000000 > fleetAverage * 2;
+    // v2 repairs = 100000. Check if it's > 2x fleetAvg
+    const v2HighRepairCostExpected = 100000 > fleetAverage * 2;
+    
+    expect(v1Detail!.highRepairCost).toBe(v1HighRepairCostExpected);
+    expect(v2Detail!.highRepairCost).toBe(v2HighRepairCostExpected);
     
     // Evaluate the pure logic
     const health1 = calculateVehicleHealthScore({
@@ -86,6 +109,7 @@ describe("Health Score Integration Tests", () => {
     expect(totalMax).toBe(100);
 
     // Assert downtime is nowhere to be found
-    expect((health1.categories as any).downtime).toBeUndefined();
+    const categoriesRecord = health1.categories as Record<string, unknown>;
+    expect(categoriesRecord.downtime).toBeUndefined();
   }, 20000);
 });

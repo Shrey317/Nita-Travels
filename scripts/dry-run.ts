@@ -16,16 +16,16 @@ async function main() {
   const prisma = new PrismaClient();
   let dbName = "unknown";
   try {
-    const res: any = await prisma.$queryRaw`SELECT current_database() as db`;
-    dbName = res[0].db;
-  } catch (err: any) {
-    dbName = `Error: ${err.message}`;
+    const res = await prisma.$queryRaw<Array<{ db: string }>>`SELECT current_database() as db`;
+    dbName = res[0]?.db || "unknown";
+  } catch (err: unknown) {
+    dbName = `Error: ${(err as Error).message}`;
   }
 
   let dbBranch = "unknown";
   try {
     // If using Neon, we can fetch branch
-    const resBranch: any = await prisma.$queryRaw`SHOW neon.branch`;
+    const resBranch = await prisma.$queryRaw<Array<{ "neon.branch": string }>>`SHOW neon.branch`;
     if (resBranch && resBranch[0]) {
        dbBranch = resBranch[0]["neon.branch"];
     }

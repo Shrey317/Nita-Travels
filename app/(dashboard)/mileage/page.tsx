@@ -12,6 +12,7 @@ import { vehicleIdOptions } from "@/components/shared/vehicle-options";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { toStringArray } from "@/lib/utils";
 import { MileageAlerts } from "@/components/mileage/mileage-alerts";
+import { PageHeader } from "@/components/shared/page-header";
 import { startOfWeek } from "date-fns";
 
 interface MileagePageProps {
@@ -56,18 +57,14 @@ export default async function MileagePage({ searchParams }: MileagePageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">Mileage Log</h1>
-          <p className="text-sm text-muted">{result.total} entries logged</p>
-        </div>
+      <PageHeader title="Mileage Log" description={`${result.total} entries logged`}>
         <Button asChild>
           <Link href="/mileage/new">
             <Plus className="h-4 w-4" />
             Log Mileage
           </Link>
         </Button>
-      </div>
+      </PageHeader>
 
       <MileageAlerts missingMileageVehicles={missingMileageVehicles} overLimitVehicles={overLimitVehicles} />
 

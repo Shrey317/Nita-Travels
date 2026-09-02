@@ -1,4 +1,5 @@
 import { Activity } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface HealthCategory {
@@ -19,18 +20,18 @@ interface VehicleHealthCardProps {
 }
 
 function CategoryBar({ label, value, max }: { label: string; value: number; max: number }) {
-  const percentage = (value / max) * 100;
+  const percentage = max > 0 ? (value / max) * 100 : 0;
   const isLow = percentage < 50;
   
   return (
     <div className="flex flex-col gap-1">
       <div className="flex justify-between text-xs font-medium">
-        <span className="text-muted-foreground">{label}</span>
+        <span className="text-muted">{label}</span>
         <span className={cn(isLow ? "text-status-error" : "text-status-success")}>{value}/{max}</span>
       </div>
-      <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+      <div className="h-1.5 w-full rounded-full overflow-hidden bg-surface-secondary">
         <div 
-          className={cn("h-full rounded-full", isLow ? "bg-status-error" : "bg-status-success")} 
+          className={cn("h-full rounded-full transition-all duration-500", isLow ? "bg-status-error" : "bg-status-success")} 
           style={{ width: `${percentage}%` }}
         />
       </div>
@@ -44,26 +45,26 @@ export function VehicleHealthCard({ score, reasons, categories }: VehicleHealthC
   const isCritical = score < 50;
 
   return (
-    <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div className="flex flex-col space-y-1.5 p-6 pb-4">
-        <h3 className="font-semibold leading-none tracking-tight flex items-center gap-2">
-          <Activity className="h-4 w-4" />
+    <Card>
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-sm font-semibold text-muted">
+          <Activity className="h-4 w-4" aria-hidden="true" />
           Vehicle Health
-        </h3>
-      </div>
+        </CardTitle>
+      </CardHeader>
       
-      <div className="p-6 pt-0">
+      <CardContent>
         <div className="flex items-center gap-4 mb-6">
           <div className={cn(
-            "flex h-16 w-16 items-center justify-center rounded-full border-4 shadow-sm shrink-0",
-            isHealthy && "border-status-success/30 bg-status-success/10 text-status-success",
-            isWarning && "border-status-warning/30 bg-status-warning/10 text-status-warning",
-            isCritical && "border-status-error/30 bg-status-error/10 text-status-error"
+            "flex h-16 w-16 items-center justify-center rounded-full border-4 shrink-0",
+            isHealthy && "border-status-success/30 bg-status-success-bg text-status-success",
+            isWarning && "border-status-warning/30 bg-status-warning-bg text-status-warning",
+            isCritical && "border-status-error/30 bg-status-error-bg text-status-error"
           )}>
             <span className="text-2xl font-bold">{score}</span>
           </div>
           
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h4 className={cn(
               "text-lg font-bold mb-1",
               isHealthy && "text-status-success",
@@ -74,7 +75,7 @@ export function VehicleHealthCard({ score, reasons, categories }: VehicleHealthC
               {isWarning && "Needs Attention"}
               {isCritical && "Critical Condition"}
             </h4>
-            <p className="text-sm text-muted-foreground line-clamp-2">
+            <p className="text-sm text-muted line-clamp-2">
               {reasons.length === 0 ? "All systems normal. Operating at peak efficiency." : "Issues detected affecting vehicle performance or compliance."}
             </p>
           </div>
@@ -89,19 +90,19 @@ export function VehicleHealthCard({ score, reasons, categories }: VehicleHealthC
         </div>
 
         {reasons.length > 0 && (
-          <div className="bg-secondary/50 rounded-md p-3">
-            <h4 className="text-xs font-semibold mb-2 uppercase text-muted-foreground tracking-wider">Deductions</h4>
+          <div className="rounded-lg bg-surface-secondary p-3">
+            <h4 className="text-xs font-semibold mb-2 uppercase text-muted tracking-wider">Deductions</h4>
             <ul className="space-y-1">
               {reasons.map((reason, i) => (
-                <li key={i} className="text-sm text-foreground/80 flex items-start gap-2">
-                  <span className="text-status-error mt-0.5">•</span>
+                <li key={i} className="text-sm text-ink-secondary flex items-start gap-2">
+                  <span className="text-status-error mt-0.5 shrink-0">•</span>
                   <span>{reason}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

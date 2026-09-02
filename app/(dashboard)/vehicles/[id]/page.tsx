@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Pencil, Plus, StickyNote, Gauge } from "lucide-react";
 import { getVehicleDetail } from "@/lib/db/vehicles";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import { prisma } from "@/lib/db/client";
 import { differenceInCalendarDays, startOfWeek } from "date-fns";
 import { VehicleHealthCard } from "@/components/vehicles/health-card";
 import { VehicleReplacementCard } from "@/components/vehicles/replacement-card";
+import { SectionHeading } from "@/components/shared/section-heading";
 
 interface VehicleProfilePageProps {
   params: { id: string };
@@ -68,46 +69,72 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
 
   const registrationLine = vehicle.registration2 ? `${vehicle.registration} / ${vehicle.registration2}` : vehicle.registration;
 
+  // Compute insurance display
+  const insuranceDaysRemaining = vehicle.insuranceEndDate
+    ? differenceInCalendarDays(vehicle.insuranceEndDate, new Date())
+    : null;
+  const insuranceExpired = insuranceDaysRemaining !== null && insuranceDaysRemaining < 0;
+  const insuranceDisplay = insuranceDaysRemaining === null
+    ? "—"
+    : insuranceExpired
+      ? "Expired"
+      : `${insuranceDaysRemaining} day${insuranceDaysRemaining !== 1 ? "s" : ""}`;
+  const insuranceColor = insuranceDaysRemaining === null
+    ? "text-ink"
+    : insuranceExpired
+      ? "text-status-error"
+      : insuranceDaysRemaining <= 30
+        ? "text-status-warning"
+        : "text-status-success";
+
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
+      {/* ── Vehicle Header ── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className="inline-flex items-center rounded-md bg-navy px-2.5 py-1 text-sm font-semibold text-white">
               {vehicle.id}
             </span>
             <h1 className="text-2xl font-semibold tracking-tight text-ink">
               {vehicle.make} {vehicle.model}
             </h1>
+            {!vehicle.active && <Badge variant="destructive">Inactive</Badge>}
+            {service && <Badge variant={badgeVariant[service.status]}>{badgeLabel[service.status]}</Badge>}
           </div>
           <p className="mt-1 text-sm text-muted">{registrationLine}</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          {!vehicle.active && <Badge variant="outline">Inactive</Badge>}
-          
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           <Button asChild variant="outline" size="sm">
             <Link href={`/vehicles/${vehicle.id}/edit`}>
-              <Pencil className="mr-2 h-3.5 w-3.5" />
+              <Pencil className="h-3.5 w-3.5" />
               Edit
             </Link>
           </Button>
-
-          <Button asChild variant="default" size="sm" className="bg-brand-blue text-white hover:bg-brand-blueAccent">
-            <Link href={`/transactions/new?vehicleId=${vehicle.id}`}>Add Transaction</Link>
+          <Button asChild size="sm">
+            <Link href={`/transactions/new?vehicleId=${vehicle.id}`}>
+              <Plus className="h-3.5 w-3.5" />
+              Transaction
+            </Link>
           </Button>
-          <Button asChild variant="default" size="sm" className="bg-brand-blue text-white hover:bg-brand-blueAccent">
-            <Link href={`/mileage/new?vehicleId=${vehicle.id}`}>Add Mileage</Link>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/mileage/new?vehicleId=${vehicle.id}`}>
+              <Gauge className="h-3.5 w-3.5" />
+              Mileage
+            </Link>
           </Button>
-          <Button asChild variant="default" size="sm" className="bg-brand-navy text-white hover:bg-brand-navy/90">
-            <Link href={`/vehicles/${vehicle.id}/notes/new`}>Add Note</Link>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/vehicles/${vehicle.id}/notes/new`}>
+              <StickyNote className="h-3.5 w-3.5" />
+              Note
+            </Link>
           </Button>
-          
           {vehicle.active && <DeactivateVehicleButton vehicleId={vehicle.id} />}
         </div>
       </div>
 
-      {/* Scannable Top Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+      {/* ── Scannable Status Strip ── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs font-medium text-muted uppercase tracking-wider">Status</p>
           <p className={`mt-1 font-semibold ${vehicle.active ? "text-status-success" : "text-status-error"}`}>
@@ -116,7 +143,7 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs font-medium text-muted uppercase tracking-wider">Mileage</p>
-          <p className="mt-1 font-semibold text-ink">{formatKm(vehicle.currentMileageKm)}</p>
+          <p className="mt-1 font-semibold text-ink font-mono-figures">{formatKm(vehicle.currentMileageKm)}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs font-medium text-muted uppercase tracking-wider">Health</p>
@@ -125,27 +152,16 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
           </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted uppercase tracking-wider">Service</p>
-          <p className={`mt-1 font-semibold ${
-            service?.status === 'OVERDUE' ? 'text-status-error' : 
-            service?.status === 'DUE_SOON' ? 'text-status-warning' : 'text-ink'
-          }`}>
-            {service?.kmRemaining !== null ? `${formatKm(service?.kmRemaining)} rem` : "—"}
-          </p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs font-medium text-muted uppercase tracking-wider">Insurance</p>
-          <p className="mt-1 font-semibold text-ink">
-            {vehicle.insuranceEndDate ? `${Math.max(0, differenceInCalendarDays(vehicle.insuranceEndDate, new Date()))} days` : "—"}
-          </p>
+          <p className={`mt-1 font-semibold ${insuranceColor}`}>{insuranceDisplay}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs font-medium text-muted uppercase tracking-wider">Revenue</p>
-          <p className="mt-1 font-semibold text-brand-blue">{formatZAR(incomeCents)}</p>
+          <p className="mt-1 font-semibold text-brand-blue font-mono-figures">{formatZAR(incomeCents)}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs font-medium text-muted uppercase tracking-wider">Profit</p>
-          <p className={`mt-1 font-semibold ${netProfitCents >= 0 ? "text-status-success" : "text-status-error"}`}>
+          <p className={`mt-1 font-semibold font-mono-figures ${netProfitCents >= 0 ? "text-status-success" : "text-status-error"}`}>
             {formatZAR(netProfitCents)}
           </p>
         </div>
@@ -233,12 +249,12 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight text-ink">Monthly Financials</h2>
+        <SectionHeading title="Monthly Financials" />
         <FinancialChart data={monthlyFinancials} />
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight text-ink">Activity Timeline</h2>
+        <SectionHeading title="Activity Timeline" />
         <ActivityTimeline timeline={timeline} />
       </section>
     </div>

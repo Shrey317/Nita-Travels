@@ -11,7 +11,7 @@ function hashObject(obj: any) {
 async function main() {
   const isPost = process.argv.includes("--post");
   const isProd = process.argv.includes("--prod");
-  
+
   if (!isProd) {
     const envTestPath = path.join(process.cwd(), ".env.test");
     if (fs.existsSync(envTestPath)) {
@@ -60,7 +60,7 @@ async function main() {
   }
 
   console.log(`Generating snapshot for ${isPost ? "POST-TEST" : "PRE-TEST"}...`);
-  
+
   // 1. Gather all critical records
   const vehicles = await prisma.vehicle.findMany({ orderBy: { id: 'asc' } });
   const transactions = await prisma.transaction.findMany({ orderBy: { id: 'asc' } });
@@ -108,7 +108,7 @@ async function main() {
     const prefix = isProd ? "prod-" : "";
     const prePath = path.join(outputDir, `${prefix}pre-test.json`);
     const postPath = path.join(outputDir, `${prefix}post-test.json`);
-    
+
     if (!fs.existsSync(prePath) || !fs.existsSync(postPath)) {
       console.error("Missing pre or post snapshot for comparison!");
       process.exit(1);
@@ -118,7 +118,7 @@ async function main() {
     const post = JSON.parse(fs.readFileSync(postPath, "utf-8"));
 
     console.log(`\n=== Snapshot Comparison (${prefix}pre vs ${prefix}post) ===`);
-    
+
     // Compare Counts
     console.log("\n--- Count Differences ---");
     let countDiffs = 0;
@@ -136,10 +136,10 @@ async function main() {
     for (const model of Object.keys(pre.hashes)) {
       const preModel = pre.hashes[model];
       const postModel = post.hashes[model];
-      
+
       const preKeys = new Set(Object.keys(preModel));
       const postKeys = new Set(Object.keys(postModel));
-      
+
       const added = [...postKeys].filter(k => !preKeys.has(k));
       const removed = [...preKeys].filter(k => !postKeys.has(k));
       const modified = [...preKeys].filter(k => postKeys.has(k) && preModel[k] !== postModel[k]);
@@ -153,7 +153,7 @@ async function main() {
       }
     }
     if (hashDiffs === 0) console.log("No hash differences detected.");
-    
+
     console.log("\nComparison complete.");
     return;
   }
@@ -163,16 +163,16 @@ async function main() {
   const baseFilename = isPost ? `${prefix}post-test` : `${prefix}pre-test`;
   const filename = `${baseFilename}-${timestamp}.json`;
   const latestFilename = `${baseFilename}.json`;
-  
+
   const filePath = path.join(outputDir, filename);
   const latestFilePath = path.join(outputDir, latestFilename);
 
   const outStr = JSON.stringify(snapshot, null, 2);
   fs.writeFileSync(filePath, outStr);
   fs.writeFileSync(latestFilePath, outStr);
-  
+
   console.log(`Snapshot saved to ${filePath}`);
-  
+
   console.log("\nSnapshot Summary:");
   console.table(snapshot.counts);
 

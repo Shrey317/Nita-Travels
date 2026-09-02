@@ -12,7 +12,7 @@ export interface PriorityItem {
 export function TodaysPriorities({ items }: { items: PriorityItem[] }) {
   if (items.length === 0) {
     return (
-      <Card className="animate-slide-up delay-200">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
             <span className="inline-block h-5 w-1 rounded-full bg-brand-blue" />
@@ -35,7 +35,7 @@ export function TodaysPriorities({ items }: { items: PriorityItem[] }) {
   }
 
   return (
-    <Card className="animate-slide-up delay-200">
+    <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
           <span className="inline-block h-5 w-1 rounded-full bg-status-error" />

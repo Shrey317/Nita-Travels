@@ -55,8 +55,8 @@ async function main() {
   console.log("==================================");
 
   if (dbName.toLowerCase().includes("prod") || urlObj.hostname.includes("weathered")) {
-     console.error("STOP: Detected production characteristics during safe-exec.");
-     process.exit(1);
+    console.error("STOP: Detected production characteristics during safe-exec.");
+    process.exit(1);
   }
 
   const envPath = path.join(process.cwd(), ".env");
@@ -68,16 +68,16 @@ async function main() {
       fs.renameSync(envPath, envHiddenPath);
       didHideEnv = true;
     }
-    
+
     // Write .env.test contents to .env so that Next.js automatically loads it
     if (fs.existsSync(envTestPath)) {
       fs.copyFileSync(envTestPath, envPath);
     }
-    
+
     // Explicitly set the URL so it's in the environment
     process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
     process.env.DIRECT_URL = process.env.TEST_DIRECT_URL || process.env.TEST_DATABASE_URL;
-    
+
     execSync(command, { stdio: "inherit", env: { ...process.env, ALLOW_DESTRUCTIVE_TEST_DB: "true" } });
   } catch (e) {
     console.error("Command failed.");

@@ -61,10 +61,12 @@ export async function getPreviousMileage(vehicleId: string): Promise<number> {
       orderBy: { date: "desc" },
       select: { currentMileageKm: true },
     }),
-    prisma.vehicle.findUnique({ where: { id: vehicleId }, select: { currentMileageKm: true } }),
+    prisma.vehicle.findUnique({ where: { id: vehicleId }, select: { mileageAtPurchaseKm: true } }),
   ]);
   if (!vehicle) throw new NotFoundError(`Vehicle ${vehicleId} not found`);
-  return latestEntry?.currentMileageKm ?? vehicle.currentMileageKm;
+  
+  // INTENDED RULE: Vehicle.mileageAtPurchaseKm is the fallback anchor when no earlier mileage record exists.
+  return latestEntry?.currentMileageKm ?? vehicle.mileageAtPurchaseKm;
 }
 
 export async function createMileageEntry(input: MileageEntryInput): Promise<MileageEntry> {
@@ -116,8 +118,10 @@ async function recalculateMileageChain(tx: Omit<Prisma.TransactionClient, "$conn
   });
 
   if (entries.length > 0) {
-    // The very first entry in the chain acts as the anchor.
-    let prev = entries[0]!.previousMileageKm;
+    const vehicle = await tx.vehicle.findUniqueOrThrow({ where: { id: vehicleId }, select: { mileageAtPurchaseKm: true } });
+    
+    // INTENDED RULE: Vehicle.mileageAtPurchaseKm is the fallback anchor when no earlier mileage record exists.
+    let prev = vehicle.mileageAtPurchaseKm;
     for (const entry of entries) {
       if (entry.previousMileageKm !== prev) {
         const derived = buildMileageEntry(entry.date, entry.currentMileageKm, prev, entry.weeklyLimitKm);

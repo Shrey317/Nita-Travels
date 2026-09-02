@@ -8,6 +8,7 @@ import { RepairsTable } from "@/components/repairs/repairs-table";
 import { VehicleDateFilters } from "@/components/shared/vehicle-date-filters";
 import { Pagination } from "@/components/shared/pagination";
 import { vehicleIdOptions } from "@/components/shared/vehicle-options";
+import { PageHeader } from "@/components/shared/page-header";
 import { REPAIR_CATEGORIES, DEFAULT_PAGE_SIZE, FLEET_WIDE_VEHICLE_ID } from "@/lib/constants";
 import { toStringArray } from "@/lib/utils";
 
@@ -40,10 +41,7 @@ export default async function RepairsPage({ searchParams }: RepairsPageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Repairs Log</h1>
-        <p className="text-sm text-muted">Read-only view of Repairs, Brake Pads, and Tyres transactions.</p>
-      </div>
+      <PageHeader title="Repairs Log" description="Read-only view of Repairs, Brake Pads, and Tyres transactions." />
 
       <RepairsSummaryCards summary={summary} />
       <RepairsAnomalies anomalies={anomalies} />

@@ -34,11 +34,11 @@ async function main() {
   const prisma = new PrismaClient();
 
   try {
-    const dbRes: any = await prisma.$queryRaw`SELECT current_database() as db, current_user as usr, current_schema() as sch`;
+    const dbRes = await prisma.$queryRaw<Array<{ db: string, usr: string, sch: string }>>`SELECT current_database() as db, current_user as usr, current_schema() as sch`;
     
     let branch = "Not available";
     try {
-      const bRes: any = await prisma.$queryRaw`SHOW neon.branch`;
+      const bRes = await prisma.$queryRaw<Array<{ "neon.branch": string }>>`SHOW neon.branch`;
       branch = bRes[0] ? bRes[0]["neon.branch"] : "Not available";
     } catch(e) {}
 
@@ -46,16 +46,16 @@ async function main() {
     const host = dbUrl?.hostname || "unknown";
 
     console.log(`* Database Host: ${host}`);
-    console.log(`* Database Name: ${dbRes[0].db}`);
-    console.log(`* Schema: ${dbRes[0].sch}`);
-    console.log(`* Current User: ${dbRes[0].usr}`);
+    console.log(`* Database Name: ${dbRes[0]?.db}`);
+    console.log(`* Schema: ${dbRes[0]?.sch}`);
+    console.log(`* Current User: ${dbRes[0]?.usr}`);
     console.log(`* Neon Branch/Project: ${branch}`);
     console.log(`* Environment: APP_ENV=${process.env.APP_ENV || 'undefined'}`);
     console.log("");
     console.log("Test database identity verified successfully. Proceeding is safe.");
 
-  } catch (err: any) {
-    console.error(`STOP: Could not confidently verify database. ${err.message}`);
+  } catch (err: unknown) {
+    console.error(`STOP: Could not confidently verify database. ${(err as Error).message}`);
     process.exit(1);
   } finally {
     await prisma.$disconnect();

@@ -7,6 +7,7 @@ import { NotesTable } from "@/components/notes/notes-table";
 import { VehicleDateFilters } from "@/components/shared/vehicle-date-filters";
 import { Pagination } from "@/components/shared/pagination";
 import { vehicleIdOptions } from "@/components/shared/vehicle-options";
+import { PageHeader } from "@/components/shared/page-header";
 import { DEFAULT_PAGE_SIZE, FLEET_WIDE_VEHICLE_ID, NO_VEHICLE_FILTER_VALUE } from "@/lib/constants";
 import { toStringArray } from "@/lib/utils";
 
@@ -37,10 +38,7 @@ export default async function NotesPage({ searchParams }: NotesPageProps) {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Vehicle Notes</h1>
-        <p className="text-sm text-muted">Driver changes, accidents, and general fleet news — free text, no categories.</p>
-      </div>
+      <PageHeader title="Vehicle Notes" description="Driver changes, accidents, and general fleet news." />
 
       <div className="rounded-xl border border-border bg-card p-6">
         <NoteForm vehicles={vehicles} />
