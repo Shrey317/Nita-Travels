@@ -13,9 +13,9 @@ function getTypeConfig(type: string, isNote: boolean) {
     case "repair": return { icon: Wrench, color: "bg-status-error/10 text-status-error", label: "Repair" };
     case "fuel": return { icon: Fuel, color: "bg-status-success/10 text-status-success", label: "Fuel" };
     case "insurance": return { icon: ShieldAlert, color: "bg-status-info/10 text-status-info", label: "Insurance" };
-    case "toll": return { icon: FileDigit, color: "bg-slate-500/10 text-slate-500", label: "Toll" };
-    case "document": return { icon: FileText, color: "bg-slate-500/10 text-slate-500", label: "Document" };
-    default: return { icon: DollarSign, color: "bg-slate-500/10 text-slate-500", label: type };
+    case "toll": return { icon: FileDigit, color: "bg-muted/10 text-muted", label: "Toll" };
+    case "document": return { icon: FileText, color: "bg-muted/10 text-muted", label: "Document" };
+    default: return { icon: DollarSign, color: "bg-muted/10 text-muted", label: type };
   }
 }
 

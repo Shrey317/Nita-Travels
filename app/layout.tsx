@@ -13,6 +13,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Nita Travels",
   description: "Fleet management system for Nita Travels — vehicles, transactions, mileage, and service tracking.",
+  icons: {
+    icon: "/favicon.svg",
+  },
   // Internal, authenticated tool handling fleet financial data — it should never be crawled or
   // show up in search results. (Belt-and-suspenders with the X-Robots-Tag header in
   // next.config.js, which also covers non-HTML responses like the CSV export.)

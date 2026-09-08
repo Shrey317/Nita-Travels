@@ -70,8 +70,8 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
         </Link>
 
         <Link href="/transactions" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue rounded-xl">
-          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover transition-all h-full border-t-2 border-t-slate-400 border-x-border border-b-border">
-          <div className="absolute -right-4 -top-4 text-slate-400/5 transition-transform duration-500 group-hover:scale-110">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover transition-all h-full border-t-2 border-t-muted border-x-border border-b-border">
+          <div className="absolute -right-4 -top-4 text-muted/5 transition-transform duration-500 group-hover:scale-110">
             <TrendingDown className="h-24 w-24" />
           </div>
           <CardHeader className="pb-2">
@@ -146,8 +146,8 @@ export function ExtendedKpiCards({ stats }: { stats: DashboardStats }) {
       {/* Operational Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/vehicles" className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue rounded-xl">
-          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover transition-all h-full border-t-2 border-t-slate-300 border-x-border border-b-border">
-          <div className="absolute -right-4 -top-4 text-slate-300/10 transition-transform duration-500 group-hover:scale-110">
+          <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover transition-all h-full border-t-2 border-t-muted border-x-border border-b-border">
+          <div className="absolute -right-4 -top-4 text-muted/10 transition-transform duration-500 group-hover:scale-110">
             <Truck className="h-24 w-24" />
           </div>
           <CardHeader className="pb-2">

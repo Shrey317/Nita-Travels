@@ -63,6 +63,22 @@ async function main() {
   const envHiddenPath = path.join(process.cwd(), ".env.prod_hidden");
   let didHideEnv = false;
 
+  const cleanup = () => {
+    try {
+      if (fs.existsSync(envPath) && fs.existsSync(envTestPath)) {
+        fs.unlinkSync(envPath);
+      }
+      if (didHideEnv && fs.existsSync(envHiddenPath)) {
+        fs.renameSync(envHiddenPath, envPath);
+      }
+    } catch (e) {
+      console.error("Cleanup error:", e);
+    }
+  };
+
+  process.on("SIGINT", () => { cleanup(); process.exit(1); });
+  process.on("SIGTERM", () => { cleanup(); process.exit(1); });
+
   try {
     if (fs.existsSync(envPath)) {
       fs.renameSync(envPath, envHiddenPath);
@@ -83,13 +99,7 @@ async function main() {
     console.error("Command failed.");
     process.exit(1);
   } finally {
-    if (fs.existsSync(envPath) && fs.existsSync(envTestPath)) {
-      // Clean up the temporary test .env
-      fs.unlinkSync(envPath);
-    }
-    if (didHideEnv && fs.existsSync(envHiddenPath)) {
-      fs.renameSync(envHiddenPath, envPath);
-    }
+    cleanup();
   }
 }
 
