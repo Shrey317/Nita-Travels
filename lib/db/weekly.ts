@@ -1,16 +1,17 @@
 /**
  * lib/db/weekly.ts
  *
- * Weekly aggregation filtered by ISO year.
+ * Weekly aggregation supporting variable date ranges, defaulting to full history.
  */
 
 import { prisma } from "@/lib/db/client";
 import { formatMargin } from "@/lib/format";
 import { REPAIR_CATEGORIES } from "@/lib/constants";
-import { startOfISOWeek, endOfISOWeek, getISOWeeksInYear, addWeeks, format, getISOWeek, getISOWeekYear } from "date-fns";
+import { startOfISOWeek, endOfISOWeek, addWeeks, format, getISOWeek, getISOWeekYear } from "date-fns";
 
 export interface WeeklyRow {
   weekKey: string;
+  weekLabel: string;
   weekNumber: number;
   isoYear: number;
   weekStart: string;
@@ -23,22 +24,25 @@ export interface WeeklyRow {
   hasData: boolean;
 }
 
-function buildWeekBuckets(isoYear: number): WeeklyRow[] {
-  // ISO Year always starts with the week that contains Jan 4th.
-  const jan4 = new Date(Date.UTC(isoYear, 0, 4));
-  let currentWeekStart = startOfISOWeek(jan4);
-  const weeksInYear = getISOWeeksInYear(jan4);
+function buildWeekBuckets(startDate: Date, endDate: Date): WeeklyRow[] {
+  let currentWeekStart = startOfISOWeek(startDate);
+  const end = endOfISOWeek(endDate);
   
   const buckets: WeeklyRow[] = [];
-  for (let w = 1; w <= weeksInYear; w++) {
+  while (currentWeekStart <= end) {
     const weekEnd = endOfISOWeek(currentWeekStart);
-    const weekKey = `W${w.toString().padStart(2, '0')}-${isoYear}`;
+    const isoYear = getISOWeekYear(currentWeekStart);
+    const weekNum = getISOWeek(currentWeekStart);
+    const weekKey = `${isoYear}-W${weekNum.toString().padStart(2, '0')}`;
+    const weekLabel = `W${weekNum.toString().padStart(2, '0')} ${isoYear}`;
+    
     buckets.push({
       weekKey,
-      weekNumber: w,
+      weekLabel,
+      weekNumber: weekNum,
       isoYear,
-      weekStart: format(currentWeekStart, "MMM d"),
-      weekEnd: format(weekEnd, "MMM d"),
+      weekStart: format(currentWeekStart, "dd MMM"),
+      weekEnd: format(weekEnd, "dd MMM"),
       incomeCents: 0,
       expenseCents: 0,
       repairsCents: 0,
@@ -51,14 +55,30 @@ function buildWeekBuckets(isoYear: number): WeeklyRow[] {
   return buckets;
 }
 
-export async function getWeeklyBreakdown(isoYear: number): Promise<WeeklyRow[]> {
-  const buckets = buildWeekBuckets(isoYear);
-  const bucketMap = new Map(buckets.map((b) => [b.weekNumber, b]));
+export async function getWeeklyBreakdown(dateFrom?: Date, dateTo?: Date): Promise<WeeklyRow[]> {
+  // Determine bounds
+  let actualFrom = dateFrom;
+  let actualTo = dateTo;
 
-  const jan4 = new Date(Date.UTC(isoYear, 0, 4));
-  const weeksInYear = getISOWeeksInYear(jan4);
-  const firstDate = startOfISOWeek(jan4);
-  const lastDate = endOfISOWeek(addWeeks(firstDate, weeksInYear - 1));
+  if (!actualFrom || !actualTo) {
+    const result = await prisma.transaction.aggregate({
+      _min: { date: true },
+      _max: { date: true },
+      where: { deletedAt: null },
+    });
+    if (!actualFrom) actualFrom = result._min.date ?? new Date(Date.UTC(2024, 0, 1));
+    if (!actualTo) actualTo = result._max.date ?? new Date(Date.UTC(2026, 11, 31));
+  }
+
+  // Ensure reasonable fallback if still missing
+  if (!actualFrom) actualFrom = new Date(Date.UTC(2024, 0, 1));
+  if (!actualTo) actualTo = new Date(Date.UTC(2026, 11, 31));
+
+  const buckets = buildWeekBuckets(actualFrom, actualTo);
+  const bucketMap = new Map(buckets.map((b) => [b.weekKey, b]));
+
+  const firstDate = startOfISOWeek(actualFrom);
+  const lastDate = endOfISOWeek(actualTo);
 
   const transactions = await prisma.transaction.findMany({
     where: {
@@ -75,10 +95,10 @@ export async function getWeeklyBreakdown(isoYear: number): Promise<WeeklyRow[]> 
 
   for (const t of transactions) {
     const tIsoYear = getISOWeekYear(t.date);
-    if (tIsoYear !== isoYear) continue; // safety check
-    
     const weekNum = getISOWeek(t.date);
-    const bucket = bucketMap.get(weekNum);
+    const weekKey = `${tIsoYear}-W${weekNum.toString().padStart(2, '0')}`;
+    
+    const bucket = bucketMap.get(weekKey);
     if (!bucket) continue;
     
     bucket.incomeCents += t.incomeZarCents;

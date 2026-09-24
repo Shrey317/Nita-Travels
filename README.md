@@ -6,7 +6,7 @@ monitoring, vehicle profiles, and analytics.
 
 **Status: Feature-complete.** All 9 pages from the spec are built: Dashboard, Vehicles (list,
 profile with Activity Timeline, add/edit), Transactions (filtered list, add, inline edit/delete,
-CSV export), Repairs Log, Mileage Log, Service Status, Vehicle Notes, Monthly Breakdown, and
+CSV export), Repairs Log, Mileage Log, Service Status, Vehicle Notes, Monthly Breakdown, Weekly Breakdown, and
 Analytics — plus photo attachments on Transactions/Mileage/Notes (added beyond the original
 spec) and insurance-expiry alerts on the Dashboard. 95 tests pass for real against the business
 logic and validation layer. See "How this was verified" below for exactly what could and

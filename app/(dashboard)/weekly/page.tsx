@@ -1,44 +1,75 @@
 export const dynamic = "force-dynamic";
 
 import { getWeeklyBreakdown } from "@/lib/db/weekly";
-import { getAvailableYears } from "@/lib/db/monthly"; // Shared year lookup
-import { WeeklyTable } from "@/components/weekly/weekly-table";
 import { WeeklyChart } from "@/components/weekly/weekly-chart";
+import { WeeklyTable } from "@/components/weekly/weekly-table";
+import { WeeklySummary } from "@/components/weekly/weekly-summary";
+import { WeeklyRangeSelector } from "@/components/weekly/weekly-range-selector";
 import { PageHeader } from "@/components/shared/page-header";
-import { YearSelector } from "@/components/finance/year-selector";
+import { SectionHeading } from "@/components/shared/section-heading";
+import { Card, CardContent } from "@/components/ui/card";
+import { startOfYear, endOfYear, subWeeks, startOfISOWeek } from "date-fns";
 
-interface WeeklyPageProps {
-  searchParams: { year?: string };
+function getRangeDates(range: string) {
+  const now = new Date();
+  switch (range) {
+    case "12": {
+      const from = subWeeks(startOfISOWeek(now), 11);
+      return { from, to: now };
+    }
+    case "26": {
+      const from = subWeeks(startOfISOWeek(now), 25);
+      return { from, to: now };
+    }
+    case "52": {
+      const from = subWeeks(startOfISOWeek(now), 51);
+      return { from, to: now };
+    }
+    case "current-year": {
+      return { from: startOfYear(now), to: endOfYear(now) };
+    }
+    case "prev-year": {
+      const prev = new Date(now.getFullYear() - 1, 0, 1);
+      return { from: startOfYear(prev), to: endOfYear(prev) };
+    }
+    case "all":
+    default:
+      return { from: undefined, to: undefined };
+  }
 }
 
-export default async function WeeklyPage({ searchParams }: WeeklyPageProps) {
-  const currentYear = new Date().getFullYear();
-  const yearParam = searchParams.year ? parseInt(searchParams.year, 10) : NaN;
-  const selectedYear = !isNaN(yearParam) && yearParam > 2000 ? yearParam : currentYear;
+export default async function WeeklyPage({ searchParams }: { searchParams: { range?: string } }) {
+  const rangeParam = searchParams.range || "52";
+  const { from, to } = getRangeDates(rangeParam);
 
-  const [availableYears, rows] = await Promise.all([
-    getAvailableYears(),
-    getWeeklyBreakdown(selectedYear)
-  ]);
-  
-  const hasData = rows.some((r) => r.hasData);
+  const rows = await getWeeklyBreakdown(from, to);
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Weekly Breakdown" description={`Financial performance by week`} />
-      
-      <YearSelector availableYears={availableYears} selectedYear={selectedYear} />
+    <div className="space-y-8">
+      <PageHeader title="Weekly Breakdown" description="Financial performance and fleet metrics by week">
+        <WeeklyRangeSelector />
+      </PageHeader>
 
-      {!hasData ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted">
-          No financial activity recorded for ISO year {selectedYear}.
+      <section>
+        <SectionHeading title="Performance Summary" />
+        <div className="mt-4">
+          <WeeklySummary rows={rows} />
         </div>
-      ) : (
-        <>
-          <WeeklyChart rows={rows} />
-          <WeeklyTable rows={rows} />
-        </>
-      )}
+      </section>
+
+      <section className="space-y-3">
+        <SectionHeading title="Weekly Trends" />
+        <Card>
+          <CardContent className="pt-6">
+            <WeeklyChart rows={rows} />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-3">
+        <SectionHeading title="Detailed Weekly Logs" />
+        <WeeklyTable rows={rows} />
+      </section>
     </div>
   );
 }
