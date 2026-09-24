@@ -7,6 +7,9 @@ describe("Weekly Breakdown", () => {
   const vehicleId = "CR01";
 
   beforeEach(async () => {
+    if (process.env.TEST_DB_APPROVED !== "true") {
+      throw new Error("Safety Block: Test database operations are not approved");
+    }
     // Clear transactions
     await prisma.transaction.deleteMany({});
     
@@ -29,7 +32,9 @@ describe("Weekly Breakdown", () => {
   });
 
   afterEach(async () => {
-    await prisma.transaction.deleteMany({});
+    if (process.env.TEST_DB_APPROVED === "true") {
+      await prisma.transaction.deleteMany({});
+    }
   });
 
   it("should aggregate income and expenses correctly in the correct week", async () => {
