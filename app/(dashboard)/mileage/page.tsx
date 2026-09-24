@@ -6,6 +6,7 @@ import { getMileageEntries } from "@/lib/db/mileage";
 import { prisma } from "@/lib/db/client";
 import { Button } from "@/components/ui/button";
 import { MileageTable } from "@/components/mileage/mileage-table";
+import { LatestMileageTable } from "@/components/mileage/latest-mileage-table";
 import { VehicleDateFilters } from "@/components/shared/vehicle-date-filters";
 import { Pagination } from "@/components/shared/pagination";
 import { vehicleIdOptions } from "@/components/shared/vehicle-options";
@@ -24,7 +25,16 @@ export default async function MileagePage({ searchParams }: MileagePageProps) {
   const page = Number(searchParams.page ?? "1") || 1;
 
   const [vehicles, result] = await Promise.all([
-    prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
+    prisma.vehicle.findMany({
+      where: { active: true, deletedAt: null },
+      select: { 
+        id: true, 
+        registration: true, 
+        currentMileageKm: true,
+        mileageEntries: { orderBy: { date: 'desc' }, take: 1, select: { date: true } }
+      },
+      orderBy: { id: "asc" }
+    }),
     getMileageEntries({
       vehicleId: vehicleId.length ? vehicleId : undefined,
       dateFrom: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,
@@ -67,6 +77,8 @@ export default async function MileagePage({ searchParams }: MileagePageProps) {
       </PageHeader>
 
       <MileageAlerts missingMileageVehicles={missingMileageVehicles} overLimitVehicles={overLimitVehicles} />
+
+      <LatestMileageTable vehicles={vehicles} />
 
       <VehicleDateFilters vehicleOptions={vehicleIdOptions(vehicles)} idPrefix="mileage" />
       <MileageTable entries={result.items} />

@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboard, Car, Receipt, Wrench, Gauge, ClipboardCheck, StickyNote, CalendarRange, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Car, Receipt, Wrench, Gauge, ClipboardCheck, StickyNote, CalendarRange, CalendarDays, BarChart3 } from "lucide-react";
 
 export type NavGroup = {
   label: string;
@@ -26,6 +26,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/transactions", label: "Transactions", icon: Receipt },
       { href: "/monthly", label: "Monthly Breakdown", icon: CalendarRange },
+      { href: "/weekly", label: "Weekly Breakdown", icon: CalendarDays },
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
     ],
   },
