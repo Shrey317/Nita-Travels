@@ -201,3 +201,43 @@ export async function deleteMileageEntry(id: string): Promise<void> {
     await recalculateMileageChain(tx, existing.vehicleId);
   }, TRANSACTION_OPTIONS);
 }
+
+const CSV_HEADER = ["Date", "Vehicle", "Previous Mileage", "Current Mileage", "Distance Driven", "Over Limit By", "Week", "Year"] as const;
+
+function csvEscape(value: string): string {
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+export async function exportMileageToCsv(filters: Omit<MileageFilters, "page" | "limit"> = {}): Promise<string> {
+  const { vehicleId, dateFrom, dateTo } = filters;
+  const where: Prisma.MileageEntryWhereInput = {
+    ...(vehicleId && vehicleId.length > 0 ? { vehicleId: { in: vehicleId } } : {}),
+    ...(dateFrom || dateTo
+      ? { date: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
+      : {}),
+  };
+
+  const rows = await prisma.mileageEntry.findMany({ where, orderBy: { date: "desc" }, include: { vehicle: true } });
+
+  const lines = [CSV_HEADER.join(",")];
+  for (const row of rows) {
+    lines.push(
+      [
+        row.date.toLocaleDateString("en-GB"),
+        row.vehicleId,
+        row.previousMileageKm.toString(),
+        row.currentMileageKm.toString(),
+        row.distanceDrivenKm.toString(),
+        row.overLimitByKm ? row.overLimitByKm.toString() : "",
+        row.isoWeek.toString(),
+        row.isoYear.toString(),
+      ]
+        .map((v) => csvEscape(String(v)))
+        .join(",")
+    );
+  }
+  return lines.join("\n");
+}

@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Download } from "lucide-react";
 import { getMileageEntries } from "@/lib/db/mileage";
 import { prisma } from "@/lib/db/client";
 import { Button } from "@/components/ui/button";
@@ -65,9 +65,20 @@ export default async function MileagePage({ searchParams }: MileagePageProps) {
     }
   }
 
+  const exportParams = new URLSearchParams();
+  for (const v of vehicleId) exportParams.append("vehicleId", v);
+  if (searchParams.dateFrom) exportParams.set("dateFrom", searchParams.dateFrom);
+  if (searchParams.dateTo) exportParams.set("dateTo", searchParams.dateTo);
+
   return (
     <div className="space-y-6">
       <PageHeader title="Mileage Log" description={`${result.total} entries logged`}>
+        <Button asChild variant="outline">
+          <a href={`/api/mileage/export?${exportParams.toString()}`}>
+            <Download className="h-4 w-4" />
+            Export CSV
+          </a>
+        </Button>
         <Button asChild>
           <Link href="/mileage/new">
             <Plus className="h-4 w-4" />

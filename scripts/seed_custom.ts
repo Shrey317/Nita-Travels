@@ -589,6 +589,7 @@ async function run() {
   
   let added = 0;
   for (const tx of txsWithMileage) {
+    if (!tx.vehicleId || tx.mileageKm == null) continue;
     const existing = await prisma.mileageEntry.findFirst({
       where: {
         vehicleId: tx.vehicleId,
