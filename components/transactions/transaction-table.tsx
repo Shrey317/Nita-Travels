@@ -33,6 +33,7 @@ export function TransactionTable({ transactions, vehicles, initialEditingId }: T
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error ?? "Couldn't delete this transaction.");
     }
+    window.dispatchEvent(new Event("fleet-data-changed"));
     router.refresh();
   }
 
@@ -74,13 +75,13 @@ export function TransactionTable({ transactions, vehicles, initialEditingId }: T
               <TableCell className="whitespace-nowrap">{formatDate(t.date)}</TableCell>
               <TableCell>{formatVehicleLabel(t.vehicleId)}</TableCell>
               <TableCell>{CATEGORY_LABELS[t.category] ?? t.category}</TableCell>
-              <TableCell className="text-right font-mono text-sm">
+              <TableCell className="whitespace-nowrap text-right font-mono text-sm">
                 {t.incomeZarCents ? formatZAR(t.incomeZarCents) : "—"}
               </TableCell>
-              <TableCell className="text-right font-mono text-sm">
+              <TableCell className="whitespace-nowrap text-right font-mono text-sm">
                 {t.expenseZarCents ? formatZAR(t.expenseZarCents) : "—"}
               </TableCell>
-              <TableCell className="text-right font-mono text-sm">
+              <TableCell className="whitespace-nowrap text-right font-mono text-sm">
                 {t.category === "Service" ? formatKm(t.mileageKm) : "—"}
               </TableCell>
               <TableCell className="max-w-xs truncate" title={t.notes ?? undefined}>

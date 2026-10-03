@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { calendarDateSchema, nonnegativeIntegerSchema, positiveIntegerSchema } from "./common.schema";
 
 /** CR01, CR02, ... CR10, CR11 — two letters then two-or-more digits, so the fleet can grow. */
 export const vehicleIdSchema = z
@@ -13,25 +14,28 @@ const vehicleBaseSchema = z.object({
   registration: z.string().trim().min(1, "Registration is required"),
   registration2: z.string().trim().min(1).nullable().optional(),
   transmission: z.enum(["Manual", "Auto"], { errorMap: () => ({ message: "Select Manual or Auto" }) }),
-  purchaseDate: z.coerce.date(),
-  purchasePriceCents: z.number().int().nonnegative(),
-  mileageAtPurchaseKm: z.number().int().nonnegative(),
-  currentMileageKm: z.number().int().nonnegative(),
+  purchaseDate: calendarDateSchema,
+  purchasePriceCents: nonnegativeIntegerSchema,
+  mileageAtPurchaseKm: nonnegativeIntegerSchema,
+  currentMileageKm: nonnegativeIntegerSchema,
   warranty: z.string().trim().nullable().optional(),
-  serviceIntervalKm: z.number().int().positive().default(20000),
-  targetEmiCents: z.number().int().nonnegative().default(0),
-  emiMonthsTotal: z.number().int().nonnegative().default(0),
-  emiMonthsPaid: z.number().int().nonnegative().default(0),
+  serviceIntervalKm: positiveIntegerSchema.default(20000),
+  targetEmiCents: nonnegativeIntegerSchema.default(0),
+  emiMonthsTotal: nonnegativeIntegerSchema.default(0),
+  emiMonthsPaid: nonnegativeIntegerSchema.default(0),
   insurer: z.string().trim().nullable().optional(),
   policyNumber: z.string().trim().nullable().optional(),
-  monthlyPremiumCents: z.number().int().nonnegative().default(0),
-  insurancePeriodMonths: z.number().int().nonnegative().default(0),
-  insuranceEndDate: z.coerce.date().nullable().optional(),
+  monthlyPremiumCents: nonnegativeIntegerSchema.default(0),
+  insurancePeriodMonths: nonnegativeIntegerSchema.default(0),
+  insuranceEndDate: calendarDateSchema.nullable().optional(),
   active: z.boolean().default(true),
 });
 
 /** Full validation used on create, and again on the merged record after a PATCH (see note.schema.ts pattern). */
-export const vehicleSchema = vehicleBaseSchema.refine((d) => d.emiMonthsPaid <= d.emiMonthsTotal, {
+export const vehicleSchema = vehicleBaseSchema.refine((d) => d.currentMileageKm >= d.mileageAtPurchaseKm, {
+  message: "Current mileage cannot be lower than mileage at purchase",
+  path: ["currentMileageKm"],
+}).refine((d) => d.emiMonthsPaid <= d.emiMonthsTotal, {
   message: "Months paid can't exceed the total EMI term",
   path: ["emiMonthsPaid"],
 });

@@ -9,13 +9,14 @@ import type { VehicleSummary } from "@/lib/db/vehicles";
 import type { FleetTotals } from "@/lib/db/transactions";
 
 interface VehicleSummaryTableProps {
-  vehicles: VehicleSummary[];
+  vehicles: Pick<VehicleSummary, "vehicle" | "incomeCents" | "expenseCents" | "repairsCents" | "netProfitCents" | "marginLabel" | "service">[];
   fleetTotals: FleetTotals;
+  totalLabel?: string;
 }
 
 /** Sorted Net P/L descending; the grand total row uses fleet-wide totals (including ALLCR and
  *  no-vehicle entries), not just the sum of the rows shown — SRS 15.1. */
-export function VehicleSummaryTable({ vehicles, fleetTotals }: VehicleSummaryTableProps) {
+export function VehicleSummaryTable({ vehicles, fleetTotals, totalLabel = "Grand Total (fleet-wide)" }: VehicleSummaryTableProps) {
   if (vehicles.length === 0) {
     return (
       <EmptyState
@@ -107,7 +108,7 @@ export function VehicleSummaryTable({ vehicles, fleetTotals }: VehicleSummaryTab
       </TableBody>
       <TableFooter>
         <TableRow className="hover:bg-transparent">
-          <TableCell colSpan={2}>Grand Total (fleet-wide)</TableCell>
+          <TableCell colSpan={2}>{totalLabel}</TableCell>
           <TableCell className="text-right font-mono text-sm">{formatZAR(fleetTotals.incomeCents)}</TableCell>
           <TableCell className="text-right font-mono text-sm">{formatZAR(fleetTotals.expenseCents)}</TableCell>
           <TableCell />

@@ -34,13 +34,13 @@ const config: Config = {
 
         // Semantic Status Colors
         status: {
-          success: { DEFAULT: "#16A34A", bg: "rgb(var(--color-success-bg) / <alpha-value>)" },
-          warning: { DEFAULT: "#D97706", bg: "rgb(var(--color-warning-bg) / <alpha-value>)" },
-          error: { DEFAULT: "#DC2626", bg: "rgb(var(--color-error-bg) / <alpha-value>)" },
-          info: { DEFAULT: "#2563EB", bg: "rgb(var(--color-info-bg) / <alpha-value>)" },
-          red: "#DC2626",
-          yellow: "#D97706",
-          green: "#16A34A",
+          success: { DEFAULT: "#15803D", bg: "rgb(var(--color-success-bg) / <alpha-value>)" },
+          warning: { DEFAULT: "#B45309", bg: "rgb(var(--color-warning-bg) / <alpha-value>)" },
+          error: { DEFAULT: "#B91C1C", bg: "rgb(var(--color-error-bg) / <alpha-value>)" },
+          info: { DEFAULT: "#1D4ED8", bg: "rgb(var(--color-info-bg) / <alpha-value>)" },
+          red: "#B91C1C",
+          yellow: "#B45309",
+          green: "#15803D",
         },
         notebg: "rgb(var(--color-notebg) / <alpha-value>)",
       },

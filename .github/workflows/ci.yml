@@ -1,0 +1,53 @@
+name: Quality checks
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nita_test
+          POSTGRES_PASSWORD: nita_test_local
+          POSTGRES_DB: nita_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U nita_test -d nita_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TEST_DATABASE_URL: postgresql://nita_test:nita_test_local@127.0.0.1:5432/nita_test
+      TEST_DIRECT_URL: postgresql://nita_test:nita_test_local@127.0.0.1:5432/nita_test
+      ALLOW_DESTRUCTIVE_TEST_DB: 'true'
+      NEXTAUTH_SECRET: ci-build-only-not-a-production-secret
+      NEXTAUTH_URL: http://127.0.0.1:3100
+      AUTH_TRUST_HOST: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run test:integration
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-test-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

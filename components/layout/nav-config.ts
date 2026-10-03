@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboard, Car, Receipt, Wrench, Gauge, ClipboardCheck, StickyNote, CalendarRange, CalendarDays, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Car, Receipt, Wrench, Gauge, ClipboardCheck, StickyNote, CalendarRange, CalendarDays, BarChart3, Bell, FileBarChart, ListChecks, RefreshCw } from "lucide-react";
 
 export type NavGroup = {
   label: string;
@@ -9,7 +9,10 @@ export type NavGroup = {
 export const NAV_GROUPS: NavGroup[] = [
   {
     label: "OVERVIEW",
-    items: [{ href: "/", label: "Dashboard", icon: LayoutDashboard }],
+    items: [
+      { href: "/", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/alerts", label: "Alert Center", icon: Bell },
+    ],
   },
   {
     label: "FLEET",
@@ -28,6 +31,14 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/monthly", label: "Monthly Breakdown", icon: CalendarRange },
       { href: "/weekly", label: "Weekly Breakdown", icon: CalendarDays },
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/reports", label: "Reports", icon: FileBarChart },
+    ],
+  },
+  {
+    label: "MANAGEMENT",
+    items: [
+      { href: "/replacement", label: "Replacement Review", icon: RefreshCw },
+      { href: "/data-quality", label: "Data Quality", icon: ListChecks },
     ],
   },
 ];

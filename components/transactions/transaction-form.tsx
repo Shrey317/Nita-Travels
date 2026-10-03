@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,8 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
   const [mileageKm, setMileageKm] = useState(transaction?.mileageKm != null ? String(transaction.mileageKm) : "");
   const [photoUrls, setPhotoUrls] = useState<string[]>(transaction?.photoUrls ?? []);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (!isEdit) {
@@ -86,8 +87,9 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
     };
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (isPending || isUploading) return;
     const payload = buildPayload();
     const result = transactionSchema.safeParse(payload);
     if (!result.success) {
@@ -102,7 +104,7 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
     }
     setErrors({});
 
-    startTransition(async () => {
+    setIsPending(true);
       try {
         const res = await fetch(isEdit ? `/api/transactions/${transaction.id}` : "/api/transactions", {
           method: isEdit ? "PATCH" : "POST",
@@ -116,6 +118,7 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
           return;
         }
         toast({ title: isEdit ? "Transaction updated" : "Transaction added" });
+        window.dispatchEvent(new Event("fleet-data-changed"));
         if (!isEdit) {
           if (vehicleId) localStorage.setItem("nita-last-vehicle", vehicleId);
           if (category) localStorage.setItem("nita-last-category", category);
@@ -129,8 +132,9 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
         }
       } catch {
         toast({ title: "Network error — please try again", variant: "destructive" });
+      } finally {
+        setIsPending(false);
       }
-    });
   }
 
   return (
@@ -240,13 +244,13 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
         <Textarea id="txNotes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </div>
 
-      <PhotoUpload photoUrls={photoUrls} onChange={setPhotoUrls} label="Receipts / invoices (optional)" />
+      <PhotoUpload photoUrls={photoUrls} onChange={setPhotoUrls} onUploadingChange={setIsUploading} label="Receipts / invoices (optional)" />
 
       <div className="flex justify-end gap-3 pt-2">
         <Button type="button" variant="outline" onClick={() => (onClose ? onClose() : router.back())}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isPending || isUploading}>
           {isPending ? "Saving..." : isEdit ? "Save Changes" : "Add Transaction"}
         </Button>
       </div>

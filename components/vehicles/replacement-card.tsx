@@ -25,10 +25,10 @@ export function VehicleReplacementCard({ recommended, reasons }: VehicleReplacem
         {recommended ? (
           <>
             <div className="bg-status-warning-bg text-status-warning p-3 rounded-lg mb-4 text-sm font-medium">
-              Replacement Recommended
+              Replacement Review Factors Detected
             </div>
             <p className="text-sm text-muted mb-4">
-              This vehicle has met multiple criteria suggesting it may no longer be economically viable to operate. Consider phasing it out of the active fleet.
+              Multiple recorded factors meet the existing review thresholds. Review the figures, financing and maintenance history before making a replacement decision.
             </p>
             <div className="mt-auto">
               <h4 className="text-xs font-semibold mb-2 uppercase text-muted tracking-wider">Triggered Criteria</h4>
@@ -47,9 +47,9 @@ export function VehicleReplacementCard({ recommended, reasons }: VehicleReplacem
             <div className="h-12 w-12 rounded-full bg-status-success-bg flex items-center justify-center mb-4">
               <ShieldCheck className="h-6 w-6 text-status-success" aria-hidden="true" />
             </div>
-            <p className="font-medium text-ink mb-1">Asset Viable</p>
+            <p className="font-medium text-ink mb-1">Review threshold not reached</p>
             <p className="text-sm text-muted px-4">
-              This vehicle is currently operating within acceptable economic and mechanical parameters. No replacement necessary at this time.
+              The recorded factors do not meet the current review threshold. This is not an assessment of mechanical condition or a replacement decision.
             </p>
             {reasons.length > 0 && (
               <div className="mt-6 w-full text-left">

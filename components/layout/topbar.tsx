@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, ChevronRight } from "lucide-react";
 import { NAV_GROUPS } from "./nav-config";
@@ -62,9 +63,9 @@ export function Topbar() {
               {i === breadcrumbs.length - 1 ? (
                 <span className="font-medium text-ink" aria-current="page">{crumb.label}</span>
               ) : (
-                <a href={crumb.href} className="hidden sm:inline hover:text-ink transition-colors">
+                <Link href={crumb.href ?? "/"} className="hidden sm:inline hover:text-ink transition-colors">
                   {i === 0 ? <span className="hidden md:inline">{crumb.label}</span> : crumb.label}
-                </a>
+                </Link>
               )}
             </li>
           ))}
@@ -75,8 +76,10 @@ export function Topbar() {
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Global Search */}
         <button
+          type="button"
+          aria-label="Search fleet records (Ctrl K)"
           onClick={() => setCommandOpen(true)}
-          className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm text-muted hover:border-brand-blue/50 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue transition-colors"
+          className="flex min-h-10 items-center gap-2 rounded-button border border-border bg-card px-3 py-1.5 text-sm text-muted hover:border-brand-blue/50 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue transition-colors"
         >
           <Search className="h-4 w-4" />
           <span className="hidden sm:inline-block">Search...</span>

@@ -33,14 +33,14 @@ function SortableHeaderInner({ field, children, className, align = "left" }: Sor
   const Icon = !isActive ? ArrowUpDown : currentSortDir === "desc" ? ArrowDown : ArrowUp;
 
   return (
-    <TableHead className={className}>
+    <TableHead className={className} aria-sort={isActive ? currentSortDir === "desc" ? "descending" : "ascending" : "none"}>
       <button
         type="button"
         onClick={handleClick}
         aria-label={`Sort by ${typeof children === "string" ? children : field}`}
         className={cn(
-          "inline-flex items-center gap-1 rounded text-xs font-semibold uppercase tracking-wide transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light",
-          isActive ? "text-white" : "text-white/80",
+          "inline-flex min-h-10 items-center gap-1 rounded text-xs font-semibold uppercase tracking-wide transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
+          isActive ? "text-ink" : "text-muted",
           align === "right" && "flex-row-reverse"
         )}
       >

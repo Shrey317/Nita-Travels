@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { mileageEntrySchema } from "@/lib/schemas/mileage.schema";
 import { vehicleIdOptions } from "@/components/shared/vehicle-options";
 import { formatKm } from "@/lib/format";
+import { WEEKLY_MILEAGE_LIMIT } from "@/lib/mileage";
 
 interface MileageFormProps {
   vehicles: { id: string; registration: string }[];
@@ -34,17 +35,18 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
   const [previousMileageKm, setPreviousMileageKm] = useState<number | null>(null);
   const [isLoadingPrevious, setIsLoadingPrevious] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Server-fetched, read-only — SRS 13.5 forbids trusting a client-submitted previous reading.
   useEffect(() => {
-    if (!vehicleId) {
+    if (!vehicleId || !date) {
       setPreviousMileageKm(null);
       return;
     }
     let cancelled = false;
     setIsLoadingPrevious(true);
-    fetch(`/api/mileage/previous/${vehicleId}`)
+    fetch(`/api/mileage/previous/${vehicleId}?date=${encodeURIComponent(date)}`)
       .then((res) => res.json())
       .then((data) => {
         if (!cancelled) setPreviousMileageKm(typeof data.previousMileageKm === "number" ? data.previousMileageKm : null);
@@ -58,12 +60,12 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
     return () => {
       cancelled = true;
     };
-  }, [vehicleId]);
+  }, [vehicleId, date]);
 
   const currentKmNum = currentMileageKm ? Number(currentMileageKm) : null;
   const distance = currentKmNum !== null && previousMileageKm !== null ? currentKmNum - previousMileageKm : null;
   const isInvalidProgression = distance !== null && distance <= 0;
-  const isOverLimit = distance !== null && distance > 2000;
+  const isOverLimit = distance !== null && distance > WEEKLY_MILEAGE_LIMIT;
 
   const options = vehicleIdOptions(vehicles);
 
@@ -71,8 +73,9 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
     return { date, vehicleId, currentMileageKm: currentKmNum, photoUrls };
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (isPending || isUploading) return;
     const payload = buildPayload();
     const result = mileageEntrySchema.safeParse(payload);
     if (!result.success) {
@@ -92,7 +95,7 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
     }
     setErrors({});
 
-    startTransition(async () => {
+    setIsPending(true);
       try {
         const res = await fetch("/api/mileage", {
           method: "POST",
@@ -106,12 +109,14 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
           return;
         }
         toast({ title: "Mileage entry logged" });
+        window.dispatchEvent(new Event("fleet-data-changed"));
         router.push("/mileage");
         router.refresh();
       } catch {
         toast({ title: "Network error — please try again", variant: "destructive" });
+      } finally {
+        setIsPending(false);
       }
-    });
   }
 
   return (
@@ -181,7 +186,7 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
             {isInvalidProgression ? (
               <Badge variant="destructive">Must exceed previous reading</Badge>
             ) : isOverLimit ? (
-              <Badge variant="destructive">⚠ Over Limit by {(distance - 2000).toLocaleString()} km</Badge>
+              <Badge variant="destructive">⚠ Over Limit by {(distance - WEEKLY_MILEAGE_LIMIT).toLocaleString()} km</Badge>
             ) : (
               <Badge variant="success">✅ Within Limit</Badge>
             )}
@@ -189,13 +194,13 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
         </div>
       )}
 
-      <PhotoUpload photoUrls={photoUrls} onChange={setPhotoUrls} label="Odometer photo (optional)" />
+      <PhotoUpload photoUrls={photoUrls} onChange={setPhotoUrls} onUploadingChange={setIsUploading} label="Odometer photo (optional)" />
 
       <div className="flex justify-end gap-3 pt-2">
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isPending || !vehicleId}>
+        <Button type="submit" disabled={isPending || isUploading || !vehicleId}>
           {isPending ? "Saving..." : "Log Mileage"}
         </Button>
       </div>

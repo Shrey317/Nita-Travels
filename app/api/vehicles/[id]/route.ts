@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getVehicleDetail, updateVehicle, deactivateVehicle } from "@/lib/db/vehicles";
 import { requireSession, handleApiError, jsonError } from "@/lib/api-response";
+import { invalidateFleetData } from "@/lib/invalidate-fleet";
 
 interface RouteParams {
   params: { id: string };
@@ -24,6 +25,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     await requireSession();
     const body = await request.json();
     const vehicle = await updateVehicle(params.id, body);
+    invalidateFleetData();
     return NextResponse.json({ vehicle });
   } catch (error) {
     return handleApiError(error);
@@ -35,6 +37,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
     await requireSession();
     const vehicle = await deactivateVehicle(params.id);
+    invalidateFleetData();
     return NextResponse.json({ vehicle });
   } catch (error) {
     return handleApiError(error);

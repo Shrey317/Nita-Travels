@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import {
   AlertDialog,
@@ -35,11 +35,12 @@ export function DeleteConfirmDialog({
   triggerLabel = "Delete",
 }: DeleteConfirmDialogProps) {
   const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
 
-  function handleConfirm() {
-    startTransition(async () => {
+  async function handleConfirm() {
+    if (isPending) return;
+    setIsPending(true);
       try {
         await onDelete();
         toast({ title: successMessage });
@@ -50,8 +51,9 @@ export function DeleteConfirmDialog({
           description: error instanceof Error ? error.message : "Please try again.",
           variant: "destructive",
         });
+      } finally {
+        setIsPending(false);
       }
-    });
   }
 
   return (

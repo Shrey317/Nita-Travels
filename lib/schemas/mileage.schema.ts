@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { attachmentUrlsSchema, calendarDateSchema, positiveIntegerSchema } from "./common.schema";
 
 /**
  * previousMileageKm is deliberately NOT part of this schema. SRS 13.5 requires it to always be
@@ -7,10 +8,10 @@ import { z } from "zod";
  * passes validation, and rejects the write if currentMileageKm doesn't exceed it.
  */
 export const mileageEntrySchema = z.object({
-  date: z.coerce.date(),
+  date: calendarDateSchema,
   vehicleId: z.string().regex(/^[A-Z]{2}\d{2,}$/, "Select a vehicle"),
-  currentMileageKm: z.number().int().positive("Current mileage must be a positive number"),
-  photoUrls: z.array(z.string().url()).default([]),
+  currentMileageKm: positiveIntegerSchema,
+  photoUrls: attachmentUrlsSchema,
 });
 
 export type MileageEntryInput = z.infer<typeof mileageEntrySchema>;

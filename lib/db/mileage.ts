@@ -2,16 +2,19 @@
  * lib/db/mileage.ts
  *
  * All Prisma queries for mileage entries. The core rule (SRS 13.5) lives here: previousMileageKm
- * is never trusted from the client — it's always fetched server-side from the vehicle's most
- * recent entry (or its currentMileageKm baseline for a first-ever entry), and a new reading that
- * doesn't exceed it is rejected outright.
+ * is never trusted from the client — it comes from the preceding chronological entry or
+ * mileageAtPurchaseKm. Every mutation validates the complete chain under a vehicle row lock.
  */
 
 import type { MileageEntry, Prisma } from "@prisma/client";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
-import { buildMileageEntry, validateMileageReading } from "@/lib/mileage";
+import { buildMileageEntry, WEEKLY_MILEAGE_LIMIT } from "@/lib/mileage";
+import { deriveMileageChain } from "@/lib/mileage-chain";
+import { positiveIntegerSchema } from "@/lib/schemas/common.schema";
+import { csvEscape } from "@/lib/csv";
+import { formatDate } from "@/lib/format";
 import { mileageEntrySchema, type MileageEntryInput } from "@/lib/schemas/mileage.schema";
 
 export interface MileageFilters {
@@ -41,7 +44,7 @@ export async function getMileageEntries(filters: MileageFilters = {}): Promise<M
   const [items, total] = await Promise.all([
     prisma.mileageEntry.findMany({
       where,
-      orderBy: { date: "desc" },
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * limit,
       take: limit,
       include: { vehicle: { select: { registration: true } } },
@@ -52,13 +55,12 @@ export async function getMileageEntries(filters: MileageFilters = {}): Promise<M
   return { items, total, page, limit };
 }
 
-/** The vehicle's most recent MileageEntry reading, or — for its first-ever entry, where none
- *  exists — its own currentMileageKm baseline (never 0; see lib/mileage.ts for why that matters). */
-export async function getPreviousMileage(vehicleId: string): Promise<number> {
+/** Preview the preceding reading as of the entry date, falling back to purchase mileage. */
+export async function getPreviousMileage(vehicleId: string, readingDate?: Date): Promise<number> {
   const [latestEntry, vehicle] = await Promise.all([
     prisma.mileageEntry.findFirst({
-      where: { vehicleId },
-      orderBy: { date: "desc" },
+      where: { vehicleId, ...(readingDate ? { date: { lte: readingDate } } : {}) },
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }, { id: "desc" }],
       select: { currentMileageKm: true },
     }),
     prisma.vehicle.findUnique({ where: { id: vehicleId }, select: { mileageAtPurchaseKm: true } }),
@@ -71,24 +73,13 @@ export async function getPreviousMileage(vehicleId: string): Promise<number> {
 
 export async function createMileageEntry(input: MileageEntryInput): Promise<MileageEntry> {
   const data = mileageEntrySchema.parse(input);
-
-  // Task 2: Prevent new entries for soft-deleted/inactive vehicles
-  const vehicle = await prisma.vehicle.findUnique({ where: { id: data.vehicleId } });
-  if (!vehicle) throw new NotFoundError(`Vehicle ${data.vehicleId} not found`);
-  if (!vehicle.active || vehicle.deletedAt) {
-    throw new ValidationError("Cannot add mileage entries to a deactivated or deleted vehicle", "vehicleId");
-  }
-
-  const previousMileageKm = await getPreviousMileage(data.vehicleId);
-
-  const errorMsg = validateMileageReading(data.currentMileageKm, previousMileageKm);
-  if (errorMsg) {
-    throw new ValidationError(errorMsg, "currentMileageKm");
-  }
-
-  const derived = buildMileageEntry(data.date, data.currentMileageKm, previousMileageKm);
-
   return prisma.$transaction(async (tx) => {
+    const vehicle = await lockMileageVehicle(tx, data.vehicleId);
+    if (!vehicle.active || vehicle.deletedAt) {
+      throw new ValidationError("Cannot add mileage entries to a deactivated or deleted vehicle", "vehicleId");
+    }
+    const previousMileageKm = vehicle.mileageAtPurchaseKm;
+    const derived = buildMileageEntry(data.date, data.currentMileageKm, previousMileageKm);
     const created = await tx.mileageEntry.create({
       data: {
         date: data.date,
@@ -98,43 +89,49 @@ export async function createMileageEntry(input: MileageEntryInput): Promise<Mile
         distanceDrivenKm: derived.distanceDrivenKm,
         isoWeek: derived.isoWeek,
         isoYear: derived.isoYear,
+        weeklyLimitKm: WEEKLY_MILEAGE_LIMIT,
         overLimitByKm: derived.overLimitByKm,
         photoUrls: data.photoUrls,
       },
     });
 
-    // Re-sync chain and max mileage (handles out-of-order inserts gracefully)
-    await recalculateMileageChain(tx, data.vehicleId);
-
-    return created;
+    await recalculateMileageChain(tx, data.vehicleId, created.id);
+    return tx.mileageEntry.findUniqueOrThrow({ where: { id: created.id } });
   }, TRANSACTION_OPTIONS);
 }
 
-/** Recalculates the historical chain to bridge gaps after an edit, delete, or out-of-order insert. */
-async function recalculateMileageChain(tx: Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">, vehicleId: string): Promise<void> {
+/** Serialize mileage mutations for one vehicle, including reads used to validate neighbors. */
+async function lockMileageVehicle(tx: Prisma.TransactionClient, vehicleId: string) {
+  await tx.$queryRaw`SELECT "id" FROM "Vehicle" WHERE "id" = ${vehicleId} FOR UPDATE`;
+  const vehicle = await tx.vehicle.findUnique({ where: { id: vehicleId } });
+  if (!vehicle) throw new NotFoundError(`Vehicle ${vehicleId} not found`);
+  return vehicle;
+}
+
+/** Validate the entire history before persisting any chain corrections; throws roll back the write. */
+async function recalculateMileageChain(tx: Prisma.TransactionClient, vehicleId: string, changedId?: string): Promise<void> {
   const entries = await tx.mileageEntry.findMany({
     where: { vehicleId },
-    orderBy: { date: "asc" }
+    orderBy: [{ date: "asc" }, { createdAt: "asc" }, { id: "asc" }]
   });
 
   if (entries.length > 0) {
     const vehicle = await tx.vehicle.findUniqueOrThrow({ where: { id: vehicleId }, select: { mileageAtPurchaseKm: true } });
     
-    // INTENDED RULE: Vehicle.mileageAtPurchaseKm is the fallback anchor when no earlier mileage record exists.
-    let prev = vehicle.mileageAtPurchaseKm;
-    for (const entry of entries) {
-      if (entry.previousMileageKm !== prev) {
-        const derived = buildMileageEntry(entry.date, entry.currentMileageKm, prev, entry.weeklyLimitKm);
+    const reconciled = deriveMileageChain(entries, vehicle.mileageAtPurchaseKm, changedId);
+    const originalById = new Map(entries.map((entry) => [entry.id, entry]));
+    for (const entry of reconciled) {
+      const original = originalById.get(entry.id);
+      if (original?.previousMileageKm !== entry.previousMileageKm || original.distanceDrivenKm !== entry.distanceDrivenKm || original.overLimitByKm !== entry.overLimitByKm) {
         await tx.mileageEntry.update({
           where: { id: entry.id },
           data: {
-            previousMileageKm: prev,
-            distanceDrivenKm: derived.distanceDrivenKm,
-            overLimitByKm: derived.overLimitByKm
+            previousMileageKm: entry.previousMileageKm,
+            distanceDrivenKm: entry.distanceDrivenKm,
+            overLimitByKm: entry.overLimitByKm
           }
         });
       }
-      prev = entry.currentMileageKm;
     }
   }
 
@@ -162,33 +159,19 @@ export async function updateMileageEntry(id: string, input: UpdateMileageInput):
   const existing = await prisma.mileageEntry.findUnique({ where: { id } });
   if (!existing) throw new NotFoundError(`Mileage entry ${id} not found`);
 
-  const newCurrentKm = input.currentMileageKm;
-
-  if (!Number.isInteger(newCurrentKm) || newCurrentKm <= 0) {
-    throw new ValidationError("Current mileage must be a positive whole number", "currentMileageKm");
-  }
-
-  const errorMsg = validateMileageReading(newCurrentKm, existing.previousMileageKm);
-  if (errorMsg) {
-    throw new ValidationError(errorMsg, "currentMileageKm");
-  }
-
-  const derived = buildMileageEntry(existing.date, newCurrentKm, existing.previousMileageKm, existing.weeklyLimitKm);
+  const newCurrentKm = positiveIntegerSchema.parse(input.currentMileageKm);
 
   return prisma.$transaction(async (tx) => {
-    const updated = await tx.mileageEntry.update({
+    await lockMileageVehicle(tx, existing.vehicleId);
+    await tx.mileageEntry.update({
       where: { id },
       data: {
         currentMileageKm: newCurrentKm,
-        distanceDrivenKm: derived.distanceDrivenKm,
-        overLimitByKm: derived.overLimitByKm,
       },
     });
 
-    // Re-sync the vehicle's chain and max mileage
-    await recalculateMileageChain(tx, existing.vehicleId);
-
-    return updated;
+    await recalculateMileageChain(tx, existing.vehicleId, id);
+    return tx.mileageEntry.findUniqueOrThrow({ where: { id } });
   }, TRANSACTION_OPTIONS);
 }
 
@@ -197,19 +180,13 @@ export async function deleteMileageEntry(id: string): Promise<void> {
   if (!existing) throw new NotFoundError(`Mileage entry ${id} not found`);
   
   await prisma.$transaction(async (tx) => {
+    await lockMileageVehicle(tx, existing.vehicleId);
     await tx.mileageEntry.delete({ where: { id } });
     await recalculateMileageChain(tx, existing.vehicleId);
   }, TRANSACTION_OPTIONS);
 }
 
 const CSV_HEADER = ["Date", "Vehicle", "Previous Mileage", "Current Mileage", "Distance Driven", "Over Limit By", "Week", "Year"] as const;
-
-function csvEscape(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
 
 export async function exportMileageToCsv(filters: Omit<MileageFilters, "page" | "limit"> = {}): Promise<string> {
   const { vehicleId, dateFrom, dateTo } = filters;
@@ -220,13 +197,13 @@ export async function exportMileageToCsv(filters: Omit<MileageFilters, "page" | 
       : {}),
   };
 
-  const rows = await prisma.mileageEntry.findMany({ where, orderBy: { date: "desc" }, include: { vehicle: true } });
+  const rows = await prisma.mileageEntry.findMany({ where, orderBy: [{ date: "desc" }, { id: "asc" }] });
 
   const lines = [CSV_HEADER.join(",")];
   for (const row of rows) {
     lines.push(
       [
-        row.date.toLocaleDateString("en-GB"),
+        formatDate(row.date),
         row.vehicleId,
         row.previousMileageKm.toString(),
         row.currentMileageKm.toString(),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -10,13 +10,22 @@ import { cn } from "@/lib/utils";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { signOutAction } from "@/app/(dashboard)/actions";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Could not load navigation counts");
+  return response.json();
+};
 
 function NavLinks({ onNavigate, alwaysShowLabel = false }: { onNavigate?: () => void; alwaysShowLabel?: boolean }) {
   const pathname = usePathname();
-  const { data: badges } = useSWR("/api/nav-badges", fetcher, { refreshInterval: 60000 });
+  const { data: badges, mutate } = useSWR("/api/nav-badges", fetcher, { refreshInterval: 60000 });
+  useEffect(() => {
+    const refresh = () => { void mutate(); };
+    window.addEventListener("fleet-data-changed", refresh);
+    return () => window.removeEventListener("fleet-data-changed", refresh);
+  }, [mutate]);
   return (
-    <nav className="flex-1 space-y-6 px-3" aria-label="Main navigation">
+    <nav className="flex-1 space-y-5 overflow-y-auto px-3" aria-label="Main navigation">
       {NAV_GROUPS.map((group) => (
         <div key={group.label} className="space-y-1">
           <div className={cn("px-3 text-xs font-semibold tracking-wider text-slate-500", alwaysShowLabel ? "block" : "hidden lg:block")}>
@@ -29,13 +38,15 @@ function NavLinks({ onNavigate, alwaysShowLabel = false }: { onNavigate?: () => 
               <Link
                 key={item.href}
                 href={item.href}
+                aria-label={item.label}
+                title={item.label}
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
                   active
                     ? "bg-brand-blue/15 font-medium text-white"
-                    : "text-slate-400 hover:bg-white/5 hover:text-white hover:translate-x-0.5"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white"
                 )}
               >
                 {/* Active indicator bar */}
@@ -44,12 +55,12 @@ function NavLinks({ onNavigate, alwaysShowLabel = false }: { onNavigate?: () => 
                 )}
                 <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span className={cn("truncate flex-1", alwaysShowLabel ? "inline" : "hidden lg:inline")}>{item.label}</span>
-                {item.label === "Service" && badges?.serviceCount > 0 && (
+                {item.href === "/service" && badges?.serviceCount > 0 && (
                   <span className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full bg-status-red text-[10px] font-bold text-white">
                     {badges.serviceCount}
                   </span>
                 )}
-                {item.label === "Mileage" && badges?.mileageCount > 0 && (
+                {item.href === "/mileage" && badges?.mileageCount > 0 && (
                   <span className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full bg-status-yellow text-[10px] font-bold text-ink">
                     {badges.mileageCount}
                   </span>
@@ -135,7 +146,7 @@ export function Sidebar() {
       </DialogPrimitive.Root>
 
       {/* Desktop (240px, full labels) / tablet (icon-only) sidebar */}
-      <aside className="hidden shrink-0 flex-col bg-gradient-to-b from-navy via-navy to-navy-light py-4 md:flex md:w-16 lg:w-60">
+      <aside className="sticky top-0 hidden h-screen shrink-0 flex-col bg-navy py-4 md:flex md:w-16 lg:w-60">
         <div className="mb-6 px-3">
           {/* Desktop: logo + name + theme toggle */}
           <div className="hidden items-center gap-2.5 lg:flex">

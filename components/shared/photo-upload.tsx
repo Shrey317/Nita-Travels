@@ -5,37 +5,44 @@ import Image from "next/image";
 import { upload } from "@vercel/blob/client";
 import { X, Upload, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { isPdfUrl } from "@/lib/attachments";
+import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS, isPdfUrl, validateAttachmentFile } from "@/lib/attachments";
 
 interface PhotoUploadProps {
   photoUrls: string[];
   onChange: (urls: string[]) => void;
   label?: string;
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 /** Optional photo or PDF attachment, used by Notes, Transactions (receipts), and Mileage entries
  *  (odometer readings) — the feature added at the fleet owner's request in place of the
  *  original spec. Uploads go straight from the browser to Vercel Blob via /api/upload's
  *  short-lived token, not through this app's own server. */
-export function PhotoUpload({ photoUrls, onChange, label = "Photos or PDFs (optional)" }: PhotoUploadProps) {
+export function PhotoUpload({ photoUrls, onChange, label = "Photos or PDFs (optional)", onUploadingChange }: PhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const altBase = label.replace(/\s*\(optional\)\s*$/i, "").trim() || "Uploaded file";
 
   async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || isUploading) return;
     setIsUploading(true);
+    onUploadingChange?.(true);
     try {
       const uploaded: string[] = [];
+      if (photoUrls.length + files.length > MAX_ATTACHMENTS) throw new Error(`Attach no more than ${MAX_ATTACHMENTS} files.`);
+      for (const file of Array.from(files)) {
+        const error = validateAttachmentFile(file);
+        if (error) throw new Error(`${file.name}: ${error}`);
+      }
       for (const file of Array.from(files)) {
         const blob = await upload(file.name, file, {
           access: "public",
           handleUploadUrl: "/api/upload",
         });
         uploaded.push(blob.url);
+        onChange([...photoUrls, ...uploaded]);
       }
-      onChange([...photoUrls, ...uploaded]);
     } catch (error) {
       toast({
         title: "Upload failed",
@@ -44,6 +51,7 @@ export function PhotoUpload({ photoUrls, onChange, label = "Photos or PDFs (opti
       });
     } finally {
       setIsUploading(false);
+      onUploadingChange?.(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   }
@@ -75,6 +83,7 @@ export function PhotoUpload({ photoUrls, onChange, label = "Photos or PDFs (opti
             <button
               type="button"
               onClick={() => removePhoto(url)}
+              disabled={isUploading}
               aria-label={`Remove ${altBase.toLowerCase()} ${index + 1}`}
               className="absolute right-1 top-1 rounded-full bg-navy/80 p-0.5 text-white opacity-0 transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal group-hover:opacity-100"
             >
@@ -85,7 +94,7 @@ export function PhotoUpload({ photoUrls, onChange, label = "Photos or PDFs (opti
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          disabled={isUploading}
+          disabled={isUploading || photoUrls.length >= MAX_ATTACHMENTS}
           aria-label="Add photo or PDF"
           className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-muted transition-colors hover:border-teal hover:text-teal disabled:opacity-50"
         >
@@ -96,7 +105,7 @@ export function PhotoUpload({ photoUrls, onChange, label = "Photos or PDFs (opti
       <input
         ref={inputRef}
         type="file"
-        accept="image/*,application/pdf"
+        accept={ATTACHMENT_ACCEPT}
         multiple
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}

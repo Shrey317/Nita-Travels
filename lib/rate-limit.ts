@@ -1,17 +1,8 @@
 /**
  * lib/rate-limit.ts
  *
- * A minimal in-memory, best-effort rate limiter for login attempts (audit finding: no brute-force
- * protection existed on the credentials login route). This is intentionally simple rather than a
- * full token-bucket implementation, because its only job is to slow down automated guessing
- * against the single admin account, not to be a general-purpose limiter.
- *
- * Known limitation: state lives in a module-level Map, so it only protects within one warm
- * serverless instance and resets on cold start / is not shared across regions. For a
- * single-admin-account internal tool that's a real but proportionate trade-off — it still meaningfully
- * slows down a script hammering the login route in one session. If the fleet grows past a single
- * admin, or this needs to hold up against a determined distributed attempt, swap the Map below for
- * Vercel KV or Upstash Redis (same function signature, so nothing else here would need to change).
+ * Database-backed login attempt limits, shared by serverless instances. Each account/IP
+ * key has a 15-minute window and an atomic attempt counter in the RateLimit table.
  *
  * Fails OPEN: any unexpected error in this module allows the login attempt through rather than
  * blocking it. A bug in rate-limiting code should never be the reason the admin can't log in.

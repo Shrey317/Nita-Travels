@@ -1,17 +1,12 @@
-/**
- * lib/db/notifications.ts
- *
- * Generates fleet notifications from real data. These are computed on demand (not stored),
- * so they always reflect current state. Each notification carries enough context to navigate
- * directly to the affected record.
- */
-
+/** Shared operational alerts. Every item links to recorded evidence. */
 import { prisma } from "@/lib/db/client";
 import { getServiceStatusAllVehicles } from "@/lib/db/service";
-import { differenceInCalendarDays, startOfWeek } from "date-fns";
+import { computeInsuranceExpiryStatus } from "@/lib/alerts";
+import { analyzeMileage } from "@/lib/analytics";
+import { WEEKLY_MILEAGE_LIMIT } from "@/lib/mileage";
+import { addDays, businessToday, calendarDays, dateKey, isoWeekStart } from "@/lib/date-ranges";
 
 export type NotificationPriority = "critical" | "warning" | "info";
-
 export interface FleetNotification {
   id: string;
   priority: NotificationPriority;
@@ -23,150 +18,65 @@ export interface FleetNotification {
   timestamp: Date;
 }
 
-/**
- * Generates all current fleet notifications from real data.
- * Never fabricated — every notification maps to a verifiable data point.
- */
+/** Fresh reads keep notifications consistent after mutations, including non-React callers. */
 export async function getFleetNotifications(): Promise<FleetNotification[]> {
-  const notifications: FleetNotification[] = [];
-  const now = new Date();
-
-  const [vehicles, serviceRows] = await Promise.all([
+  const today = businessToday();
+  const weekStart = isoWeekStart(today);
+  const [vehicles, serviceRows, mileageEntries] = await Promise.all([
     prisma.vehicle.findMany({
       where: { active: true, deletedAt: null },
-      select: {
-        id: true,
-        registration: true,
-        make: true,
-        model: true,
-        insuranceEndDate: true,
-        currentMileageKm: true,
-      },
+      select: { id: true, registration: true, make: true, model: true, insuranceEndDate: true },
       orderBy: { id: "asc" },
     }),
     getServiceStatusAllVehicles(),
+    prisma.mileageEntry.findMany({
+      where: { date: { gte: weekStart, lt: addDays(today, 1) }, vehicle: { active: true, deletedAt: null } },
+      select: { id: true, vehicleId: true, date: true, previousMileageKm: true, currentMileageKm: true, distanceDrivenKm: true },
+    }),
   ]);
-
-  const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
-
-  // Service notifications
+  const notifications: FleetNotification[] = [];
+  const vehicleMap = new Map(vehicles.map(vehicle => [vehicle.id, vehicle]));
+  const base = { timestamp: today };
   for (const row of serviceRows) {
-    const v = vehicleMap.get(row.vehicleId);
-    const vehicleName = v ? `${v.make} ${v.model} (${row.vehicleId})` : row.vehicleId;
-    
-    if (row.status === "OVERDUE") {
-      const overBy = row.kmRemaining !== null ? Math.abs(row.kmRemaining) : 0;
-      notifications.push({
-        id: `svc-overdue-${row.vehicleId}`,
-        priority: "critical",
-        title: `Service Overdue: ${vehicleName}`,
-        description: overBy > 0
-          ? `This vehicle has exceeded its service interval by ${overBy.toLocaleString("en-ZA")} km. Please schedule maintenance immediately to prevent mechanical damage.`
-          : `This vehicle is overdue for its scheduled service. Please schedule maintenance immediately.`,
-        vehicleId: row.vehicleId,
-        href: `/vehicles/${row.vehicleId}`,
-        category: "service",
-        timestamp: now,
-      });
-    } else if (row.status === "DUE_SOON") {
-      const remaining = row.kmRemaining ?? 0;
-      notifications.push({
-        id: `svc-due-${row.vehicleId}`,
-        priority: "warning",
-        title: `Service Due Soon: ${vehicleName}`,
-        description: `Only ${remaining.toLocaleString("en-ZA")} km remaining until the next scheduled service interval.`,
-        vehicleId: row.vehicleId,
-        href: `/vehicles/${row.vehicleId}`,
-        category: "service",
-        timestamp: now,
-      });
+    if (!vehicleMap.has(row.vehicleId)) continue;
+    if (row.status === "OVERDUE" || row.status === "DUE_SOON") {
+      const overdue = row.status === "OVERDUE";
+      notifications.push({ ...base, id: `${overdue ? "svc-overdue" : "svc-due"}-${row.vehicleId}`,
+        priority: overdue ? "critical" : "warning", title: `${row.vehicleId} · Service ${overdue ? "overdue" : "due soon"}`,
+        description: row.kmRemaining === null ? "Review the recorded service interval and odometer." : `${Math.abs(row.kmRemaining).toLocaleString("en-ZA")} km ${overdue ? "beyond" : "remaining until"} the next service interval. Review service history and arrange maintenance.`,
+        vehicleId: row.vehicleId, href: `/vehicles/${row.vehicleId}#vehicle-maintenance`, category: "service" });
+    } else if (row.status === "NEEDS_DATA") {
+      notifications.push({ ...base, id: `svc-data-${row.vehicleId}`, priority: "info", title: `${row.vehicleId} · Service baseline missing`,
+        description: "No service transaction with a mileage reading is available. Record or verify the latest service before interpreting service status.",
+        vehicleId: row.vehicleId, href: `/transactions/new?vehicleId=${row.vehicleId}`, category: "service" });
     }
   }
-
-  // Insurance notifications
-  for (const v of vehicles) {
-    if (!v.insuranceEndDate) continue;
-    const daysUntil = differenceInCalendarDays(v.insuranceEndDate, now);
-
-    if (daysUntil < 0) {
-      notifications.push({
-        id: `ins-expired-${v.id}`,
-        priority: "critical",
-        title: `Insurance Expired: ${v.make} ${v.model} (${v.id})`,
-        description: `The insurance policy for this vehicle expired ${Math.abs(daysUntil)} day${Math.abs(daysUntil) !== 1 ? "s" : ""} ago. Renew the policy immediately to maintain legal compliance.`,
-        vehicleId: v.id,
-        href: `/vehicles/${v.id}`,
-        category: "insurance",
-        timestamp: now,
-      });
-    } else if (daysUntil <= 30) {
-      notifications.push({
-        id: `ins-expiring-${v.id}`,
-        priority: "warning",
-        title: `Insurance Expiring: ${v.make} ${v.model} (${v.id})`,
-        description: `The insurance policy for this vehicle will expire in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}. Please arrange renewal.`,
-        vehicleId: v.id,
-        href: `/vehicles/${v.id}`,
-        category: "insurance",
-        timestamp: now,
-      });
-    }
+  for (const vehicle of vehicles) {
+    const status = computeInsuranceExpiryStatus(vehicle.insuranceEndDate, today);
+    if ((status !== "EXPIRED" && status !== "EXPIRING_SOON") || !vehicle.insuranceEndDate) continue;
+    const days = status === "EXPIRED"
+      ? calendarDays({ from: vehicle.insuranceEndDate, to: today }) - 1
+      : calendarDays({ from: today, to: vehicle.insuranceEndDate }) - 1;
+    notifications.push({ ...base, id: `${status === "EXPIRED" ? "ins-expired" : "ins-expiring"}-${vehicle.id}`,
+      priority: status === "EXPIRED" ? "critical" : "warning", title: `${vehicle.id} · Insurance ${status === "EXPIRED" ? "expired" : "expiring"}`,
+      description: `Recorded expiry ${dateKey(vehicle.insuranceEndDate)} (${days} days ${status === "EXPIRED" ? "ago" : "remaining"}). Confirm coverage and update the renewal record.`,
+      vehicleId: vehicle.id, href: `/vehicles/${vehicle.id}`, category: "insurance" });
   }
-
-  // Missing mileage notifications
-  const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 1 });
-  const recentMileageByVehicle = await prisma.mileageEntry.groupBy({
-    by: ["vehicleId"],
-    where: { date: { gte: startOfCurrentWeek } },
-  });
-  const vehiclesWithMileage = new Set(recentMileageByVehicle.map((e) => e.vehicleId));
-
-  for (const v of vehicles) {
-    if (!vehiclesWithMileage.has(v.id)) {
-      notifications.push({
-        id: `mil-missing-${v.id}`,
-        priority: "warning",
-        title: `Missing Mileage: ${v.make} ${v.model} (${v.id})`,
-        description: `No mileage readings have been recorded this week. Prompt the driver to submit an updated reading to keep service tracking accurate.`,
-        vehicleId: v.id,
-        href: "/mileage",
-        category: "mileage",
-        timestamp: now,
-      });
-    }
+  const mileage = analyzeMileage(mileageEntries, { from: weekStart, to: addDays(weekStart, 6) });
+  const recordedIds = new Set(mileageEntries.map(entry => entry.vehicleId));
+  for (const vehicle of vehicles) {
+    if (!recordedIds.has(vehicle.id)) notifications.push({ ...base, id: `mil-missing-${vehicle.id}`, priority: "warning",
+      title: `${vehicle.id} · Mileage not logged this week`, description: `No reading dated ${dateKey(weekStart)} through ${dateKey(today)}. Record an odometer reading to keep distance and service tracking current.`,
+      vehicleId: vehicle.id, href: `/mileage/new?vehicleId=${vehicle.id}`, category: "mileage" });
   }
-
-  // Mileage violation notifications (most recent entry over limit)
-  const recentOverLimit = await prisma.mileageEntry.findMany({
-    where: {
-      date: { gte: startOfCurrentWeek },
-      overLimitByKm: { gt: 0 },
-    },
-    distinct: ["vehicleId"],
-    orderBy: { date: "desc" },
-    select: { vehicleId: true, overLimitByKm: true },
-  });
-
-  for (const entry of recentOverLimit) {
-    const v = vehicleMap.get(entry.vehicleId);
-    if (!v) continue; // Task 4: Skip inactive/deleted vehicles
-
-    const vehicleName = `${v.make} ${v.model} (${entry.vehicleId})`;
-    notifications.push({
-      id: `mil-over-${entry.vehicleId}`,
-      priority: "warning",
-      title: `Mileage Limit Exceeded: ${vehicleName}`,
-      description: `This vehicle exceeded its allocated weekly mileage limit by ${(entry.overLimitByKm ?? 0).toLocaleString("en-ZA")} km. Review usage to prevent accelerated depreciation.`,
-      vehicleId: entry.vehicleId,
-      href: "/mileage",
-      category: "mileage",
-      timestamp: now,
-    });
+  for (const week of mileage.violations) {
+    notifications.push({ ...base, id: `mil-over-${week.vehicleId}`, priority: "warning", title: `${week.vehicleId} · Weekly mileage limit exceeded`,
+      description: `${week.km.toLocaleString("en-ZA")} km recorded this week; limit ${WEEKLY_MILEAGE_LIMIT.toLocaleString("en-ZA")} km. Review the dated readings; distance between readings is attributed to the later reading.`,
+      vehicleId: week.vehicleId, href: `/mileage?vehicleId=${week.vehicleId}&dateFrom=${dateKey(weekStart)}&dateTo=${dateKey(today)}`, category: "mileage" });
   }
-
-  // Sort: critical first, then warning, then info
+  for (const entry of mileage.invalidEntries) notifications.push({ ...base, id: `mil-invalid-${entry.id}`, priority: "warning",
+    title: `${entry.vehicleId} · Inconsistent mileage reading`, description: `Recorded distance ${entry.distanceDrivenKm} km does not match a valid progression from ${entry.previousMileageKm} to ${entry.currentMileageKm} km. Excluded from distance metrics.`,
+    vehicleId: entry.vehicleId, href: `/mileage?vehicleId=${entry.vehicleId}`, category: "mileage" });
   const priorityOrder: Record<NotificationPriority, number> = { critical: 0, warning: 1, info: 2 };
-  notifications.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-
-  return notifications;
+  return notifications.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority] || a.id.localeCompare(b.id));
 }

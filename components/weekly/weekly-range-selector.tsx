@@ -3,6 +3,7 @@
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { businessToday, dateKey } from "@/lib/date-ranges";
 
 export function WeeklyRangeSelector() {
   const router = useRouter();
@@ -14,14 +15,18 @@ export function WeeklyRangeSelector() {
   const handleRangeChange = (val: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("range", val);
+    if (val === "custom") {
+      params.set("dateFrom", params.get("dateFrom") ?? dateKey(businessToday()));
+      params.set("dateTo", params.get("dateTo") ?? dateKey(businessToday()));
+    }
     router.push(`${pathname}?${params.toString()}`);
   };
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Label htmlFor="range-selector" className="text-sm font-medium">Select Range:</Label>
       <Select value={currentRange} onValueChange={handleRangeChange}>
-        <SelectTrigger id="range-selector" className="w-[180px] bg-background">
+        <SelectTrigger id="range-selector" className="w-[180px] bg-card">
           <SelectValue placeholder="Select range" />
         </SelectTrigger>
         <SelectContent>
@@ -31,6 +36,7 @@ export function WeeklyRangeSelector() {
           <SelectItem value="current-year">Current Year</SelectItem>
           <SelectItem value="prev-year">Previous Year</SelectItem>
           <SelectItem value="all">Full History</SelectItem>
+          <SelectItem value="custom">Custom range</SelectItem>
         </SelectContent>
       </Select>
     </div>

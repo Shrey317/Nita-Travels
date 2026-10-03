@@ -4,6 +4,7 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 import { formatZAR } from "@/lib/format";
 import { ClientOnlyChart } from "@/components/shared/client-only-chart";
 import type { MonthlyRow } from "@/lib/db/monthly";
+import { chartColors, chartTooltipStyle, chartLabelStyle } from "@/components/shared/chart-style";
 
 function formatAxisTick(cents: number): string {
   return `R${Math.round(cents / 100 / 1000)}k`;
@@ -44,15 +45,15 @@ export function MonthlyChart({ rows }: { rows: MonthlyRow[] }) {
   return (
     <ClientOnlyChart className="h-80 rounded-xl border border-border bg-card p-4">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-          <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#64748B" />
-          <YAxis tickFormatter={formatAxisTick} tick={{ fontSize: 12 }} stroke="#64748B" width={56} />
-          <Tooltip formatter={(value: number) => formatZAR(value)} labelStyle={{ color: "#0F172A" }} />
+        <ComposedChart accessibilityLayer data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+          <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke={chartColors.text} />
+          <YAxis tickFormatter={formatAxisTick} tick={{ fontSize: 12 }} stroke={chartColors.text} width={56} />
+          <Tooltip formatter={(value: number) => formatZAR(value)} contentStyle={chartTooltipStyle} labelStyle={chartLabelStyle} />
           <Legend />
-          <Bar dataKey="income" name="Income" fill="#0D9488" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="expense" name="Expense" fill="#0F2540" radius={[4, 4, 0, 0]} />
-          <Line dataKey="netProfit" name="Net P/L" stroke="#94A3B8" strokeWidth={2} dot={<NetProfitDot />} />
+          <Bar isAnimationActive={false} dataKey="income" name="Income" fill="#0D9488" radius={[4, 4, 0, 0]} />
+          <Bar isAnimationActive={false} dataKey="expense" name="Expense" fill={chartColors.expense} radius={[4, 4, 0, 0]} />
+          <Line isAnimationActive={false} dataKey="netProfit" name="Net P/L" stroke="#94A3B8" strokeWidth={2} dot={<NetProfitDot />} />
         </ComposedChart>
       </ResponsiveContainer>
     </ClientOnlyChart>

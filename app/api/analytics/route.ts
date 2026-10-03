@@ -1,18 +1,12 @@
 export const dynamic = "force-dynamic";
-
 import { NextResponse } from "next/server";
-import { getCategoryBreakdown, getVehiclePerformanceRanking } from "@/lib/db/analytics";
+import { getAnalyticsReport, analyticsCompatibility } from "@/lib/db/analytics";
 import { requireSession, handleApiError } from "@/lib/api-response";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await requireSession();
-    const [categoryBreakdown, vehicleRanking] = await Promise.all([
-      getCategoryBreakdown(),
-      getVehiclePerformanceRanking(),
-    ]);
-    return NextResponse.json({ categoryBreakdown, vehicleRanking });
-  } catch (error) {
-    return handleApiError(error);
-  }
+    const report = await getAnalyticsReport(Object.fromEntries(new URL(request.url).searchParams));
+    return NextResponse.json({ ...report, ...analyticsCompatibility(report) });
+  } catch (error) { return handleApiError(error); }
 }

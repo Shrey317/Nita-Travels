@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
+  --color-success: 21 128 61;
+  --color-warning: 180 83 9;
+  --color-error: 185 28 28;
+  --color-info: 29 78 216;
+  --note-bg: rgb(var(--color-notebg));
   /* Main Neutral System */
   --color-surface: 248 250 252;             /* #F8FAFC */
   --color-surface-secondary: 241 245 249;   /* #F1F5F9 */
@@ -25,6 +31,10 @@
 
 .dark {
   color-scheme: dark;
+  --color-success: 74 222 128;
+  --color-warning: 251 191 36;
+  --color-error: 248 113 113;
+  --color-info: 147 197 253;
   
   /* Main Neutral System */
   --color-surface: 2 6 23;                  /* #020617 */
@@ -40,10 +50,10 @@
 
   /* Semantic Backgrounds (Dark - Using Surface Elevated or brand specific opacity logic generally) */
   /* For dark mode, we dim the semantic backgrounds significantly so they don't overpower the dark aesthetic */
-  --color-success-bg: 22 101 52;            /* #166534 / opacity handled in utility */
-  --color-warning-bg: 146 64 14;            /* #92400E / opacity handled in utility */
-  --color-error-bg: 153 27 27;              /* #991B1B / opacity handled in utility */
-  --color-info-bg: 30 64 175;               /* #1E40AF / opacity handled in utility */
+  --color-success-bg: 20 55 37;
+  --color-warning-bg: 62 43 18;
+  --color-error-bg: 66 29 36;
+  --color-info-bg: 24 45 75;
   --color-notebg: 67 36 24;                 /* dark note background */
 }
 
@@ -60,6 +70,18 @@
 
 .font-mono-figures {
   font-variant-numeric: tabular-nums;
+}
+
+.dark .text-brand-blue { color: #93c5fd; }
+.dark .text-status-success, .dark .text-status-green { color: rgb(var(--color-success)); }
+.dark .text-status-warning, .dark .text-status-yellow { color: rgb(var(--color-warning)); }
+.dark .text-status-error, .dark .text-status-red { color: rgb(var(--color-error)); }
+.dark .text-status-info { color: rgb(var(--color-info)); }
+
+@media print {
+  aside, header, nav, button, [data-no-print] { display: none !important; }
+  main { max-width: none !important; padding: 0 !important; }
+  body { background: white !important; color: black !important; }
 }
 
 @layer base {

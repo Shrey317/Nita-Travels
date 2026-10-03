@@ -29,5 +29,7 @@ export function ClientOnlyChart({ className, children }: { className: string; ch
     );
   }
 
-  return <div className={className}>{children}</div>;
+  // Tooltip transforms can retain their former desktop position after a resize.
+  // Keep chart overlays inside the measured chart, rather than widening the page.
+  return <div className={`min-w-0 overflow-hidden ${className}`}>{children}</div>;
 }

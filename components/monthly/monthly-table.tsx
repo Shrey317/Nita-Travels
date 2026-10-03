@@ -1,22 +1,15 @@
 import { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { formatZAR, formatMargin } from "@/lib/format";
+import { formatZAR, formatMargin, formatKm } from "@/lib/format";
+import { summarizePeriods } from "@/lib/periods";
 import type { MonthlyRow } from "@/lib/db/monthly";
 
 /** Shows every month in the fixed range, including zero-activity ones (SRS 13.9, 15.10) — the
  *  chart is the one that skips empty months, not this table. */
 export function MonthlyTable({ rows }: { rows: MonthlyRow[] }) {
-  const totals = rows.reduce(
-    (acc, r) => ({
-      incomeCents: acc.incomeCents + r.incomeCents,
-      expenseCents: acc.expenseCents + r.expenseCents,
-      repairsCents: acc.repairsCents + r.repairsCents,
-      netProfitCents: acc.netProfitCents + r.netProfitCents,
-    }),
-    { incomeCents: 0, expenseCents: 0, repairsCents: 0, netProfitCents: 0 }
-  );
+  const totals = summarizePeriods(rows);
 
   return (
-    <Table>
+    <Table className="[&_td]:whitespace-nowrap">
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead>Month</TableHead>
@@ -25,6 +18,8 @@ export function MonthlyTable({ rows }: { rows: MonthlyRow[] }) {
           <TableHead className="text-right">Repairs (R)</TableHead>
           <TableHead className="text-right">Net Profit (R)</TableHead>
           <TableHead className="text-right">Margin %</TableHead>
+          <TableHead className="text-right">Maintenance</TableHead>
+          <TableHead className="text-right">Mileage</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -36,6 +31,8 @@ export function MonthlyTable({ rows }: { rows: MonthlyRow[] }) {
             <TableCell className="text-right font-mono text-sm">{formatZAR(r.repairsCents)}</TableCell>
             <TableCell className="text-right font-mono text-sm">{formatZAR(r.netProfitCents)}</TableCell>
             <TableCell className="text-right font-mono text-sm">{r.marginLabel}</TableCell>
+            <TableCell className="text-right font-mono text-sm">{formatZAR(r.maintenanceCents)}</TableCell>
+            <TableCell className="text-right whitespace-nowrap text-sm">{formatKm(r.mileageKm)}</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -47,6 +44,8 @@ export function MonthlyTable({ rows }: { rows: MonthlyRow[] }) {
           <TableCell className="text-right font-mono text-sm">{formatZAR(totals.repairsCents)}</TableCell>
           <TableCell className="text-right font-mono text-sm">{formatZAR(totals.netProfitCents)}</TableCell>
           <TableCell className="text-right font-mono text-sm">{formatMargin(totals.incomeCents, totals.expenseCents)}</TableCell>
+          <TableCell className="text-right font-mono text-sm">{formatZAR(totals.maintenanceCents)}</TableCell>
+          <TableCell className="text-right whitespace-nowrap text-sm">{formatKm(totals.mileageKm)}</TableCell>
         </TableRow>
       </TableFooter>
     </Table>

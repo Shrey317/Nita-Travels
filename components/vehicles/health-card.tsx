@@ -27,7 +27,7 @@ function CategoryBar({ label, value, max }: { label: string; value: number; max:
     <div className="flex flex-col gap-1">
       <div className="flex justify-between text-xs font-medium">
         <span className="text-muted">{label}</span>
-        <span className={cn(isLow ? "text-status-error" : "text-status-success")}>{value}/{max}</span>
+        <span className={cn(isLow ? "text-status-error" : "text-ink")}>{value}/{max} · deduction {max - value}</span>
       </div>
       <div className="h-1.5 w-full rounded-full overflow-hidden bg-surface-secondary">
         <div 
@@ -71,15 +71,17 @@ export function VehicleHealthCard({ score, reasons, categories }: VehicleHealthC
               isWarning && "text-status-warning",
               isCritical && "text-status-error"
             )}>
-              {isHealthy && "Excellent Condition"}
+              {isHealthy && "Excellent Score"}
               {isWarning && "Needs Attention"}
-              {isCritical && "Critical Condition"}
+              {isCritical && "Priority Review"}
             </h4>
             <p className="text-sm text-muted line-clamp-2">
-              {reasons.length === 0 ? "All systems normal. Operating at peak efficiency." : "Issues detected affecting vehicle performance or compliance."}
+              {reasons.length === 0 ? "No deductions under the current scoring rules." : "Recorded service, insurance, mileage and financial factors reduce this score."}
             </p>
           </div>
         </div>
+
+        <p className="mb-4 text-xs text-muted">Operational indicator based on recorded data, out of 100. A score does not establish the vehicle&apos;s mechanical condition.</p>
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-6">
           <CategoryBar label="Service" value={categories.service.score} max={categories.service.max} />

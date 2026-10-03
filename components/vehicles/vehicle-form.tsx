@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -86,7 +86,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
   const isEdit = !!vehicle;
   const [form, setForm] = useState<FormState>(() => buildInitialState(vehicle));
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setPending] = useState(false);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -114,12 +114,13 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
       monthlyPremiumCents: randToCents(Number(form.monthlyPremiumRand || 0)),
       insurancePeriodMonths: Number(form.insurancePeriodMonths || 0),
       insuranceEndDate: form.insuranceEndDate || null,
-      active: true,
+      active: vehicle?.active ?? true,
     };
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (isPending) return;
     const payload = buildPayload();
     const result = vehicleSchema.safeParse(payload);
     if (!result.success) {
@@ -134,7 +135,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     }
     setErrors({});
 
-    startTransition(async () => {
+    setPending(true);
       try {
         const res = await fetch(isEdit ? `/api/vehicles/${vehicle.id}` : "/api/vehicles", {
           method: isEdit ? "PATCH" : "POST",
@@ -148,12 +149,14 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
           return;
         }
         toast({ title: isEdit ? "Vehicle updated" : "Vehicle added" });
+        window.dispatchEvent(new Event("fleet-data-changed"));
         router.push(`/vehicles/${data.vehicle.id}`);
         router.refresh();
       } catch {
         toast({ title: "Network error — please try again", variant: "destructive" });
+      } finally {
+        setPending(false);
       }
-    });
   }
 
   return (

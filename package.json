@@ -12,7 +12,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test:integration": "tsx scripts/safe-exec.ts integration",
+    "test:e2e": "tsx scripts/safe-exec.ts e2e"
   },
   "dependencies": {
     "@prisma/client": "5.18.0",

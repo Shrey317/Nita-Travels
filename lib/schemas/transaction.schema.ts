@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { attachmentUrlsSchema, calendarDateSchema, nonnegativeIntegerSchema } from "./common.schema";
 
 export const categorySchema = z.enum([
   "Service",
@@ -19,14 +20,14 @@ export const transactionVehicleRefSchema = z
   .nullable();
 
 const transactionBaseSchema = z.object({
-  date: z.coerce.date(),
+  date: calendarDateSchema,
   vehicleId: transactionVehicleRefSchema,
   category: categorySchema,
-  incomeZarCents: z.number().int().nonnegative().default(0),
-  expenseZarCents: z.number().int().nonnegative().default(0),
+  incomeZarCents: nonnegativeIntegerSchema.default(0),
+  expenseZarCents: nonnegativeIntegerSchema.default(0),
   notes: z.string().trim().max(2000).nullable().optional(),
-  mileageKm: z.number().int().nonnegative().nullable().optional(),
-  photoUrls: z.array(z.string().url()).default([]),
+  mileageKm: nonnegativeIntegerSchema.nullable().optional(),
+  photoUrls: attachmentUrlsSchema,
 });
 
 /**

@@ -1,87 +1,32 @@
 "use client";
 
-import { useMemo } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from "recharts";
 import type { WeeklyRow } from "@/lib/db/weekly";
+import { formatZAR } from "@/lib/format";
+import { ClientOnlyChart } from "@/components/shared/client-only-chart";
+import { chartColors, chartTooltipStyle, chartLabelStyle, chartCurrencyAxis } from "@/components/shared/chart-style";
 
-interface WeeklyChartProps {
-  rows: WeeklyRow[];
-}
-
-export function WeeklyChart({ rows }: WeeklyChartProps) {
-  const data = useMemo(() => {
-    return rows.map((r) => ({
-      weekLabel: r.weekLabel,
-      weekStart: r.weekStart,
-      weekEnd: r.weekEnd,
-      income: r.incomeCents / 100,
-      expenses: r.expenseCents / 100,
-      repairs: r.repairsCents / 100,
-      profit: r.netProfitCents / 100,
-      margin: r.marginLabel,
-      hasData: r.hasData,
-    }));
-  }, [rows]);
-
-  const tickInterval = Math.max(1, Math.floor(data.length / 10)); // Ensure around 10 labels max on X-axis
-
+export function WeeklyChart({ rows }: { rows: WeeklyRow[] }) {
+  if (!rows.length) return <p className="py-16 text-center text-sm text-muted">No weekly records in this range.</p>;
   return (
-    <div className="h-[400px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
-          <XAxis 
-            dataKey="weekLabel" 
-            tick={{ fontSize: 12 }} 
-            interval={tickInterval - 1} 
-            tickMargin={10} 
-            className="text-muted-foreground" 
-          />
-          <YAxis 
-            tickFormatter={(val) => `R${val.toLocaleString("en-ZA")}`} 
-            tick={{ fontSize: 12 }} 
-            className="text-muted-foreground"
-          />
-          <Tooltip 
-            cursor={{ fill: 'hsl(var(--muted))', opacity: 0.2 }}
-            content={({ active, payload, label }) => {
-              if (active && payload && payload.length > 0 && payload[0]) {
-                const { weekStart, weekEnd, margin } = payload[0].payload;
-                return (
-                  <div className="rounded-lg border bg-background p-3 shadow-md space-y-2 min-w-[200px]">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">{label}</p>
-                      <p className="text-xs text-muted-foreground">{weekStart} – {weekEnd}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                      <span className="text-muted-foreground">Income:</span>
-                      <span className="font-medium text-right text-emerald-600">R{Number(payload[0]?.value || 0).toLocaleString("en-ZA")}</span>
-                      
-                      <span className="text-muted-foreground">Expenses:</span>
-                      <span className="font-medium text-right text-destructive">R{Number(payload[1]?.value || 0).toLocaleString("en-ZA")}</span>
-                      
-                      <span className="text-muted-foreground">Repairs:</span>
-                      <span className="font-medium text-right text-orange-500">R{Number(payload[2]?.value || 0).toLocaleString("en-ZA")}</span>
-                      
-                      <span className="text-muted-foreground font-medium pt-1 border-t">Profit:</span>
-                      <span className={`font-bold text-right pt-1 border-t ${Number(payload[3]?.value || 0) < 0 ? "text-destructive" : "text-emerald-600"}`}>
-                        R{Number(payload[3]?.value || 0).toLocaleString("en-ZA")}
-                      </span>
-                    </div>
-                    <p className="text-xs text-right text-muted-foreground pt-1">Margin: {margin}</p>
-                  </div>
-                );
-              }
-              return null;
-            }}
-          />
-          <ReferenceLine y={0} stroke="hsl(var(--foreground))" opacity={0.2} />
-          <Bar dataKey="income" name="Income" fill="hsl(var(--emerald-500) / 0.8)" radius={[4, 4, 0, 0]} maxBarSize={40} />
-          <Bar dataKey="expenses" name="Expenses" fill="hsl(var(--destructive) / 0.8)" radius={[4, 4, 0, 0]} maxBarSize={40} />
-          <Bar dataKey="repairs" name="Repairs" fill="hsl(var(--orange-500) / 0.8)" radius={[4, 4, 0, 0]} maxBarSize={40} />
-          <Bar dataKey="profit" name="Net Profit" fill="hsl(var(--primary) / 0.8)" radius={[4, 4, 0, 0]} maxBarSize={40} />
-        </BarChart>
-      </ResponsiveContainer>
+    <div>
+      <p className="mb-3 text-xs text-muted">Income, expenses, repairs and profit by ISO week. Exact figures are in the table below; repairs are included in expenses.</p>
+      <ClientOnlyChart className="h-80 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart accessibilityLayer data={rows} margin={{ top: 12, right: 8, left: 0, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+            <XAxis dataKey="weekLabel" stroke={chartColors.text} tick={{ fontSize: 11 }} interval={Math.max(0, Math.floor(rows.length / 8) - 1)} />
+            <YAxis stroke={chartColors.text} tickFormatter={chartCurrencyAxis} tick={{ fontSize: 11 }} width={58} />
+            <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartLabelStyle} formatter={(value: number) => formatZAR(value)} cursor={{ fill: chartColors.grid, opacity: 0.3 }} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <ReferenceLine y={0} stroke={chartColors.text} />
+            <Bar isAnimationActive={false} dataKey="incomeCents" name="Income" fill={chartColors.income} maxBarSize={32} />
+            <Bar isAnimationActive={false} dataKey="expenseCents" name="Expenses" fill={chartColors.expense} maxBarSize={32} />
+            <Bar isAnimationActive={false} dataKey="repairsCents" name="Repairs (included)" fill={chartColors.repairs} maxBarSize={32} />
+            <Bar isAnimationActive={false} dataKey="netProfitCents" name="Net Profit" fill={chartColors.profit} maxBarSize={32} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ClientOnlyChart>
     </div>
   );
 }

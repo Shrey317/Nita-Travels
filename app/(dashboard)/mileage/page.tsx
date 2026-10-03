@@ -14,7 +14,9 @@ import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { toStringArray } from "@/lib/utils";
 import { MileageAlerts } from "@/components/mileage/mileage-alerts";
 import { PageHeader } from "@/components/shared/page-header";
-import { startOfWeek } from "date-fns";
+import { addDays, businessToday, isoWeekStart } from "@/lib/date-ranges";
+import { analyzeMileage } from "@/lib/analytics";
+import { WEEKLY_MILEAGE_LIMIT } from "@/lib/mileage";
 
 interface MileagePageProps {
   searchParams: { vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string };
@@ -44,26 +46,20 @@ export default async function MileagePage({ searchParams }: MileagePageProps) {
     }),
   ]);
 
-  const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const today = businessToday();
+  const startOfCurrentWeek = isoWeekStart(today);
   const recentEntries = await prisma.mileageEntry.findMany({
-    where: { date: { gte: startOfCurrentWeek } },
+    where: { date: { gte: startOfCurrentWeek, lt: addDays(today, 1) }, vehicle: { active: true, deletedAt: null } },
     orderBy: { date: 'desc' }
   });
 
   const vehiclesWithRecentMileage = new Set(recentEntries.map(e => e.vehicleId));
   const missingMileageVehicles = vehicles.filter(v => !vehiclesWithRecentMileage.has(v.id));
   
-  const overLimitVehicles = [];
-  const processed = new Set();
-  for (const e of recentEntries) {
-    if (!processed.has(e.vehicleId)) {
-      processed.add(e.vehicleId);
-      if (e.overLimitByKm && e.overLimitByKm > 0) {
-        const v = vehicles.find(veh => veh.id === e.vehicleId);
-        if (v) overLimitVehicles.push({ vehicle: v, overBy: e.overLimitByKm });
-      }
-    }
-  }
+  const overLimitVehicles = analyzeMileage(recentEntries, { from: startOfCurrentWeek, to: addDays(startOfCurrentWeek, 6) }).violations.flatMap(week => {
+    const vehicle = vehicles.find(row => row.id === week.vehicleId);
+    return vehicle ? [{ vehicle, overBy: week.km - WEEKLY_MILEAGE_LIMIT }] : [];
+  });
 
   const exportParams = new URLSearchParams();
   for (const v of vehicleId) exportParams.append("vehicleId", v);

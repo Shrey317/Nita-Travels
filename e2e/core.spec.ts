@@ -1,26 +1,27 @@
 import { test, expect } from '@playwright/test';
+import { login } from './helpers';
 
-test.describe('Nita Fleet Core Workflows', () => {
-  // Use the test credentials injected via playwright.config.ts
-  const adminUsername = process.env.TEST_USERNAME as string;
-  const adminPassword = process.env.TEST_PASSWORD as string;
-  
-  // Since we don't know the plain text password in the env right now (only hash), 
-  // we'll write tests assuming a logged-in state or skip auth for now in a mock.
-  // For the sake of this basic coverage, we will just visit the login page and verify it loads.
+test('protected routes require login and invalid credentials show an error', async ({ page }) => {
+  await page.goto('/analytics');
+  await expect(page).toHaveURL(/\/login/);
+  await page.getByLabel('Username', { exact: true }).fill('incorrect-fixture-user');
+  await page.getByLabel('Password', { exact: true }).fill('incorrect-fixture-password');
+  await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Incorrect username or password' })).toBeVisible();
+});
 
-  test('Login page loads and requires authentication', async ({ page }) => {
-    await page.goto('/');
-    
-    // Should redirect to login
-    await expect(page).toHaveURL(/.*\/login/);
-    
-    // Check for login form elements
-    await expect(page.getByLabel(/username/i)).toBeVisible();
-    await expect(page.locator('input[name="password"]')).toBeVisible();
-    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
-  });
+test('login and logout revoke access to the dashboard', async ({ page }) => {
+  await login(page);
+  await page.getByRole('button', { name: 'User menu' }).click();
+  await page.getByLabel('Account and appearance').getByRole('button', { name: 'Sign Out', exact: true }).click();
+  await expect(page).toHaveURL(/\/login/);
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/login/);
+});
 
-  // Example test if we were authenticated (to be extended later with global setup)
-  // test('Dashboard renders correctly after login', async ({ page }) => { ... });
+test('unauthenticated API mutations and exports are denied', async ({ request }) => {
+  const response = await request.post('/api/transactions', { data: { category: 'Income', incomeZarCents: 100 } });
+  expect([401, 403]).toContain(response.status());
+  const exported = await request.get('/api/transactions/export', { maxRedirects: 0 });
+  expect([401, 403, 307]).toContain(exported.status());
 });

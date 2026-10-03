@@ -23,7 +23,7 @@ describe("Mileage Integration Tests", () => {
         transmission: "Manual",
         purchaseDate: new Date("2026-01-01"),
         purchasePriceCents: 10000000,
-        mileageAtPurchaseKm: 90000,
+        mileageAtPurchaseKm: 100000,
         currentMileageKm: 100000,
         active: true,
       }
@@ -71,12 +71,12 @@ describe("Mileage Integration Tests", () => {
     // 5. Delete first entry (e1)
     await deleteMileageEntry(e1.id);
     const veryFinalE3 = await prisma.mileageEntry.findUnique({ where: { id: e3.id } });
-    expect(veryFinalE3?.previousMileageKm).toBe(102000); // e3's prev remains 102000 because it is now the anchor
+    expect(veryFinalE3?.previousMileageKm).toBe(100000); // The established purchase baseline anchors the remaining chain.
 
     // Delete latest
     await deleteMileageEntry(e3.id);
     v = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
-    expect(v?.currentMileageKm).toBe(90000); // Reset to base (mileageAtPurchaseKm)
+    expect(v?.currentMileageKm).toBe(100000); // Reset to the purchase baseline when no service/log remains.
   }, 60000);
 
   it("rejects mileage creation for deactivated vehicles", async () => {

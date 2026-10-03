@@ -1,11 +1,17 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { verifyTestEnvironment } from "@/lib/db/safety";
 import { prisma } from "@/lib/db/client";
 import { getFleetNotifications } from "@/lib/db/notifications";
+import { getISOWeek, getISOWeekYear } from 'date-fns';
 
 describe("Notifications Integration Tests", () => {
   beforeAll(async () => {
     await verifyTestEnvironment(true); // Require destructive permissions
+  });
+  afterAll(async () => {
+    await verifyTestEnvironment(true);
+    await prisma.mileageEntry.deleteMany({ where: { vehicleId: { in: ['TEST-NOTIF-01', 'TEST-NOTIF-02'] } } });
+    await prisma.vehicle.deleteMany({ where: { id: { in: ['TEST-NOTIF-01', 'TEST-NOTIF-02'] } } });
   });
 
   it("handles Monday-Sunday boundaries correctly and ignores inactive vehicles", async () => {
@@ -55,8 +61,8 @@ describe("Notifications Integration Tests", () => {
         previousMileageKm: 100000,
         currentMileageKm: 103000,
         distanceDrivenKm: 3000,
-        isoWeek: 1, // mocked
-        isoYear: 2026, // mocked
+        isoWeek: getISOWeek(today),
+        isoYear: getISOWeekYear(today),
         weeklyLimitKm: 2000,
         overLimitByKm: 1000
       }
@@ -69,8 +75,8 @@ describe("Notifications Integration Tests", () => {
         previousMileageKm: 100000,
         currentMileageKm: 103000,
         distanceDrivenKm: 3000,
-        isoWeek: 1, // mocked
-        isoYear: 2026, // mocked
+        isoWeek: getISOWeek(today),
+        isoYear: getISOWeekYear(today),
         weeklyLimitKm: 2000,
         overLimitByKm: 1000
       }

@@ -51,3 +51,18 @@ export function calculateProfitPerKm(netProfitCents: number, kmDriven: number): 
   if (kmDriven <= 0) return null;
   return netProfitCents / kmDriven;
 }
+
+/** A zero baseline has no defined percentage change; never manufacture 100%. */
+export function calculateChange(current: number | null, previous: number | null) {
+  if (current === null || previous === null) return { delta: null, percent: null };
+  return { delta: current - previous, percent: previous === 0 ? null : ((current - previous) / Math.abs(previous)) * 100 };
+}
+
+export function financialMetrics(incomeCents: number, expenseCents: number, mileageKm: number) {
+  const netProfitCents = incomeCents - expenseCents;
+  return { incomeCents, expenseCents, netProfitCents, mileageKm,
+    margin: calculateProfitMargin(incomeCents, expenseCents),
+    revenuePerKmCents: calculateRevenuePerKm(incomeCents, mileageKm),
+    costPerKmCents: calculateCostPerKm(expenseCents, mileageKm),
+    profitPerKmCents: calculateProfitPerKm(netProfitCents, mileageKm) };
+}

@@ -9,6 +9,8 @@
 import type { Prisma, Transaction, Category } from "@prisma/client";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
 import { NotFoundError } from "@/lib/errors";
+import { requireVehicleReference } from "@/lib/db/vehicle-reference";
+import { csvEscape } from "@/lib/csv";
 import { REPAIR_CATEGORIES, DEFAULT_PAGE_SIZE, NO_VEHICLE_FILTER_VALUE, FLEET_WIDE_VEHICLE_ID } from "@/lib/constants";
 import { formatDate, formatZAR, formatKm } from "@/lib/format";
 import {
@@ -104,15 +106,13 @@ async function syncVehicleMileageFromService(
   mileageKm: number | null | undefined
 ): Promise<void> {
   if (mileageKm == null || !vehicleId || vehicleId === FLEET_WIDE_VEHICLE_ID) return;
-  const vehicle = await tx.vehicle.findUnique({ where: { id: vehicleId } });
-  if (vehicle && mileageKm > vehicle.currentMileageKm) {
-    await tx.vehicle.update({ where: { id: vehicleId }, data: { currentMileageKm: mileageKm } });
-  }
+  await tx.vehicle.updateMany({ where: { id: vehicleId, deletedAt: null, currentMileageKm: { lt: mileageKm } }, data: { currentMileageKm: mileageKm } });
 }
 
 export async function createTransaction(input: TransactionInput): Promise<Transaction> {
   const data = transactionSchema.parse(input);
   return prisma.$transaction(async (tx) => {
+    await requireVehicleReference(tx, data.vehicleId);
     const created = await tx.transaction.create({ data });
     await syncVehicleMileageFromService(tx, data.vehicleId, data.category, data.mileageKm);
     return created;
@@ -129,7 +129,8 @@ export async function updateTransaction(id: string, input: TransactionUpdateInpu
   const merged = transactionSchema.parse({ ...existing, ...partial });
 
   return prisma.$transaction(async (tx) => {
-    const updated = await tx.transaction.update({ where: { id }, data: merged });
+    await requireVehicleReference(tx, merged.vehicleId);
+    const updated = await tx.transaction.update({ where: { id, deletedAt: null }, data: merged });
     await syncVehicleMileageFromService(tx, merged.vehicleId, merged.category, merged.mileageKm);
     return updated;
   }, TRANSACTION_OPTIONS);
@@ -250,13 +251,6 @@ export async function getRepairsAnomalies(): Promise<RepairAnomaly[]> {
 }
 
 const CSV_HEADER = ["Date", "Vehicle", "Category", "Income (R)", "Expense (R)", "Mileage (km)", "Notes"] as const;
-
-function csvEscape(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
 
 /** CSV export of a filtered transaction set (SRS 16, GET /api/transactions/export) — no page
  *  limit, since an export is expected to return everything the filter matches. */

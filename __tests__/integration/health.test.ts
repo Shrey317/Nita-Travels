@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { verifyTestEnvironment } from "@/lib/db/safety";
 import { prisma } from "@/lib/db/client";
 import { getVehicleDetail } from "@/lib/db/vehicles";
@@ -7,6 +7,11 @@ import { calculateVehicleHealthScore } from "@/lib/health";
 describe("Health Score Integration Tests", () => {
   beforeAll(async () => {
     await verifyTestEnvironment(true); // Require destructive permissions
+  });
+  afterAll(async () => {
+    await verifyTestEnvironment(true);
+    await prisma.transaction.deleteMany({ where: { vehicleId: { in: ['TEST-HLT-01', 'TEST-HLT-02'] } } });
+    await prisma.vehicle.deleteMany({ where: { id: { in: ['TEST-HLT-01', 'TEST-HLT-02'] } } });
   });
 
   it("calculates 12-month repair cost accurately vs fleet average and totals exactly 100%", async () => {

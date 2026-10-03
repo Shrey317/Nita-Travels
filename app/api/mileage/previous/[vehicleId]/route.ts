@@ -3,11 +3,13 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getPreviousMileage } from "@/lib/db/mileage";
 import { requireSession, handleApiError } from "@/lib/api-response";
+import { calendarDateSchema } from "@/lib/schemas/common.schema";
 
-export async function GET(_request: Request, { params }: { params: { vehicleId: string } }) {
+export async function GET(request: Request, { params }: { params: { vehicleId: string } }) {
   try {
     await requireSession();
-    const previousMileageKm = await getPreviousMileage(params.vehicleId);
+    const date = new URL(request.url).searchParams.get("date");
+    const previousMileageKm = await getPreviousMileage(params.vehicleId, date ? calendarDateSchema.parse(date) : undefined);
     return NextResponse.json({ previousMileageKm });
   } catch (error) {
     return handleApiError(error);

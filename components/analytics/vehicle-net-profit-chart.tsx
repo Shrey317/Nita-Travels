@@ -4,6 +4,7 @@ import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveCo
 import { formatZAR } from "@/lib/format";
 import { ClientOnlyChart } from "@/components/shared/client-only-chart";
 import type { VehicleRankingRow } from "@/lib/db/analytics";
+import { chartColors, chartTooltipStyle, chartLabelStyle } from "@/components/shared/chart-style";
 
 function formatAxisTick(cents: number): string {
   return `R${Math.round(cents / 100 / 1000)}k`;
@@ -25,11 +26,11 @@ export function VehicleNetProfitChart({ rows }: { rows: VehicleRankingRow[] }) {
   return (
     <ClientOnlyChart className="h-72 rounded-xl border border-border bg-card p-4">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-          <XAxis dataKey="vehicleId" tick={{ fontSize: 12 }} stroke="#64748B" />
-          <YAxis tickFormatter={formatAxisTick} tick={{ fontSize: 12 }} stroke="#64748B" width={56} />
-          <Tooltip formatter={(value: number) => formatZAR(value)} />
+        <BarChart accessibilityLayer data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+          <XAxis dataKey="vehicleId" tick={{ fontSize: 12 }} stroke={chartColors.text} />
+          <YAxis tickFormatter={formatAxisTick} tick={{ fontSize: 12 }} stroke={chartColors.text} width={56} />
+          <Tooltip formatter={(value: number) => formatZAR(value)} contentStyle={chartTooltipStyle} labelStyle={chartLabelStyle} />
           <Bar dataKey="netProfit" name="Net P/L" radius={[4, 4, 0, 0]}>
             {chartData.map((entry) => (
               <Cell key={entry.vehicleId} fill={entry.netProfit >= 0 ? "#16A34A" : "#DC2626"} />

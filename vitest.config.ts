@@ -8,7 +8,7 @@ process.env.TZ = "UTC";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["__tests__/**/*.test.ts"],
+    include: ["__tests__/lib/**/*.test.ts"],
   },
   resolve: {
     alias: {

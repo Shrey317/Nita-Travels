@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,7 +33,8 @@ export function NoteForm({ vehicles, initialVehicleId }: NoteFormProps) {
   const [note, setNote] = useState("");
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const options = vehicleIdOptions(vehicles);
 
@@ -46,8 +47,9 @@ export function NoteForm({ vehicles, initialVehicleId }: NoteFormProps) {
     };
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (isPending || isUploading) return;
     const payload = buildPayload();
     const result = vehicleNoteSchema.safeParse(payload);
     if (!result.success) {
@@ -62,7 +64,7 @@ export function NoteForm({ vehicles, initialVehicleId }: NoteFormProps) {
     }
     setErrors({});
 
-    startTransition(async () => {
+    setIsPending(true);
       try {
         const res = await fetch("/api/notes", {
           method: "POST",
@@ -76,14 +78,16 @@ export function NoteForm({ vehicles, initialVehicleId }: NoteFormProps) {
           return;
         }
         toast({ title: "Note added" });
+        window.dispatchEvent(new Event("fleet-data-changed"));
         setNote("");
         setPhotoUrls([]);
         setDate(todayIso());
         router.refresh();
       } catch {
         toast({ title: "Network error — please try again", variant: "destructive" });
+      } finally {
+        setIsPending(false);
       }
-    });
   }
 
   return (
@@ -136,10 +140,10 @@ export function NoteForm({ vehicles, initialVehicleId }: NoteFormProps) {
         <FieldError id="nNote-error" message={errors.note} />
       </div>
 
-      <PhotoUpload photoUrls={photoUrls} onChange={setPhotoUrls} />
+      <PhotoUpload photoUrls={photoUrls} onChange={setPhotoUrls} onUploadingChange={setIsUploading} />
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isPending || isUploading}>
           {isPending ? "Saving..." : "Add Note"}
         </Button>
       </div>

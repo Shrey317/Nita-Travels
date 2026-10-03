@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+import Link from "next/link";
 
 import { getNotes } from "@/lib/db/notes";
 import { prisma } from "@/lib/db/client";
@@ -12,7 +13,7 @@ import { DEFAULT_PAGE_SIZE, FLEET_WIDE_VEHICLE_ID, NO_VEHICLE_FILTER_VALUE } fro
 import { toStringArray } from "@/lib/utils";
 
 interface NotesPageProps {
-  searchParams: { vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string };
+  searchParams: { noteId?: string; vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string };
 }
 
 export default async function NotesPage({ searchParams }: NotesPageProps) {
@@ -22,6 +23,7 @@ export default async function NotesPage({ searchParams }: NotesPageProps) {
   const [vehicles, result] = await Promise.all([
     prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
     getNotes({
+      noteId: searchParams.noteId,
       vehicleId: vehicleIdFilter.length ? vehicleIdFilter : undefined,
       dateFrom: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,
       dateTo: searchParams.dateTo ? new Date(searchParams.dateTo) : undefined,
@@ -45,6 +47,7 @@ export default async function NotesPage({ searchParams }: NotesPageProps) {
       </div>
 
       <section className="space-y-4">
+        {searchParams.noteId && <p className="rounded-card border border-border bg-card p-3 text-sm">Showing the selected note. <Link href="/notes" className="text-brand-blue underline">View all notes</Link></p>}
         <VehicleDateFilters vehicleOptions={filterVehicleOptions} idPrefix="notes" />
         <NotesTable notes={result.items} vehicles={vehicles} />
         <Pagination page={result.page} limit={result.limit} total={result.total} />

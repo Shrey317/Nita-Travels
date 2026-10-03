@@ -32,7 +32,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem("theme") as ThemeChoice | null;
+    let stored: string | null = null;
+    try { stored = localStorage.getItem("theme"); } catch { /* Use system preference when storage is unavailable. */ }
     if (stored === "dark" || stored === "light" || stored === "system") {
       setChoice(stored);
       setResolved(resolveTheme(stored));
@@ -65,7 +66,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = useCallback((next: ThemeChoice) => {
     setChoice(next);
     setResolved(resolveTheme(next));
-    localStorage.setItem("theme", next);
+    try { localStorage.setItem("theme", next); } catch { /* Theme remains usable without persistent storage. */ }
   }, []);
 
   const toggleTheme = useCallback(() => {

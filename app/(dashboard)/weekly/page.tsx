@@ -8,47 +8,27 @@ import { WeeklyRangeSelector } from "@/components/weekly/weekly-range-selector";
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Card, CardContent } from "@/components/ui/card";
-import { startOfYear, endOfYear, subWeeks, startOfISOWeek } from "date-fns";
+import { weeklyRange, dateKey } from "@/lib/date-ranges";
+import { prisma } from "@/lib/db/client";
+import { Button } from "@/components/ui/button";
 
-function getRangeDates(range: string) {
-  const now = new Date();
-  switch (range) {
-    case "12": {
-      const from = subWeeks(startOfISOWeek(now), 11);
-      return { from, to: now };
-    }
-    case "26": {
-      const from = subWeeks(startOfISOWeek(now), 25);
-      return { from, to: now };
-    }
-    case "52": {
-      const from = subWeeks(startOfISOWeek(now), 51);
-      return { from, to: now };
-    }
-    case "current-year": {
-      return { from: startOfYear(now), to: endOfYear(now) };
-    }
-    case "prev-year": {
-      const prev = new Date(now.getFullYear() - 1, 0, 1);
-      return { from: startOfYear(prev), to: endOfYear(prev) };
-    }
-    case "all":
-    default:
-      return { from: undefined, to: undefined };
-  }
-}
-
-export default async function WeeklyPage({ searchParams }: { searchParams: { range?: string } }) {
+export default async function WeeklyPage({ searchParams }: { searchParams: { range?: string; dateFrom?: string; dateTo?: string; vehicleId?: string } }) {
   const rangeParam = searchParams.range || "52";
-  const { from, to } = getRangeDates(rangeParam);
-
-  const rows = await getWeeklyBreakdown(from, to);
+  const { from, to } = weeklyRange(searchParams);
+  const [rows, vehicles] = await Promise.all([getWeeklyBreakdown(from, to, searchParams.vehicleId || undefined), prisma.vehicle.findMany({ where: { deletedAt: null }, select: { id: true }, orderBy: { id: "asc" } })]);
 
   return (
     <div className="space-y-8">
       <PageHeader title="Weekly Breakdown" description="Financial performance and fleet metrics by week">
         <WeeklyRangeSelector />
       </PageHeader>
+      <form className="flex flex-wrap items-end gap-3 rounded-card border bg-card p-4" aria-label="Weekly filters">
+        <input type="hidden" name="range" value={rangeParam} />
+        <label className="text-sm">Vehicle<select name="vehicleId" defaultValue={searchParams.vehicleId ?? ""} className="mt-1 block h-10 rounded-input border bg-card px-3"><option value="">All vehicles and overhead</option>{vehicles.map(vehicle => <option key={vehicle.id}>{vehicle.id}</option>)}</select></label>
+        {rangeParam === "custom" && <><label className="text-sm">From<input className="mt-1 block h-10 rounded-input border bg-card px-3" type="date" required name="dateFrom" defaultValue={from ? dateKey(from) : ""} /></label><label className="text-sm">To<input className="mt-1 block h-10 rounded-input border bg-card px-3" type="date" required name="dateTo" defaultValue={to ? dateKey(to) : ""} /></label></>}
+        <Button type="submit" variant="outline">Apply filters</Button>
+      </form>
+      <p className="text-xs text-muted">Monday-start ISO weeks. Boundary-week labels cover the full week; totals include only the selected dates. Mileage is attributed to the reading date.</p>
 
       <section>
         <SectionHeading title="Performance Summary" />

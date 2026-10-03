@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Search, LayoutGrid, List, MoreVertical, Edit, Activity, PowerOff } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, MoreVertical, Edit, Activity } from "lucide-react";
 import { VehicleCard } from "@/components/vehicles/vehicle-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,9 +28,10 @@ interface VehicleListClientProps {
 }
 
 export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [serviceFilter, setServiceFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "all");
+  const [serviceFilter, setServiceFilter] = useState(searchParams.get("service") ?? "all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const filteredVehicles = initialVehicles.filter((v) => {
@@ -72,6 +74,7 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted" />
             <input
               type="text"
+              aria-label="Search vehicles"
               placeholder="Search vehicles..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -80,9 +83,9 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[130px] h-9 border-border bg-transparent">
+            <SelectTrigger aria-label="Vehicle status" className="w-[130px] h-10 border-border bg-transparent">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
@@ -93,7 +96,7 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
           </Select>
 
           <Select value={serviceFilter} onValueChange={setServiceFilter}>
-            <SelectTrigger className="w-[140px] h-9 border-border bg-transparent">
+            <SelectTrigger aria-label="Service status" className="w-[140px] h-10 border-border bg-transparent">
               <SelectValue placeholder="All Service" />
             </SelectTrigger>
             <SelectContent>
@@ -105,12 +108,18 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
 
           <div className="flex items-center rounded-md border border-border p-1 bg-surface">
             <button 
+              type="button"
+              aria-label="Grid view"
+              aria-pressed={viewMode === "grid"}
               onClick={() => setViewMode("grid")}
               className={`p-1 rounded ${viewMode === "grid" ? "bg-card shadow-sm text-ink" : "text-muted hover:text-ink"}`}
             >
               <LayoutGrid className="h-4 w-4" />
             </button>
             <button 
+              type="button"
+              aria-label="List view"
+              aria-pressed={viewMode === "list"}
               onClick={() => setViewMode("list")}
               className={`p-1 rounded ${viewMode === "list" ? "bg-card shadow-sm text-ink" : "text-muted hover:text-ink"}`}
             >
@@ -131,7 +140,7 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="rounded-card border border-border bg-card overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-surface/50 text-xs text-muted">
               <tr>
@@ -147,7 +156,7 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
             </thead>
             <tbody className="divide-y divide-border">
               {filteredVehicles.map((v) => {
-                const isProfit = v.netProfitCents > 0;
+                const isProfit = v.netProfitCents >= 0;
                 return (
                   <tr key={v.vehicle.id} className="hover:bg-surface/50">
                     <td className="px-4 py-3 font-medium text-ink">{v.vehicle.id}</td>
@@ -176,7 +185,7 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
                     <td className="px-4 py-3 text-right">
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" aria-label={`Actions for ${v.vehicle.id}`} className="h-10 w-10">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </PopoverTrigger>
@@ -192,10 +201,6 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
                               <Edit className="mr-2 h-4 w-4 text-muted" />
                               Edit Details
                             </Link>
-                          </Button>
-                          <Button variant="ghost" className="justify-start font-normal h-9 text-status-red hover:text-status-red hover:bg-status-red/10">
-                            <PowerOff className="mr-2 h-4 w-4" />
-                            {v.vehicle.active ? "Deactivate" : "Activate"}
                           </Button>
                         </PopoverContent>
                       </Popover>

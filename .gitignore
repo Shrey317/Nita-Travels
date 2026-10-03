@@ -11,3 +11,7 @@ coverage
 CHANGES.md
 .vercel
 .env.prod
+# Test reports and disposable local tooling
+playwright-report/
+test-results/
+.local-test-db/

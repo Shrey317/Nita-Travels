@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Pencil } from "lucide-react";
 import {
   Dialog,
@@ -38,7 +38,7 @@ export function EditMileageDialog({
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(String(currentMileageKm));
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
 
   // Reset form state when dialog opens
@@ -50,7 +50,8 @@ export function EditMileageDialog({
     setOpen(next);
   }
 
-  function handleSave() {
+  async function handleSave() {
+    if (isPending) return;
     const numericValue = Number(value);
 
     if (!value || isNaN(numericValue) || !Number.isInteger(numericValue) || numericValue <= 0) {
@@ -70,7 +71,7 @@ export function EditMileageDialog({
 
     setError(null);
 
-    startTransition(async () => {
+    setIsPending(true);
       try {
         const res = await fetch(`/api/mileage/${entryId}`, {
           method: "PATCH",
@@ -83,12 +84,14 @@ export function EditMileageDialog({
           return;
         }
         toast({ title: "Mileage entry updated" });
+        window.dispatchEvent(new Event("fleet-data-changed"));
         setOpen(false);
         onSaved();
       } catch {
         toast({ title: "Network error — please try again", variant: "destructive" });
+      } finally {
+        setIsPending(false);
       }
-    });
   }
 
   return (

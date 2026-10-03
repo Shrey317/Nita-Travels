@@ -1,52 +1,20 @@
 export const dynamic = "force-dynamic";
-
-import { getCategoryBreakdown, getVehiclePerformanceRanking } from "@/lib/db/analytics";
-import { CategoryBreakdownTable } from "@/components/analytics/category-breakdown-table";
-import { VehicleRankingTable } from "@/components/analytics/vehicle-ranking-table";
-import { VehicleNetProfitChart } from "@/components/analytics/vehicle-net-profit-chart";
-import { ExpenseByCategoryPie } from "@/components/analytics/expense-by-category-pie";
+import Link from "next/link";
+import { getAnalyticsReport } from "@/lib/db/analytics";
+import type { AnalyticsSearchParams } from "@/lib/date-ranges";
+import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
+import { FinancialSnapshot } from "@/components/analytics/financial-snapshot";
+import { AnalyticsContent } from "@/components/analytics/analytics-content";
 import { PageHeader } from "@/components/shared/page-header";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-export default async function AnalyticsPage() {
-  const [categoryBreakdown, vehicleRanking] = await Promise.all([
-    getCategoryBreakdown(),
-    getVehiclePerformanceRanking(),
-  ]);
-
-  return (
-    <div className="space-y-8">
-      <PageHeader title="Analytics" description="Fleet performance, by category and by vehicle." />
-
-      <section className="space-y-3">
-        <SectionHeading title="By Category" />
-        <CategoryBreakdownTable rows={categoryBreakdown} />
-      </section>
-
-      <section className="space-y-3">
-        <SectionHeading title="Vehicle Performance Ranking" />
-        <VehicleRankingTable rows={vehicleRanking} />
-      </section>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="space-y-3">
-          <SectionHeading title="Net P/L by Vehicle" />
-          <Card>
-            <CardContent className="pt-6">
-              <VehicleNetProfitChart rows={vehicleRanking} />
-            </CardContent>
-          </Card>
-        </section>
-        <section className="space-y-3">
-          <SectionHeading title="Expense by Category" />
-          <Card>
-            <CardContent className="pt-6">
-              <ExpenseByCategoryPie rows={categoryBreakdown} />
-            </CardContent>
-          </Card>
-        </section>
-      </div>
-    </div>
-  );
+export default async function AnalyticsPage({ searchParams }: { searchParams: AnalyticsSearchParams }) {
+  const report = await getAnalyticsReport(searchParams);
+  return <div className="space-y-6">
+    <PageHeader title="Analytics" description="Financial and operational evidence, reconciled to your records."><Button asChild variant="outline"><Link href={`/reports?${new URLSearchParams(searchParams)}`}>Export reports</Link></Button></PageHeader>
+    <AnalyticsFilters key={report.selection.label} selection={report.selection} vehicles={report.vehicles} />
+    <nav aria-label="Analytics sections" className="flex flex-wrap gap-2 border-b pb-3">{["Overview", "Financial", "Vehicles", "Maintenance", "Mileage", "Utilization", "Trends"].map(label => <a key={label} className="rounded-button px-3 py-2 text-sm hover:bg-surface-secondary" href={`#${label.toLowerCase()}`}>{label}</a>)}<Link className="rounded-button px-3 py-2 text-sm hover:bg-surface-secondary" href={`/reports?${new URLSearchParams(searchParams)}`}>Reports</Link></nav>
+    <FinancialSnapshot report={report} />
+    <AnalyticsContent report={report} />
+  </div>;
 }

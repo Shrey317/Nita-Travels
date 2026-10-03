@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Command } from "cmdk";
-import { Search, Car, Receipt, Wrench, Loader2, FileText, PlusCircle, Gauge } from "lucide-react";
+import { Search, Car, Receipt, Wrench, Loader2, FileText, PlusCircle, Gauge, ClipboardCheck } from "lucide-react";
 import { globalSearch, SearchResults } from "@/lib/actions/search";
 
 export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: boolean) => void }) {
@@ -12,6 +12,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   
   // Extract vehicleId if we are on a vehicle profile page
   const vehicleIdMatch = pathname?.match(/^\/vehicles\/([^/]+)$/);
@@ -29,20 +30,28 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
   }, [setOpen]);
 
   useEffect(() => {
-    if (!query || query.length < 2) {
+    if (!open || query.trim().length < 2) {
       setResults(null);
+      setLoading(false);
+      setError(false);
       return;
     }
-    
+    let cancelled = false;
     setLoading(true);
+    setError(false);
+    setResults(null);
     const timer = setTimeout(async () => {
-      const data = await globalSearch(query);
-      setResults(data);
-      setLoading(false);
+      try {
+        const data = await globalSearch(query.trim());
+        if (!cancelled) setResults(data);
+      } catch {
+        if (!cancelled) setError(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [query]);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [query, open]);
 
   const onSelect = (href: string) => {
     setOpen(false);
@@ -51,21 +60,23 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
   };
 
   return (
-    <Command.Dialog open={open} onOpenChange={setOpen} label="Global Command Menu" className="fixed left-1/2 top-1/2 z-[100] w-full max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card p-0 shadow-card-elevated animate-fade-in sm:w-[90%] outline-none">
+    <Command.Dialog shouldFilter={false} open={open} onOpenChange={setOpen} label="Global Command Menu" className="fixed left-1/2 top-[20%] z-[100] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-card border border-border bg-card p-0 shadow-card-elevated outline-none">
       <div className="flex items-center border-b border-border px-3" cmdk-input-wrapper="">
         <Search className="mr-2 h-4 w-4 shrink-0 text-muted" />
         <Command.Input 
           autoFocus
-          placeholder="Search vehicles, transactions, repairs..." 
+          aria-label="Search fleet records"
+          placeholder="Search vehicles, records, insurance, mileage…"
+          maxLength={100}
           value={query}
           onValueChange={setQuery}
           className="flex h-12 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50" 
         />
         {loading && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
       </div>
-      <Command.List className="max-h-[400px] overflow-y-auto overflow-x-hidden p-2">
+      <Command.List className="max-h-[min(400px,60vh)] overflow-y-auto overflow-x-hidden p-2">
         <Command.Empty className="py-6 text-center text-sm text-muted">
-          {query.length < 2 ? "Type at least 2 characters to search." : "No results found."}
+          {loading ? "Searching fleet records…" : error ? "Search could not load. Change your search to try again." : query.trim().length < 2 ? "Type at least 2 characters to search." : "No results found."}
         </Command.Empty>
 
         {!query && (
@@ -124,6 +135,21 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
                 </div>
               </Command.Item>
             ))}
+          </Command.Group>
+        ) : null}
+
+        {results?.services?.length ? (
+          <Command.Group heading="Services" className="px-2 py-2 text-xs font-medium text-muted">
+            {results.services.map((item) => <Command.Item key={item.id} value={item.id} onSelect={() => onSelect(item.href)} className="mb-1 flex cursor-default items-center rounded-input px-2 py-2 text-sm outline-none aria-selected:bg-brand-blue/10">
+              <ClipboardCheck className="mr-2 h-4 w-4 shrink-0" aria-hidden="true" /><div className="min-w-0"><p className="text-ink">{item.title}</p><p className="text-xs text-muted">{item.subtitle}</p></div>
+            </Command.Item>)}
+          </Command.Group>
+        ) : null}
+        {results?.mileage?.length ? (
+          <Command.Group heading="Mileage" className="px-2 py-2 text-xs font-medium text-muted">
+            {results.mileage.map((item) => <Command.Item key={item.id} value={item.id} onSelect={() => onSelect(item.href)} className="mb-1 flex cursor-default items-center rounded-input px-2 py-2 text-sm outline-none aria-selected:bg-brand-blue/10">
+              <Gauge className="mr-2 h-4 w-4 shrink-0" aria-hidden="true" /><div className="min-w-0"><p className="text-ink">{item.title}</p><p className="text-xs text-muted">{item.subtitle}</p></div>
+            </Command.Item>)}
           </Command.Group>
         ) : null}
 

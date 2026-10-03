@@ -1,72 +1,21 @@
-import { prisma } from "./client";
+import { prisma } from './client';
+import { assertTestEnvironment } from '../test-environment';
 
 export async function verifyTestEnvironment(requireDestructive = false) {
-  if (process.env.APP_ENV !== "test") {
-    throw new Error("SAFETY ABORT: APP_ENV === 'test' is required.");
+  const expected = assertTestEnvironment(process.env, requireDestructive);
+  const rows = await prisma.$queryRaw<Array<{ db: string; schema: string }>>`
+    SELECT current_database() AS db, current_schema() AS schema
+  `;
+  const identity = rows[0];
+  if (!identity || identity.db !== expected.database || identity.schema !== expected.schema) {
+    throw new Error('SAFETY ABORT: The connected database/schema differs from the isolated test target.');
   }
-
-  if (!process.env.TEST_DATABASE_URL) {
-    throw new Error("SAFETY ABORT: TEST_DATABASE_URL is required.");
-  }
-
-  // We explicitly check that the connection string prisma uses is the test one.
-  // Next.js and Prisma might have DATABASE_URL set.
-  if (process.env.DATABASE_URL !== process.env.TEST_DATABASE_URL) {
-    throw new Error("SAFETY ABORT: DATABASE_URL must exactly match TEST_DATABASE_URL in test mode. Do not fallback to production.");
-  }
-
-  if (
-    /prod/i.test(process.env.TEST_DATABASE_URL) ||
-    process.env.TEST_DATABASE_URL.includes("amazonaws") ||
-    process.env.TEST_DATABASE_URL.includes("supabase.co") && !process.env.TEST_DATABASE_URL.includes("test")
-  ) {
-    // Basic string heuristics as a first pass, but NOT the primary check.
-    throw new Error("SAFETY ABORT: TEST_DATABASE_URL string heuristics detected a potential production target.");
-  }
-
-  // 1. Verify actual database identity.
-  let dbName = "";
-  try {
-    const res: any = await prisma.$queryRaw`SELECT current_database() as db`;
-    dbName = res[0].db;
-  } catch (err: any) {
-    throw new Error(`SAFETY ABORT: Could not query actual database identity. ${err.message}`);
-  }
-
-  if (!dbName.toLowerCase().includes("test")) {
-    const isNeonTestBranch = dbName === "neondb" && process.env.TEST_DATABASE_URL && !process.env.TEST_DATABASE_URL.includes("weathered");
-    if (!isNeonTestBranch) {
-      throw new Error(`SAFETY ABORT: The connected database identity ('${dbName}') does not appear to be a test database.`);
-    }
-  }
-
-  // 2. Destructive safety check
-  if (requireDestructive) {
-    if (process.env.ALLOW_DESTRUCTIVE_TEST_DB !== "true") {
-      throw new Error("SAFETY ABORT: Destructive test operation requested, but ALLOW_DESTRUCTIVE_TEST_DB is not explicitly true.");
-    }
-  }
-
-  return { dbName };
+  return { dbName: identity.db, schema: identity.schema };
 }
 
 export async function verifyProductionReadOnly() {
-  if (process.env.APP_ENV === "test") {
-    throw new Error("SAFETY ABORT: Production read-only verification must not run with APP_ENV=test.");
-  }
-
-  // It should just verify it can connect, but not allow mutations.
-  let dbName = "";
-  try {
-    const res: any = await prisma.$queryRaw`SELECT current_database() as db`;
-    dbName = res[0].db;
-  } catch (err: any) {
-    throw new Error(`SAFETY ABORT: Could not query actual database identity. ${err.message}`);
-  }
-
-  if (dbName.toLowerCase().includes("test")) {
-    throw new Error(`SAFETY ABORT: Connected to a test database instead of production for read-only verification.`);
-  }
-
-  return { dbName };
+  if (process.env.APP_ENV === 'test') throw new Error('SAFETY ABORT: Expected a non-test environment.');
+  const rows = await prisma.$queryRaw<Array<{ db: string }>>`SELECT current_database() AS db`;
+  if (!rows[0]) throw new Error('SAFETY ABORT: Could not verify database identity.');
+  return { dbName: rows[0].db };
 }

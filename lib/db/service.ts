@@ -13,6 +13,8 @@ import {
   type ServiceStatus,
 } from "@/lib/service";
 import { averageWeeklyKm } from "@/lib/mileage";
+import { addDays, businessToday, isoWeekStart } from "@/lib/date-ranges";
+import { analyzeMileage } from "@/lib/analytics";
 
 export interface VehicleServiceRow {
   vehicleId: string;
@@ -90,22 +92,23 @@ export async function getServiceStatusAllVehicles(): Promise<VehicleServiceRow[]
 
 /**
  * Same as above, plus the "Days to Next (est.)" column that's specific to the dedicated
- * /service page (SRS 15.6) — projected from each vehicle's last 8 mileage-log entries.
+ * /service page (SRS 15.6) — projected from recorded vehicle-weeks in the prior 8 complete weeks.
  */
 export async function getServiceStatusWithEstimates(): Promise<VehicleServiceRowWithEstimate[]> {
   const baseRows = await getServiceStatusAllVehicles();
-
+  const thisMonday = isoWeekStart(businessToday());
+  const range = { from: addDays(thisMonday, -56), to: addDays(thisMonday, -1) };
   const recentEntries = await prisma.mileageEntry.findMany({
-    where: { vehicleId: { in: baseRows.map((r) => r.vehicleId) } },
+    where: { vehicleId: { in: baseRows.map((r) => r.vehicleId) }, date: { gte: range.from, lt: thisMonday } },
     orderBy: { date: "desc" },
-    select: { vehicleId: true, distanceDrivenKm: true },
+    select: { id: true, vehicleId: true, date: true, distanceDrivenKm: true, previousMileageKm: true, currentMileageKm: true },
   });
 
   const byVehicle = new Map<string, number[]>();
-  for (const entry of recentEntries) {
+  for (const entry of analyzeMileage(recentEntries, range).weekly) {
     const list = byVehicle.get(entry.vehicleId) ?? [];
     if (list.length < 8) {
-      list.push(entry.distanceDrivenKm);
+      list.push(entry.km);
       byVehicle.set(entry.vehicleId, list);
     }
   }

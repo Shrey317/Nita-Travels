@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface PriorityItem {
   vehicleId: string;
-  severity: "critical" | "warning";
+  severity: "critical" | "warning" | "info";
   title: string;
+  description?: string;
   href: string;
 }
 
@@ -47,7 +48,7 @@ export function TodaysPriorities({ items }: { items: PriorityItem[] }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {items.map((item, i) => {
+          {items.slice(0, 6).map((item, i) => {
             const isCritical = item.severity === "critical";
             return (
               <Link
@@ -72,16 +73,18 @@ export function TodaysPriorities({ items }: { items: PriorityItem[] }) {
                     <span className={`text-[10px] font-medium uppercase tracking-wider ${
                       isCritical ? "text-status-error" : "text-status-warning"
                     }`}>
-                      {isCritical ? "Critical" : "Warning"}
+                      {isCritical ? "Critical" : item.severity === "info" ? "Information" : "Warning"}
                     </span>
                   </div>
                   <p className="mt-0.5 text-sm text-ink group-hover:text-brand-blue transition-colors">{item.title}</p>
+                  {item.description && <p className="mt-1 text-xs text-muted">{item.description}</p>}
                 </div>
                 <span className="mt-1 text-xs text-muted opacity-0 group-hover:opacity-100 transition-opacity">View →</span>
               </Link>
             );
           })}
         </div>
+        <Link href="/alerts" className="mt-4 inline-block text-sm font-medium text-brand-blue hover:underline">View all {items.length} alerts →</Link>
       </CardContent>
     </Card>
   );

@@ -183,7 +183,7 @@ export async function updateVehicle(id: string, input: VehicleUpdateInput): Prom
 export async function deactivateVehicle(id: string): Promise<Vehicle> {
   const existing = await prisma.vehicle.findUnique({ where: { id, deletedAt: null } });
   if (!existing) throw new NotFoundError(`Vehicle ${id} not found`);
-  return prisma.vehicle.update({ where: { id }, data: { active: false, deletedAt: new Date() } });
+  return prisma.vehicle.update({ where: { id }, data: { active: false } });
 }
 
 export interface TimelineItem {

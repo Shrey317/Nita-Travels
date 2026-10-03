@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PowerOff } from "lucide-react";
 import {
@@ -27,10 +27,11 @@ export function DeactivateVehicleButton({ vehicleId }: DeactivateVehicleButtonPr
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setPending] = useState(false);
 
-  function handleConfirm() {
-    startTransition(async () => {
+  async function handleConfirm() {
+    if (isPending) return;
+    setPending(true);
       try {
         const res = await fetch(`/api/vehicles/${vehicleId}`, { method: "DELETE" });
         if (!res.ok) {
@@ -38,6 +39,7 @@ export function DeactivateVehicleButton({ vehicleId }: DeactivateVehicleButtonPr
           throw new Error(data.error ?? "Couldn't deactivate this vehicle.");
         }
         toast({ title: `${vehicleId} deactivated` });
+        window.dispatchEvent(new Event("fleet-data-changed"));
         setOpen(false);
         router.push("/vehicles");
         router.refresh();
@@ -47,8 +49,9 @@ export function DeactivateVehicleButton({ vehicleId }: DeactivateVehicleButtonPr
           description: error instanceof Error ? error.message : "Please try again.",
           variant: "destructive",
         });
+      } finally {
+        setPending(false);
       }
-    });
   }
 
   return (

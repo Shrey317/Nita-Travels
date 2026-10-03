@@ -20,6 +20,7 @@ export function MileageTable({ entries }: { entries: MileageRow[] }) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error ?? "Couldn't delete this entry.");
     }
+    window.dispatchEvent(new Event("fleet-data-changed"));
     router.refresh();
   }
 
@@ -32,7 +33,7 @@ export function MileageTable({ entries }: { entries: MileageRow[] }) {
   }
 
   return (
-    <Table>
+    <Table className="min-w-[1100px] [&_td]:whitespace-nowrap">
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead>Date</TableHead>
@@ -51,7 +52,7 @@ export function MileageTable({ entries }: { entries: MileageRow[] }) {
       </TableHeader>
       <TableBody>
         {entries.map((e) => (
-          <TableRow key={e.id}>
+          <TableRow key={e.id} id={`mileage-${e.id}`} className="scroll-mt-24 target:bg-brand-blue/10">
             <TableCell className="whitespace-nowrap">{formatDate(e.date)}</TableCell>
             <TableCell>{e.vehicleId}</TableCell>
             <TableCell>{e.vehicle.registration}</TableCell>

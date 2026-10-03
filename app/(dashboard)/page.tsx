@@ -1,213 +1,91 @@
 export const dynamic = "force-dynamic";
 
-import { getVehiclesWithFinancials } from "@/lib/db/vehicles";
-import { getFleetTotals } from "@/lib/db/transactions";
-import { prisma } from "@/lib/db/client";
+import Link from "next/link";
+import { getAnalyticsReport } from "@/lib/db/analytics";
+import { getServiceStatusAllVehicles } from "@/lib/db/service";
+import { getFleetNotifications } from "@/lib/db/notifications";
 import { SERVICE_STATUS_SORT_ORDER } from "@/lib/service";
-import { ExtendedKpiCards, DashboardStats, TrendData } from "@/components/dashboard/extended-kpi-cards";
-import { InsuranceAlerts } from "@/components/dashboard/insurance-alerts";
+import { FinancialSnapshot } from "@/components/analytics/financial-snapshot";
+import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
 import { VehicleSummaryTable } from "@/components/dashboard/vehicle-summary-table";
 import { ServiceOverviewTable } from "@/components/dashboard/service-overview-table";
-import { TimeFilter } from "@/components/dashboard/time-filter";
-import { TodaysPriorities, type PriorityItem } from "@/components/dashboard/todays-priorities";
-import { DashboardInsights, generateInsights } from "@/components/dashboard/dashboard-insights";
+import { TodaysPriorities } from "@/components/dashboard/todays-priorities";
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { parseDateRange, getPreviousPeriod } from "@/lib/date-ranges";
-import { differenceInCalendarDays, startOfWeek } from "date-fns";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { formatZAR, formatMargin } from "@/lib/format";
+import { businessToday, type AnalyticsSearchParams } from "@/lib/date-ranges";
+import { FinancialChart } from "@/components/vehicles/financial-chart";
 
-function calculateTrend(current: number, previous: number, invertGoodBad = false): TrendData | undefined {
-  if (current === 0 && previous === 0) return undefined;
-  
-  let percent = 0;
-  if (previous === 0) {
-    percent = current > 0 ? 100 : -100;
-  } else {
-    percent = ((current - previous) / Math.abs(previous)) * 100;
-  }
-  
-  const isPositive = invertGoodBad ? percent <= 0 : percent >= 0;
-  
-  return {
-    percent: Math.abs(percent),
-    isPositive,
-    label: "vs prev period",
-  };
-}
-
-export default async function DashboardPage({ searchParams }: { searchParams: { range?: string } }) {
-  const currentRange = parseDateRange(searchParams.range);
-  const prevRange = getPreviousPeriod(currentRange);
-  const hasPeriodFilter = searchParams.range && searchParams.range !== "all";
-
-  const [vehicles, fleetTotals, prevVehicles, prevFleetTotals, activeVehicleCount] = await Promise.all([
-    getVehiclesWithFinancials(currentRange.from, currentRange.to),
-    getFleetTotals(currentRange.from, currentRange.to),
-    getVehiclesWithFinancials(prevRange.from, prevRange.to),
-    getFleetTotals(prevRange.from, prevRange.to),
-    prisma.vehicle.count({ where: { active: true, deletedAt: null } }),
+export default async function DashboardPage({ searchParams }: { searchParams: AnalyticsSearchParams }) {
+  const [report, services, notifications] = await Promise.all([
+    getAnalyticsReport(searchParams), getServiceStatusAllVehicles(), getFleetNotifications(),
   ]);
-
-  const today = new Date();
-  
-  let repairsCents = 0;
-  let serviceOverdueCount = 0;
-  let serviceDueCount = 0;
-  let insuranceExpiredCount = 0;
-  let insuranceExpiringCount = 0;
-  
-  for (const v of vehicles) {
-    repairsCents += v.repairsCents;
-    if (v.service?.status === "OVERDUE") serviceOverdueCount++;
-    if (v.service?.status === "DUE_SOON") serviceDueCount++;
-    
-    if (v.vehicle.insuranceEndDate) {
-      const end = new Date(v.vehicle.insuranceEndDate).getTime();
-      if (end < today.getTime()) {
-        insuranceExpiredCount++;
-      } else if (end - today.getTime() < 30 * 24 * 60 * 60 * 1000) {
-        insuranceExpiringCount++;
-      }
-    }
-  }
-
-  let prevRepairsCents = 0;
-  for (const v of prevVehicles) {
-    prevRepairsCents += v.repairsCents;
-  }
-
-  const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); // Monday
-  const [recentMileageEntries, mileageViolationsCount] = await Promise.all([
-    prisma.mileageEntry.groupBy({
-      by: ['vehicleId'],
-      where: { date: { gte: startOfCurrentWeek } },
-    }),
-    prisma.mileageEntry.count({
-      where: { date: { gte: startOfCurrentWeek }, overLimitByKm: { gt: 0 } }
-    })
-  ]);
-
-  const vehiclesWithRecentMileage = new Set(recentMileageEntries.map(e => e.vehicleId));
-  const missingMileageCount = vehicles.filter(v => !vehiclesWithRecentMileage.has(v.vehicle.id)).length;
-
-  const stats: DashboardStats = {
-    incomeCents: fleetTotals.incomeCents,
-    expenseCents: fleetTotals.expenseCents,
-    netProfitCents: fleetTotals.netProfitCents,
-    repairsCents,
-    
-    incomeTrend: hasPeriodFilter ? calculateTrend(fleetTotals.incomeCents, prevFleetTotals.incomeCents) : undefined,
-    expenseTrend: hasPeriodFilter ? calculateTrend(fleetTotals.expenseCents, prevFleetTotals.expenseCents, true) : undefined,
-    netProfitTrend: hasPeriodFilter ? calculateTrend(fleetTotals.netProfitCents, prevFleetTotals.netProfitCents) : undefined,
-    repairsTrend: hasPeriodFilter ? calculateTrend(repairsCents, prevRepairsCents, true) : undefined,
-
-    activeCount: activeVehicleCount,
-    serviceOverdueCount,
-    serviceDueCount,
-    insuranceExpiredCount,
-    insuranceExpiringCount,
-    missingMileageCount,
-    mileageViolationsCount,
-  };
-
-  // Build Today's Priorities from real data
-  const priorities: PriorityItem[] = [];
-  
-  for (const v of vehicles) {
-    // Service overdue
-    if (v.service?.status === "OVERDUE" && v.service.kmRemaining !== null) {
-      priorities.push({
-        vehicleId: v.vehicle.id,
-        severity: "critical",
-        title: `Service overdue by ${Math.abs(v.service.kmRemaining).toLocaleString("en-ZA")} km`,
-        href: `/vehicles/${v.vehicle.id}`,
-      });
-    }
-    
-    // Insurance expired or expiring soon
-    if (v.vehicle.insuranceEndDate) {
-      const daysUntil = differenceInCalendarDays(v.vehicle.insuranceEndDate, today);
-      if (daysUntil < 0) {
-        priorities.push({
-          vehicleId: v.vehicle.id,
-          severity: "critical",
-          title: `Insurance expired ${Math.abs(daysUntil)} day${Math.abs(daysUntil) !== 1 ? "s" : ""} ago`,
-          href: `/vehicles/${v.vehicle.id}`,
-        });
-      } else if (daysUntil <= 14) {
-        priorities.push({
-          vehicleId: v.vehicle.id,
-          severity: "warning",
-          title: `Insurance expires in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}`,
-          href: `/vehicles/${v.vehicle.id}`,
-        });
-      }
-    }
-
-    // Missing mileage this week
-    if (!vehiclesWithRecentMileage.has(v.vehicle.id)) {
-      priorities.push({
-        vehicleId: v.vehicle.id,
-        severity: "warning",
-        title: "Mileage not logged this week",
-        href: "/mileage",
-      });
-    }
-
-    // Service due soon (lower priority than overdue)
-    if (v.service?.status === "DUE_SOON" && v.service.kmRemaining !== null) {
-      priorities.push({
-        vehicleId: v.vehicle.id,
-        severity: "warning",
-        title: `Service due — ${v.service.kmRemaining.toLocaleString("en-ZA")} km remaining`,
-        href: `/vehicles/${v.vehicle.id}`,
-      });
-    }
-  }
-  
-  // Sort: critical first
-  priorities.sort((a, b) => (a.severity === "critical" ? 0 : 1) - (b.severity === "critical" ? 0 : 1));
-
-  // Generate insights from real data
-  const insights = generateInsights({
-    vehicles,
-    fleetIncome: fleetTotals.incomeCents,
-    fleetExpense: fleetTotals.expenseCents,
-    fleetProfit: fleetTotals.netProfitCents,
-    prevFleetIncome: hasPeriodFilter ? prevFleetTotals.incomeCents : undefined,
-    prevFleetExpense: hasPeriodFilter ? prevFleetTotals.expenseCents : undefined,
-    prevFleetProfit: hasPeriodFilter ? prevFleetTotals.netProfitCents : undefined,
-    serviceOverdue: serviceOverdueCount,
-    missingMileage: missingMileageCount,
+  const serviceMap = new Map(services.map((row) => [row.vehicleId, row]));
+  const vehicleMap = new Map(report.vehicles.map((vehicle) => [vehicle.id, vehicle]));
+  const vehicleRows = report.current.vehicles.flatMap((row) => {
+    const vehicle = vehicleMap.get(row.vehicleId);
+    return vehicle ? [{ vehicle, incomeCents: row.incomeCents, expenseCents: row.expenseCents,
+      repairsCents: row.repairsCents, netProfitCents: row.netProfitCents,
+      marginLabel: formatMargin(row.incomeCents, row.expenseCents), service: serviceMap.get(row.vehicleId) ?? null }] : [];
   });
-
-  const serviceRows = vehicles
-    .map((v) => v.service)
-    .filter((s): s is NonNullable<typeof s> => s !== null)
-    .sort((a, b) => SERVICE_STATUS_SORT_ORDER[a.status] - SERVICE_STATUS_SORT_ORDER[b.status]);
-
+  const serviceRows = [...services].sort((a, b) => SERVICE_STATUS_SORT_ORDER[a.status] - SERVICE_STATUS_SORT_ORDER[b.status]);
+  const activeCount = report.vehicles.filter((vehicle) => vehicle.active).length;
+  const attentionCount = new Set(notifications.filter((item) => item.vehicleId && item.priority !== "info").map((item) => item.vehicleId)).size;
+  const statuses = [
+    { label: "Total vehicles", value: report.vehicles.length, href: "/vehicles", tone: "text-ink" },
+    { label: "Active", value: activeCount, href: "/vehicles?status=active", tone: "text-status-success" },
+    { label: "Attention required", value: attentionCount, href: "/alerts", tone: attentionCount ? "text-status-warning" : "text-ink" },
+    { label: "Inactive", value: report.vehicles.length - activeCount, href: "/vehicles?status=inactive", tone: "text-muted" },
+  ];
+  const priorities = notifications.map((item) => ({ vehicleId: item.vehicleId ?? "Fleet", severity: item.priority, title: item.title, description: item.description, href: item.href }));
+  const totals = report.current.totals;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) if (value) query.set(key, value);
+  const analyticsHref = `/analytics?${query}`;
   return (
     <div className="space-y-8">
-      <PageHeader title="Dashboard" description="Fleet command center — real-time overview">
-        <TimeFilter />
+      <PageHeader title="Fleet Management" description={businessToday().toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}>
+        <Button asChild variant="outline"><Link href={`/reports?${query}`}>Reports</Link></Button>
+        <Button asChild><Link href="/transactions/new">Log transaction</Link></Button>
       </PageHeader>
-
-      <TodaysPriorities items={priorities} />
-
-      <ExtendedKpiCards stats={stats} />
-
-      <InsuranceAlerts vehicles={vehicles.map((v) => v.vehicle)} />
-
-      <DashboardInsights insights={insights} />
-
-      <section className="space-y-3">
-        <SectionHeading title="Per-Vehicle Financial Summary" />
-        <VehicleSummaryTable vehicles={vehicles} fleetTotals={fleetTotals} />
+      <section aria-label="Current fleet status" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {statuses.map((status) => <Link key={status.label} href={status.href} className="rounded-card border border-border bg-card p-4 transition-colors hover:border-brand-blue/50"><p className="text-xs font-medium text-muted">{status.label}</p><p className={`mt-2 text-2xl font-semibold tabular-nums ${status.tone}`}>{status.value}</p></Link>)}
       </section>
-
+      <TodaysPriorities items={priorities} />
+      <section className="space-y-4">
+        <SectionHeading title="Financial Snapshot" />
+        <AnalyticsFilters selection={report.selection} vehicles={report.vehicles} />
+        <FinancialSnapshot report={report} />
+      </section>
       <section className="space-y-3">
-        <SectionHeading title="Service Status Overview" />
+        <SectionHeading title="Fleet Performance" />
+        <p className="text-xs text-muted">{report.selection.label}. Totals include fleet-wide and unassigned records; inactive vehicles retain their financial history.</p>
+        <VehicleSummaryTable vehicles={vehicleRows} fleetTotals={totals} totalLabel={report.selection.vehicleId ? "Selected vehicle total" : "Grand Total (fleet-wide)"} />
+      </section>
+      <section className="space-y-3">
+        <SectionHeading title="Maintenance & Mileage" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            { label: "Repair expenditure", value: formatZAR(totals.repairsCents), detail: `${report.current.maintenance.repairCount} repair records`, href: `${report.sourceHref}&category=Repairs&category=BrakePads&category=Tyres` },
+            { label: "Service expenditure", value: formatZAR(totals.serviceCents), detail: `${report.current.maintenance.serviceCount} service records`, href: `${report.sourceHref}&category=Service` },
+            { label: "Total maintenance", value: formatZAR(totals.maintenanceCents), detail: "Repairs, services and maintenance categories", href: `${analyticsHref}#maintenance` },
+            { label: "Recorded distance", value: `${totals.mileageKm.toLocaleString("en-ZA")} km`, detail: `${report.current.mileage.violations.length} complete vehicle-weeks over limit`, href: report.mileageHref },
+          ].map((metric) => <Card key={metric.label}><CardContent className="p-4"><Link href={metric.href} className="text-sm font-medium text-muted hover:underline">{metric.label}</Link><p className="mt-2 break-words text-xl font-semibold tabular-nums">{metric.value}</p><p className="mt-1 text-xs text-muted">{metric.detail}</p></CardContent></Card>)}
+        </div>
         <ServiceOverviewTable rows={serviceRows} />
+      </section>
+      <section className="space-y-3">
+        <SectionHeading title="Financial Trends" />
+        <FinancialChart data={report.current.monthly} />
+      </section>
+      <section className="space-y-3">
+        <SectionHeading title="Management Insights" />
+        <div className="grid gap-3 md:grid-cols-2">
+          <Card><CardContent className="p-4"><h3 className="font-medium">Why profit changed</h3><p className="mt-2 text-sm text-muted">Current profit {formatZAR(totals.netProfitCents)}; comparison profit {formatZAR(report.previous.totals.netProfitCents)}.</p><p className="mt-2 text-sm">Revenue contribution to the change: {formatZAR(report.profitBridge.revenueChange)}.</p><Link href={`${analyticsHref}#financial`} className="mt-3 inline-block text-sm text-brand-blue hover:underline">Inspect all numerical contributors →</Link></CardContent></Card>
+          <Card><CardContent className="p-4"><h3 className="font-medium">Records needing review</h3><p className="mt-2 text-sm text-muted">{report.current.repairPatterns.length} repeated repair category patterns and {report.current.dataIssues.length} data quality findings in this selection.</p><div className="mt-3 flex flex-wrap gap-4 text-sm"><Link href={`${analyticsHref}#maintenance`} className="text-brand-blue hover:underline">Maintenance evidence →</Link><Link href={`/data-quality?${query}`} className="text-brand-blue hover:underline">Data quality →</Link></div></CardContent></Card>
+        </div>
       </section>
     </div>
   );

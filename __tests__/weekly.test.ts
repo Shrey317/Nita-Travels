@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { prisma } from "@/lib/db/client";
+import { verifyTestEnvironment } from "@/lib/db/safety";
 import { getWeeklyBreakdown } from "@/lib/db/weekly";
 import { startOfISOWeek, endOfISOWeek, subWeeks } from "date-fns";
 
@@ -7,11 +8,9 @@ describe("Weekly Breakdown", () => {
   const vehicleId = "CR01";
 
   beforeEach(async () => {
-    if (process.env.TEST_DB_APPROVED !== "true") {
-      throw new Error("Safety Block: Test database operations are not approved");
-    }
+    await verifyTestEnvironment(true);
     // Clear transactions
-    await prisma.transaction.deleteMany({});
+    await prisma.transaction.deleteMany({ where: { vehicleId } });
     
     // Ensure test vehicle exists
     const v = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
@@ -32,9 +31,8 @@ describe("Weekly Breakdown", () => {
   });
 
   afterEach(async () => {
-    if (process.env.TEST_DB_APPROVED === "true") {
-      await prisma.transaction.deleteMany({});
-    }
+    await verifyTestEnvironment(true);
+    await prisma.transaction.deleteMany({ where: { vehicleId } });
   });
 
   it("should aggregate income and expenses correctly in the correct week", async () => {

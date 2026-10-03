@@ -6,12 +6,14 @@
  */
 
 import type { VehicleNote, Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db/client";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
+import { requireVehicleReference } from "@/lib/db/vehicle-reference";
 import { NotFoundError } from "@/lib/errors";
-import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { DEFAULT_PAGE_SIZE, NO_VEHICLE_FILTER_VALUE } from "@/lib/constants";
 import { vehicleNoteSchema, type VehicleNoteInput } from "@/lib/schemas/note.schema";
 
 export interface NoteFilters {
+  noteId?: string;
   vehicleId?: string[];
   dateFrom?: Date;
   dateTo?: Date;
@@ -27,9 +29,13 @@ export interface NoteListResult {
 }
 
 export async function getNotes(filters: NoteFilters = {}): Promise<NoteListResult> {
-  const { vehicleId, dateFrom, dateTo, page = 1, limit = DEFAULT_PAGE_SIZE } = filters;
+  const { noteId, vehicleId, dateFrom, dateTo, page = 1, limit = DEFAULT_PAGE_SIZE } = filters;
   const where: Prisma.VehicleNoteWhereInput = {
-    ...(vehicleId && vehicleId.length > 0 ? { vehicleId: { in: vehicleId } } : {}),
+    ...(noteId ? { id: noteId } : {}),
+    ...(vehicleId && vehicleId.length > 0 ? { OR: [
+      { vehicleId: { in: vehicleId.filter(id => id !== NO_VEHICLE_FILTER_VALUE) } },
+      ...(vehicleId.includes(NO_VEHICLE_FILTER_VALUE) ? [{ vehicleId: null }] : []),
+    ] } : {}),
     ...(dateFrom || dateTo
       ? { date: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
       : {}),
@@ -45,7 +51,10 @@ export async function getNotes(filters: NoteFilters = {}): Promise<NoteListResul
 
 export async function createNote(input: VehicleNoteInput): Promise<VehicleNote> {
   const data = vehicleNoteSchema.parse(input);
-  return prisma.vehicleNote.create({ data });
+  return prisma.$transaction(async (tx) => {
+    await requireVehicleReference(tx, data.vehicleId);
+    return tx.vehicleNote.create({ data });
+  }, TRANSACTION_OPTIONS);
 }
 
 export async function deleteNote(id: string): Promise<void> {

@@ -15,10 +15,13 @@ import { badgeLabel, badgeVariant } from "@/lib/service";
 import { calculateVehicleHealthScore, checkVehicleReplacementCriteria } from "@/lib/health";
 import { FinancialChart } from "@/components/vehicles/financial-chart";
 import { prisma } from "@/lib/db/client";
-import { differenceInCalendarDays, startOfWeek } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 import { VehicleHealthCard } from "@/components/vehicles/health-card";
 import { VehicleReplacementCard } from "@/components/vehicles/replacement-card";
 import { SectionHeading } from "@/components/shared/section-heading";
+import { financialMetrics } from "@/lib/finance";
+import { businessToday, isoWeekStart, parseCalendarDate } from "@/lib/date-ranges";
+import { getAnalyticsReport } from "@/lib/db/analytics";
 
 interface VehicleProfilePageProps {
   params: { id: string };
@@ -32,9 +35,9 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
   const { vehicle, incomeCents, expenseCents, repairsCents, netProfitCents, emiBalanceCents, roiPercent, kmSincePurchase, service, recentRepairs, highRepairCost } =
     detail;
 
-  const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const startOfCurrentWeek = isoWeekStart(businessToday());
   const recentMileage = await prisma.mileageEntry.findFirst({
-    where: { vehicleId: vehicle.id, date: { gte: startOfCurrentWeek } },
+    where: { vehicleId: vehicle.id, date: { gte: startOfCurrentWeek, lte: businessToday() } },
   });
   const hasRecentMileage = !!recentMileage;
 
@@ -48,30 +51,33 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
     roiPercent: roiPercent,
   });
 
+  const lifetime = financialMetrics(incomeCents, expenseCents, kmSincePurchase);
+  const displayPerKm = (value: number | null) => value === null ? "—" : formatZAR(value);
   const { recommended: replaceRecommended, reasons: replaceReasons } = checkVehicleReplacementCriteria({
     currentMileageKm: vehicle.currentMileageKm,
     purchaseDate: vehicle.purchaseDate,
     roiPercent: roiPercent,
     repairsCostCents: repairsCents,
     totalIncomeCents: incomeCents,
-    profitPerKmCents: kmSincePurchase > 0 ? netProfitCents / kmSincePurchase : null,
+    profitPerKmCents: lifetime.profitPerKmCents,
   });
 
-  const [timeline, monthlyFinancials] = await Promise.all([
+  const [timeline, monthlyFinancials, operations] = await Promise.all([
     getVehicleTimeline(vehicle.id, {
       page: Number(searchParams.page ?? "1") || 1,
-      dateFrom: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,
-      dateTo: searchParams.dateTo ? new Date(searchParams.dateTo) : undefined,
+      dateFrom: searchParams.dateFrom ? parseCalendarDate(searchParams.dateFrom) : undefined,
+      dateTo: searchParams.dateTo ? parseCalendarDate(searchParams.dateTo) : undefined,
       type: searchParams.type === "transactions" || searchParams.type === "notes" ? searchParams.type : "all",
     }),
     getVehicleMonthlyFinancials(vehicle.id),
+    getAnalyticsReport({ range: "12-months", vehicleId: vehicle.id }),
   ]);
 
   const registrationLine = vehicle.registration2 ? `${vehicle.registration} / ${vehicle.registration2}` : vehicle.registration;
 
   // Compute insurance display
   const insuranceDaysRemaining = vehicle.insuranceEndDate
-    ? differenceInCalendarDays(vehicle.insuranceEndDate, new Date())
+    ? differenceInCalendarDays(vehicle.insuranceEndDate, businessToday())
     : null;
   const insuranceExpired = insuranceDaysRemaining !== null && insuranceDaysRemaining < 0;
   const insuranceDisplay = insuranceDaysRemaining === null
@@ -103,6 +109,7 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
             {service && <Badge variant={badgeVariant[service.status]}>{badgeLabel[service.status]}</Badge>}
           </div>
           <p className="mt-1 text-sm text-muted">{registrationLine}</p>
+          <p className="mt-1 text-xs text-muted">Vehicle command center · lifetime financial totals</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap shrink-0">
           <Button asChild variant="outline" size="sm">
@@ -133,12 +140,21 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
         </div>
       </div>
 
+      <nav aria-label="Vehicle sections" className="flex flex-wrap gap-2 border-b border-border pb-4 text-sm">
+        <Link className="rounded-input px-3 py-2 text-brand-blue hover:bg-surface-secondary" href="#vehicle-financials">Financial</Link>
+        <Link className="rounded-input px-3 py-2 text-brand-blue hover:bg-surface-secondary" href="#vehicle-maintenance">Maintenance</Link>
+        <Link className="rounded-input px-3 py-2 text-brand-blue hover:bg-surface-secondary" href="#vehicle-operations">Operations</Link>
+        <Link className="rounded-input px-3 py-2 text-brand-blue hover:bg-surface-secondary" href="#vehicle-activity">Activity</Link>
+        <Link className="rounded-input px-3 py-2 text-brand-blue hover:bg-surface-secondary" href={`/analytics?vehicleId=${vehicle.id}`}>Period analytics</Link>
+        <Link className="rounded-input px-3 py-2 text-brand-blue hover:bg-surface-secondary" href={`/mileage?vehicleId=${vehicle.id}`}>Mileage history</Link>
+      </nav>
+
       {/* ── Scannable Status Strip ── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs font-medium text-muted uppercase tracking-wider">Status</p>
           <p className={`mt-1 font-semibold ${vehicle.active ? "text-status-success" : "text-status-error"}`}>
-            {vehicle.active ? "Operational" : "Inactive"}
+            {vehicle.active ? "Active" : "Inactive"}
           </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
@@ -156,21 +172,47 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
           <p className={`mt-1 font-semibold ${insuranceColor}`}>{insuranceDisplay}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted uppercase tracking-wider">Revenue</p>
+          <p className="text-xs font-medium text-muted uppercase tracking-wider">Lifetime revenue</p>
           <p className="mt-1 font-semibold text-brand-blue font-mono-figures">{formatZAR(incomeCents)}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted uppercase tracking-wider">Profit</p>
+          <p className="text-xs font-medium text-muted uppercase tracking-wider">Lifetime profit</p>
           <p className={`mt-1 font-semibold font-mono-figures ${netProfitCents >= 0 ? "text-status-success" : "text-status-error"}`}>
             {formatZAR(netProfitCents)}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div id="vehicle-maintenance" className="scroll-mt-24 grid grid-cols-1 md:grid-cols-2 gap-4">
         <VehicleHealthCard score={health.score} reasons={health.reasons} categories={health.categories} />
         <VehicleReplacementCard recommended={replaceRecommended} reasons={replaceReasons} />
       </div>
+
+      <section id="vehicle-operations" className="scroll-mt-24 space-y-3">
+        <SectionHeading title="Operations & Maintenance" />
+        <p className="text-sm text-muted">Last 12 calendar months · {operations.selection.label}. Figures use recorded activity; missing mileage is not estimated.</p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <InfoCard title="Mileage & Utilization" fields={[
+            { label: "Recorded distance", value: formatKm(operations.current.totals.mileageKm) },
+            { label: "Average recorded KM / week", value: formatKm(Math.round(operations.current.mileage.averageKmPerWeek)) },
+            { label: "Highest complete week", value: formatKm(operations.current.mileage.highestWeeklyKm) },
+            { label: "Complete weeks over limit", value: String(operations.current.mileage.violations.length) },
+            { label: "Over-limit distance", value: formatKm(operations.current.mileage.overLimitKm) },
+            { label: "This week's reading", value: hasRecentMileage ? "Recorded" : "Not recorded" },
+          ]} />
+          <InfoCard title="Maintenance Evidence" fields={[
+            { label: "Repair records", value: String(operations.current.maintenance.repairCount) },
+            { label: "Service records", value: String(operations.current.maintenance.serviceCount) },
+            { label: "Repair expenditure", value: formatZAR(operations.current.totals.repairsCents) },
+            { label: "Service expenditure", value: formatZAR(operations.current.totals.serviceCents) },
+            { label: "Maintenance expenditure", value: formatZAR(operations.current.totals.maintenanceCents) },
+            { label: "Maintenance / KM", value: displayPerKm(operations.current.totals.maintenancePerKmCents) },
+            { label: "Average repair amount", value: operations.current.maintenance.averageRepairCents === null ? "—" : formatZAR(operations.current.maintenance.averageRepairCents) },
+          ]} />
+        </div>
+        {operations.current.repairPatterns.length > 0 && <div className="rounded-card border border-status-warning/30 bg-card p-4"><h3 className="font-medium">Repeat repair patterns detected</h3><ul className="mt-2 space-y-2 text-sm text-muted">{operations.current.repairPatterns.map(pattern => <li key={pattern.category}><Link href={`/repairs?vehicleId=${vehicle.id}&dateFrom=${operations.selection.range.from.toISOString().slice(0, 10)}&dateTo=${operations.selection.range.to.toISOString().slice(0, 10)}`} className="text-brand-blue hover:underline">{pattern.category}: {pattern.occurrences} records · {formatZAR(pattern.totalCostCents)}</Link><span className="block">Previous {pattern.previousDate}; latest {pattern.latestDate}; {pattern.daysBetween} days apart. Repeated categories are evidence for review, not a confirmed fault.</span></li>)}</ul></div>}
+        <p className="text-xs text-muted">Downtime requires repair start and completion dates, which are not recorded. Warranty remains the supplied coverage text; dates and mileage limits are not inferred from it.</p>
+      </section>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <InfoCard
@@ -215,7 +257,7 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
           ]}
         />
         <InfoCard
-          title="Financial Performance"
+          title="Lifetime Financial Performance"
           fields={[
             { label: "Total Income", value: formatZAR(incomeCents) },
             { label: "Total Expenses", value: formatZAR(expenseCents) },
@@ -223,9 +265,9 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
             { label: "Net P/L", value: formatZAR(netProfitCents) },
             { label: "Margin", value: formatMargin(incomeCents, expenseCents) },
             { label: "ROI on Purchase", value: roiPercent === null ? "—" : `${roiPercent.toFixed(1)}%` },
-            { label: "Revenue / KM", value: kmSincePurchase > 0 ? formatZAR(Math.round(incomeCents / kmSincePurchase)) : "—" },
-            { label: "Cost / KM", value: kmSincePurchase > 0 ? formatZAR(Math.round(expenseCents / kmSincePurchase)) : "—" },
-            { label: "Profit / KM", value: kmSincePurchase > 0 ? formatZAR(Math.round(netProfitCents / kmSincePurchase)) : "—" },
+            { label: "Revenue / KM", value: displayPerKm(lifetime.revenuePerKmCents) },
+            { label: "Cost / KM", value: displayPerKm(lifetime.costPerKmCents) },
+            { label: "Profit / KM", value: displayPerKm(lifetime.profitPerKmCents) },
           ]}
         />
         <InfoCard
@@ -248,12 +290,13 @@ export default async function VehicleProfilePage({ params, searchParams }: Vehic
         />
       </div>
 
-      <section className="space-y-3">
+      <section id="vehicle-financials" className="scroll-mt-24 space-y-3">
         <SectionHeading title="Monthly Financials" />
+        <p className="text-sm text-muted">Lifetime per-kilometre figures use the odometer difference since purchase. Use period analytics to compare recorded mileage and financial activity over matching dates.</p>
         <FinancialChart data={monthlyFinancials} />
       </section>
 
-      <section className="space-y-3">
+      <section id="vehicle-activity" className="scroll-mt-24 space-y-3">
         <SectionHeading title="Activity Timeline" />
         <ActivityTimeline timeline={timeline} />
       </section>

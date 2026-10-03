@@ -5,6 +5,7 @@ import { formatZAR } from "@/lib/format";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { ClientOnlyChart } from "@/components/shared/client-only-chart";
 import type { CategoryBreakdownRow } from "@/lib/db/analytics";
+import { chartTooltipStyle, chartLabelStyle } from "@/components/shared/chart-style";
 
 const PIE_COLORS = ["#0D9488", "#0F2540", "#CA8A04", "#DC2626", "#14B8A6", "#1A3557", "#64748B", "#16A34A", "#7C3AED"];
 
@@ -36,7 +37,7 @@ export function ExpenseByCategoryPie({ rows }: { rows: CategoryBreakdownRow[] })
               <Cell key={entry.name} fill={pieColor(index)} />
             ))}
           </Pie>
-          <Tooltip formatter={(value: number) => formatZAR(value)} />
+          <Tooltip formatter={(value: number) => formatZAR(value)} contentStyle={chartTooltipStyle} labelStyle={chartLabelStyle} />
           <Legend />
         </PieChart>
       </ResponsiveContainer>

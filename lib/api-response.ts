@@ -16,6 +16,7 @@
 
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { NotFoundError, ValidationError, ConflictError, UnauthorizedError } from "@/lib/errors";
 
@@ -32,6 +33,7 @@ export function jsonError(message: string, status: number, field?: string) {
 }
 
 export function handleApiError(error: unknown): NextResponse {
+  if (error instanceof SyntaxError) return jsonError("Invalid JSON request body", 400);
   if (error instanceof ZodError) {
     const first = error.errors[0];
     return jsonError(first?.message ?? "Invalid input", 400, first?.path?.join(".") || undefined);
@@ -40,6 +42,11 @@ export function handleApiError(error: unknown): NextResponse {
   if (error instanceof NotFoundError) return jsonError(error.message, 404);
   if (error instanceof ConflictError) return jsonError(error.message, 409);
   if (error instanceof UnauthorizedError) return jsonError(error.message, 401);
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2025") return jsonError("This record no longer exists. Refresh and try again.", 404);
+    if (error.code === "P2002") return jsonError("A record with this identifier already exists.", 409);
+    if (error.code === "P2003") return jsonError("Select a valid related record.", 400);
+  }
 
   // Unexpected failure (e.g. a Prisma error) — log the real thing server-side, tell the
   // client nothing beyond "something went wrong".

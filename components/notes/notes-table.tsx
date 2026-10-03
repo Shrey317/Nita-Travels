@@ -32,6 +32,7 @@ export function NotesTable({ notes, vehicles }: NotesTableProps) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error ?? "Couldn't delete this note.");
     }
+    window.dispatchEvent(new Event("fleet-data-changed"));
     router.refresh();
   }
 
@@ -46,7 +47,7 @@ export function NotesTable({ notes, vehicles }: NotesTableProps) {
   }
 
   return (
-    <Table>
+    <Table className="min-w-[760px]">
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead>Date</TableHead>
@@ -58,11 +59,11 @@ export function NotesTable({ notes, vehicles }: NotesTableProps) {
       </TableHeader>
       <TableBody>
         {notes.map((n) => (
-          <TableRow key={n.id} className="!bg-[var(--note-bg)] hover:!bg-[var(--note-bg)]">
+          <TableRow key={n.id} id={`note-${n.id}`} className="scroll-mt-24 bg-notebg/50 hover:bg-notebg/80 target:bg-brand-blue/10">
             <TableCell className="whitespace-nowrap">{formatDate(n.date)}</TableCell>
             <TableCell>{n.vehicleId ?? "—"}</TableCell>
             <TableCell>{registrationLabel(n.vehicleId, vehicles)}</TableCell>
-            <TableCell className="max-w-lg">
+            <TableCell className="min-w-72 max-w-lg break-words">
               <p className="whitespace-pre-wrap">{n.note}</p>
               <PhotoThumbnails urls={n.photoUrls} label={`Note file for ${registrationLabel(n.vehicleId, vehicles)} on ${formatDate(n.date)}`} />
             </TableCell>

@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             before React hydrates. Runs synchronously before any content paints. */}
         <script dangerouslySetInnerHTML={{
           __html:
-            `try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}`
+            `try{var t=localStorage.getItem("theme");if(t==="dark"||((!t||t==="system")&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){if(window.matchMedia("(prefers-color-scheme: dark)").matches)document.documentElement.classList.add("dark")}`
         }} />
         <ThemeProvider>
           <TooltipProvider>{children}</TooltipProvider>

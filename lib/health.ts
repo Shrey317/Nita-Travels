@@ -3,6 +3,8 @@
  *
  * Pure business logic for Vehicle Health Score and Replacement Analysis.
  */
+import { computeInsuranceExpiryStatus } from "@/lib/alerts";
+import { businessToday } from "@/lib/date-ranges";
 
 export interface HealthScoreResult {
   score: number;
@@ -67,12 +69,11 @@ export function calculateVehicleHealthScore(v: HealthInput): HealthScoreResult {
 
   // 2. Insurance (15%)
   if (v.insuranceEndDate) {
-    const today = new Date();
-    const end = v.insuranceEndDate.getTime();
-    if (end < today.getTime()) {
+    const insuranceStatus = computeInsuranceExpiryStatus(v.insuranceEndDate, businessToday());
+    if (insuranceStatus === "EXPIRED") {
       result.categories.insurance.score = 0;
       result.reasons.push("Insurance is expired (-15 pts)");
-    } else if (end - today.getTime() < 30 * 24 * 60 * 60 * 1000) {
+    } else if (insuranceStatus === "EXPIRING_SOON") {
       result.categories.insurance.score = 5;
       result.reasons.push("Insurance expires soon (-10 pts)");
     }
@@ -148,7 +149,7 @@ export function checkVehicleReplacementCriteria(v: ReplacementInput): { recommen
   }
 
   if (v.roiPercent !== null && v.roiPercent < -20 && ageInYears > 3) {
-    reasons.push(`Persistently negative ROI (${v.roiPercent.toFixed(1)}%) on an older vehicle`);
+    reasons.push(`Negative recorded ROI (${v.roiPercent.toFixed(1)}%) on a vehicle over three years since purchase`);
   }
 
   if (v.profitPerKmCents !== undefined && v.profitPerKmCents !== null && v.profitPerKmCents < 0) {

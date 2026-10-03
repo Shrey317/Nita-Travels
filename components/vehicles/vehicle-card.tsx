@@ -2,61 +2,25 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatZAR } from "@/lib/format";
+import { formatZAR, formatKm } from "@/lib/format";
 import { badgeLabel, badgeVariant } from "@/lib/service";
 import type { VehicleSummary } from "@/lib/db/vehicles";
 
-/** Card content per SRS 15.2: ID badge, make/model, registration (+reg2 if present), service
- *  status, income/expense/net chips, and a link into the profile. */
 export function VehicleCard({ vehicle, incomeCents, expenseCents, netProfitCents, service }: VehicleSummary) {
-  const isProfit = netProfitCents > 0;
-  const registrationLine = vehicle.registration2
-    ? `${vehicle.registration} / ${vehicle.registration2}`
-    : vehicle.registration;
-
-  return (
-    <Card className="group relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover">
-      {/* Top gradient accent */}
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal to-teal-light opacity-60 transition-opacity group-hover:opacity-100" />
-      <CardContent className="space-y-4 p-5">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <span className="inline-flex items-center rounded-md bg-gradient-to-r from-navy to-navy-light px-2 py-1 text-xs font-semibold text-white shadow-sm">
-              {vehicle.id}
-            </span>
-            <p className="mt-2 font-semibold text-ink">
-              {vehicle.make} {vehicle.model}
-            </p>
-            <p className="text-sm text-muted">{registrationLine}</p>
-          </div>
-          {service ? (
-            <Badge variant={badgeVariant[service.status]}>{badgeLabel[service.status]}</Badge>
-          ) : (
-            <Badge variant="warning">Needs Data</Badge>
-          )}
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-lg bg-gradient-to-br from-status-green/5 to-transparent px-2 py-2 ring-1 ring-status-green/10">
-            <p className="text-xs text-muted">Income</p>
-            <p className="truncate font-mono text-sm font-medium text-status-green">{formatZAR(incomeCents)}</p>
-          </div>
-          <div className="rounded-lg bg-gradient-to-br from-status-red/5 to-transparent px-2 py-2 ring-1 ring-status-red/10">
-            <p className="text-xs text-muted">Expense</p>
-            <p className="truncate font-mono text-sm font-medium text-status-red">{formatZAR(expenseCents)}</p>
-          </div>
-          <div className={`rounded-lg px-2 py-2 ring-1 ${isProfit ? "bg-gradient-to-br from-status-green/5 to-transparent ring-status-green/10" : "bg-gradient-to-br from-status-red/5 to-transparent ring-status-red/10"}`}>
-            <p className="text-xs text-muted">Net P/L</p>
-            <p className={`truncate font-mono text-sm font-medium ${isProfit ? "text-status-green" : "text-status-red"}`}>
-              {formatZAR(netProfitCents)}
-            </p>
-          </div>
-        </div>
-
-        <Button asChild variant="outline" className="w-full">
-          <Link href={`/vehicles/${vehicle.id}`}>View Profile</Link>
-        </Button>
-      </CardContent>
-    </Card>
-  );
+  const registrationLine = vehicle.registration2 ? `${vehicle.registration} / ${vehicle.registration2}` : vehicle.registration;
+  return <Card className="h-full transition-colors hover:border-brand-blue/40">
+    <CardContent className="space-y-4 p-5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0"><span className="inline-flex rounded-badge bg-navy px-2 py-1 text-xs font-semibold text-white">{vehicle.id}</span><h2 className="mt-2 font-semibold text-ink">{vehicle.make} {vehicle.model}</h2><p className="break-words text-sm text-muted">{registrationLine}</p></div>
+        {!vehicle.active ? <Badge variant="secondary">Inactive</Badge> : service ? <Badge variant={badgeVariant[service.status]}>{badgeLabel[service.status]}</Badge> : <Badge variant="warning">Needs Data</Badge>}
+      </div>
+      <div className="flex justify-between gap-3 text-xs text-muted"><span>Lifetime financials</span><span>{formatKm(vehicle.currentMileageKm)}</span></div>
+      <dl className="space-y-2 border-y border-border py-3 text-sm">
+        <div className="flex flex-wrap justify-between gap-x-3"><dt className="text-muted">Revenue</dt><dd className="tabular-nums text-ink">{formatZAR(incomeCents)}</dd></div>
+        <div className="flex flex-wrap justify-between gap-x-3"><dt className="text-muted">Expenses</dt><dd className="tabular-nums text-ink">{formatZAR(expenseCents)}</dd></div>
+        <div className="flex flex-wrap justify-between gap-x-3"><dt className="font-medium">Net profit</dt><dd className={`tabular-nums font-semibold ${netProfitCents > 0 ? "text-status-success" : netProfitCents < 0 ? "text-status-error" : "text-ink"}`}>{formatZAR(netProfitCents)}</dd></div>
+      </dl>
+      <Button asChild variant="outline" className="w-full"><Link href={`/vehicles/${vehicle.id}`}>View Profile<span className="sr-only"> for {vehicle.id}</span></Link></Button>
+    </CardContent>
+  </Card>;
 }
