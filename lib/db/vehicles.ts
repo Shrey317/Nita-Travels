@@ -7,12 +7,13 @@
  */
 
 import type { Vehicle } from "@prisma/client";
-import { prisma } from "@/lib/db/client";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
+import { recalculateMileageChain } from "@/lib/db/mileage";
 import { getServiceStatusAllVehicles, getLatestServiceForVehicle, type VehicleServiceRow } from "@/lib/db/service";
 import { deriveServiceStatus } from "@/lib/service";
 import { formatMargin } from "@/lib/format";
 import { calculateRoiPercent } from "@/lib/finance";
-import { NotFoundError } from "@/lib/errors";
+import { NotFoundError, ValidationError } from "@/lib/errors";
 import { REPAIR_CATEGORIES } from "@/lib/constants";
 import {
   vehicleSchema,
@@ -170,12 +171,26 @@ export async function createVehicle(input: VehicleInput): Promise<Vehicle> {
  *  business rule (like emiMonthsPaid <= emiMonthsTotal) can't be bypassed by editing one field
  *  at a time while leaving the other stale. */
 export async function updateVehicle(id: string, input: VehicleUpdateInput): Promise<Vehicle> {
-  const existing = await prisma.vehicle.findUnique({ where: { id, deletedAt: null } });
-  if (!existing) throw new NotFoundError(`Vehicle ${id} not found`);
-
   const partial = vehicleUpdateSchema.parse(input);
-  const merged = vehicleSchema.parse({ ...existing, ...partial, id: existing.id });
-  return prisma.vehicle.update({ where: { id }, data: merged });
+  return prisma.$transaction(async tx => {
+    // Share the mileage mutation lock so profile edits cannot corrupt a concurrent reading.
+    await tx.$queryRaw`SELECT "id" FROM "Vehicle" WHERE "id" = ${id} FOR UPDATE`;
+    const existing = await tx.vehicle.findUnique({ where: { id, deletedAt: null } });
+    if (!existing) throw new NotFoundError(`Vehicle ${id} not found`);
+    const merged = vehicleSchema.parse({ ...existing, ...partial, id: existing.id });
+    const baselineChanged = merged.mileageAtPurchaseKm !== existing.mileageAtPurchaseKm;
+    if (baselineChanged || merged.currentMileageKm !== existing.currentMileageKm) {
+      const [logs, transactions] = await Promise.all([
+        tx.mileageEntry.aggregate({ where: { vehicleId: id }, _max: { currentMileageKm: true } }),
+        tx.transaction.aggregate({ where: { vehicleId: id, deletedAt: null }, _max: { mileageKm: true } }),
+      ]);
+      const recordedMileage = Math.max(logs._max.currentMileageKm ?? 0, transactions._max.mileageKm ?? 0);
+      if (merged.currentMileageKm < recordedMileage) throw new ValidationError("Current mileage cannot be lower than recorded mileage. Correct the source reading first.", "currentMileageKm");
+    }
+    await tx.vehicle.update({ where: { id }, data: merged });
+    if (baselineChanged) await recalculateMileageChain(tx, id, undefined, merged.currentMileageKm);
+    return tx.vehicle.findUniqueOrThrow({ where: { id } });
+  }, TRANSACTION_OPTIONS);
 }
 
 /** DELETE /api/vehicles/[id] is a soft-deactivate (SRS 16, 26) — vehicles are never hard-deleted

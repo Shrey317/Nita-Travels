@@ -24,11 +24,13 @@ import { businessToday, isoWeekStart, parseCalendarDate } from "@/lib/date-range
 import { getAnalyticsReport } from "@/lib/db/analytics";
 
 interface VehicleProfilePageProps {
-  params: { id: string };
-  searchParams: { page?: string; dateFrom?: string; dateTo?: string; type?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string; dateFrom?: string; dateTo?: string; type?: string }>;
 }
 
-export default async function VehicleProfilePage({ params, searchParams }: VehicleProfilePageProps) {
+export default async function VehicleProfilePage(props: VehicleProfilePageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const detail = await getVehicleDetail(params.id);
   if (!detail) notFound();
 

@@ -109,7 +109,7 @@ async function lockMileageVehicle(tx: Prisma.TransactionClient, vehicleId: strin
 }
 
 /** Validate the entire history before persisting any chain corrections; throws roll back the write. */
-async function recalculateMileageChain(tx: Prisma.TransactionClient, vehicleId: string, changedId?: string): Promise<void> {
+export async function recalculateMileageChain(tx: Prisma.TransactionClient, vehicleId: string, changedId?: string, minimumCurrentMileage = 0): Promise<void> {
   const entries = await tx.mileageEntry.findMany({
     where: { vehicleId },
     orderBy: [{ date: "asc" }, { createdAt: "asc" }, { id: "asc" }]
@@ -142,6 +142,7 @@ async function recalculateMileageChain(tx: Prisma.TransactionClient, vehicleId: 
     tx.vehicle.findUniqueOrThrow({ where: { id: vehicleId } })
   ]);
   const highestKm = Math.max(
+    minimumCurrentMileage,
     maxEntry?.currentMileageKm ?? 0,
     maxTx?.mileageKm ?? 0,
     vehicle.mileageAtPurchaseKm // Absolute floor

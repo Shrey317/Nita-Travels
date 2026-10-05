@@ -45,7 +45,7 @@ export function buildMileageEntry(
   previousKm: number,
   weeklyLimitKm: number = WEEKLY_MILEAGE_LIMIT
 ): MileageEntryDerived {
-  const distance = currentKm - previousKm;
+  const distance = Math.max(0, currentKm - previousKm);
   return {
     distanceDrivenKm: distance,
     isoWeek: getISOWeek(date),

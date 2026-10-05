@@ -4,7 +4,6 @@ import { transactionSchema } from "@/lib/schemas/transaction.schema";
 import { attachmentContentTypes, isAllowedAttachmentPath, isTrustedAttachmentUrl, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS, validateAttachmentFile } from "@/lib/attachments";
 import { csvEscape } from "@/lib/csv";
 import { parseListQuery } from "@/lib/query-filters";
-import { isIsolatedTestAuthEnabled } from "@/lib/auth-test-mode";
 import { parseUploadBody } from "@/lib/schemas/upload.schema";
 
 describe("database-safe mutation input", () => {
@@ -51,7 +50,8 @@ describe("attachment boundary", () => {
     expect(attachmentUrlsSchema.safeParse(Array.from({ length: MAX_ATTACHMENTS + 1 }, () => allowed)).success).toBe(false);
   });
   it("normalizes the optional SDK upload flags and rejects malformed bodies", () => {
-    expect(parseUploadBody({ type: "blob.generate-client-token", payload: { pathname: "a.pdf", callbackUrl: "https://fleet.test/api/upload" } })).toMatchObject({ payload: { multipart: false, clientPayload: null } });
+    expect(parseUploadBody({ type: "blob.generate-client-token", payload: { pathname: "a.pdf" } })).toMatchObject({ payload: { multipart: false, clientPayload: null } });
+    expect(parseUploadBody({ type: "blob.generate-client-token", payload: { pathname: "a.pdf", callbackUrl: "https://untrusted.example/callback" } })).toEqual({ type: "blob.generate-client-token", payload: { pathname: "a.pdf", multipart: false, clientPayload: null } });
     expect(() => parseUploadBody(null)).toThrow();
     expect(() => parseUploadBody({ type: "blob.generate-client-token", payload: { pathname: 42 } })).toThrow();
   });
@@ -85,18 +85,4 @@ describe("list filter validation", () => {
   });
 });
 
-describe("test authentication isolation", () => {
-  const url = "postgresql://test:test@localhost:5432/nita_test?schema=nita_test_auth";
-  const testEnv = { APP_ENV: "test", NITA_E2E_AUTH: "true", TEST_DB_APPROVED: "true", DATABASE_URL: url, TEST_DATABASE_URL: url, TEST_DATABASE_SCHEMA: "nita_test_auth", TEST_USERNAME: "fixture", TEST_PASSWORD: "fixture-password" };
-  it("permits explicitly isolated runner credentials", () => expect(isIsolatedTestAuthEnabled(testEnv)).toBe(true));
-  it("rejects test flags on production, different database, public schema and missing approval", () => {
-    expect(isIsolatedTestAuthEnabled({ NITA_E2E_AUTH: "true" })).toBe(false);
-    expect(isIsolatedTestAuthEnabled({ ...testEnv, VERCEL_ENV: "production" })).toBe(false);
-    expect(isIsolatedTestAuthEnabled({ ...testEnv, APP_ENV: "production" })).toBe(false);
-    expect(isIsolatedTestAuthEnabled({ ...testEnv, DATABASE_URL: "postgresql://prod/db" })).toBe(false);
-    expect(isIsolatedTestAuthEnabled({ ...testEnv, TEST_DATABASE_SCHEMA: "public" })).toBe(false);
-    expect(isIsolatedTestAuthEnabled({ ...testEnv, TEST_DB_APPROVED: undefined })).toBe(false);
-    expect(isIsolatedTestAuthEnabled({ ...testEnv, TEST_PASSWORD: undefined })).toBe(false);
-  });
-});
 

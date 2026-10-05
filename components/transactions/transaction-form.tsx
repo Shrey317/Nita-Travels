@@ -54,11 +54,13 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
 
   useEffect(() => {
     if (!isEdit) {
+      try {
       const savedVehicle = localStorage.getItem("nita-last-vehicle");
       if (savedVehicle && !vehicleId) setVehicleId(savedVehicle);
 
       const savedCategory = localStorage.getItem("nita-last-category");
       if (savedCategory && !category) setCategory(savedCategory);
+      } catch { /* The form remains usable when browser storage is blocked. */ }
     }
   }, [isEdit, vehicleId, category]);
 
@@ -120,8 +122,10 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
         toast({ title: isEdit ? "Transaction updated" : "Transaction added" });
         window.dispatchEvent(new Event("fleet-data-changed"));
         if (!isEdit) {
+          try {
           if (vehicleId) localStorage.setItem("nita-last-vehicle", vehicleId);
           if (category) localStorage.setItem("nita-last-category", category);
+          } catch { /* Saving preferences must never turn a successful payment record into an error. */ }
         }
         if (onClose) {
           onClose();

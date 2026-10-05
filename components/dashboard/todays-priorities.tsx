@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertCircle, AlertTriangle, Clock } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface PriorityItem {
@@ -23,7 +23,7 @@ export function TodaysPriorities({ items }: { items: PriorityItem[] }) {
         <CardContent>
           <div className="flex items-center gap-3 rounded-lg border border-status-success/20 bg-status-success/5 p-4">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-status-success/10">
-              <Clock className="h-4 w-4 text-status-success" />
+              <CheckCircle2 className="h-4 w-4 text-status-success" />
             </div>
             <div>
               <p className="text-sm font-medium text-ink">All clear</p>
@@ -48,7 +48,7 @@ export function TodaysPriorities({ items }: { items: PriorityItem[] }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {items.slice(0, 6).map((item, i) => {
+          {items.slice(0, 3).map((item, i) => {
             const isCritical = item.severity === "critical";
             return (
               <Link
@@ -62,29 +62,28 @@ export function TodaysPriorities({ items }: { items: PriorityItem[] }) {
                   {isCritical ? (
                     <AlertCircle className="h-3.5 w-3.5 text-status-error" />
                   ) : (
-                    <AlertTriangle className="h-3.5 w-3.5 text-status-warning" />
+                    item.severity === "info" ? <Info className="h-3.5 w-3.5 text-brand-blue" /> : <AlertTriangle className="h-3.5 w-3.5 text-status-warning" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded bg-brand-navy px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    <span className="inline-flex items-center rounded bg-brand-navy px-1.5 py-0.5 text-xs font-semibold text-white">
                       {item.vehicleId}
                     </span>
-                    <span className={`text-[10px] font-medium uppercase tracking-wider ${
+                    <span className={`text-xs font-medium ${
                       isCritical ? "text-status-error" : "text-status-warning"
                     }`}>
                       {isCritical ? "Critical" : item.severity === "info" ? "Information" : "Warning"}
                     </span>
                   </div>
                   <p className="mt-0.5 text-sm text-ink group-hover:text-brand-blue transition-colors">{item.title}</p>
-                  {item.description && <p className="mt-1 text-xs text-muted">{item.description}</p>}
+                  {item.description && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{item.description}</p>}
                 </div>
-                <span className="mt-1 text-xs text-muted opacity-0 group-hover:opacity-100 transition-opacity">View →</span>
               </Link>
             );
           })}
         </div>
-        <Link href="/alerts" className="mt-4 inline-block text-sm font-medium text-brand-blue hover:underline">View all {items.length} alerts →</Link>
+        <Link href="/alerts" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-brand-blue hover:underline">View all {items.length} alerts →</Link>
       </CardContent>
     </Card>
   );

@@ -6,10 +6,11 @@ import { requireSession, handleApiError, jsonError } from "@/lib/api-response";
 import { invalidateFleetData } from "@/lib/invalidate-fleet";
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export async function GET(_request: NextRequest, { params }: RouteParams) {
+export async function GET(_request: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     await requireSession();
     const detail = await getVehicleDetail(params.id);
@@ -20,7 +21,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(request: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     await requireSession();
     const body = await request.json();
@@ -33,7 +35,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 /** Soft-deactivate only — see lib/db/vehicles.ts. */
-export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+export async function DELETE(_request: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     await requireSession();
     const vehicle = await deactivateVehicle(params.id);

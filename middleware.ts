@@ -5,5 +5,6 @@ import authConfig from "@/auth.config";
 export const { auth: middleware } = NextAuth(authConfig);
 
 export const config = {
+  runtime: "nodejs",
   matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
 };

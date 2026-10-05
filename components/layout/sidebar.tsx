@@ -1,34 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import useSWR from "swr";
+import { useFleetNotifications } from "@/lib/hooks/use-fleet-notifications";
 import { Menu, X, LogOut, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { signOutAction } from "@/app/(dashboard)/actions";
 
-const fetcher = async (url: string) => {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Could not load navigation counts");
-  return response.json();
-};
-
 function NavLinks({ onNavigate, alwaysShowLabel = false }: { onNavigate?: () => void; alwaysShowLabel?: boolean }) {
   const pathname = usePathname();
-  const { data: badges, mutate } = useSWR("/api/nav-badges", fetcher, { refreshInterval: 60000 });
-  useEffect(() => {
-    const refresh = () => { void mutate(); };
-    window.addEventListener("fleet-data-changed", refresh);
-    return () => window.removeEventListener("fleet-data-changed", refresh);
-  }, [mutate]);
+  const { data: notifications = [] } = useFleetNotifications();
+  const count = (category: string) => new Set(notifications.filter(item => item.category === category && item.priority !== "info").map(item => item.vehicleId)).size;
+  const badges = { serviceCount: count("service"), mileageCount: count("mileage") };
   return (
     <nav className="flex-1 space-y-5 overflow-y-auto px-3" aria-label="Main navigation">
       {NAV_GROUPS.map((group) => (
         <div key={group.label} className="space-y-1">
-          <div className={cn("px-3 text-xs font-semibold tracking-wider text-slate-500", alwaysShowLabel ? "block" : "hidden lg:block")}>
+          <div className={cn("px-3 text-xs font-semibold tracking-wider text-slate-400", alwaysShowLabel ? "block" : "hidden lg:block")}>
             {group.label}
           </div>
           {group.items.map((item) => {

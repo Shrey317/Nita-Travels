@@ -13,10 +13,11 @@ import { REPAIR_CATEGORIES, DEFAULT_PAGE_SIZE, FLEET_WIDE_VEHICLE_ID } from "@/l
 import { toStringArray } from "@/lib/utils";
 
 interface RepairsPageProps {
-  searchParams: { vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string };
+  searchParams: Promise<{ vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string }>;
 }
 
-export default async function RepairsPage({ searchParams }: RepairsPageProps) {
+export default async function RepairsPage(props: RepairsPageProps) {
+  const searchParams = await props.searchParams;
   const vehicleId = toStringArray(searchParams.vehicleId);
   const page = Number(searchParams.page ?? "1") || 1;
 

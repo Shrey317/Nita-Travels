@@ -18,11 +18,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const body = parseUploadBody(await request.json());
     if (body.type === "blob.generate-client-token") {
       await requireSession();
-      const callback = new URL(body.payload.callbackUrl);
-      const endpoint = new URL(request.url);
-      if (callback.origin !== endpoint.origin || callback.pathname !== endpoint.pathname) {
-        throw new ValidationError("Invalid upload callback URL");
-      }
+      if (!isAllowedAttachmentPath(body.payload.pathname)) throw new ValidationError("Choose a JPEG, PNG, WebP, HEIC, HEIF or PDF file");
     } else if (!request.headers.get("x-vercel-signature")) {
       throw new UnauthorizedError();
     }
@@ -32,8 +28,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       request,
       onBeforeGenerateToken: async (pathname) => {
         await requireSession();
-        if (!isAllowedAttachmentPath(pathname)) throw new ValidationError("Choose a JPEG, PNG, WebP, HEIC, HEIF or PDF file");
-        return { allowedContentTypes: attachmentContentTypes(pathname), maximumSizeInBytes: MAX_ATTACHMENT_SIZE, addRandomSuffix: true };
+        return { allowedContentTypes: attachmentContentTypes(pathname), maximumSizeInBytes: MAX_ATTACHMENT_SIZE, addRandomSuffix: true,
+          callbackUrl: new URL("/api/upload", request.url).toString() };
       },
       onUploadCompleted: async () => {
         // Nothing to persist here — the uploading form captures the returned blob URL itself

@@ -12,7 +12,10 @@ import { weeklyRange, dateKey } from "@/lib/date-ranges";
 import { prisma } from "@/lib/db/client";
 import { Button } from "@/components/ui/button";
 
-export default async function WeeklyPage({ searchParams }: { searchParams: { range?: string; dateFrom?: string; dateTo?: string; vehicleId?: string } }) {
+export default async function WeeklyPage(
+  props: { searchParams: Promise<{ range?: string; dateFrom?: string; dateTo?: string; vehicleId?: string }> }
+) {
+  const searchParams = await props.searchParams;
   const rangeParam = searchParams.range || "52";
   const { from, to } = weeklyRange(searchParams);
   const [rows, vehicles] = await Promise.all([getWeeklyBreakdown(from, to, searchParams.vehicleId || undefined), prisma.vehicle.findMany({ where: { deletedAt: null }, select: { id: true }, orderBy: { id: "asc" } })]);

@@ -15,3 +15,9 @@ CHANGES.md
 playwright-report/
 test-results/
 .local-test-db/
+.local-import/
+.local-archive/
+*.tsbuildinfo
+backups/
+.env.*
+!.env.example

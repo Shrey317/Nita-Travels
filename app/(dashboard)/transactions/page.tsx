@@ -13,7 +13,7 @@ import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { toStringArray } from "@/lib/utils";
 
 interface TransactionsPageProps {
-  searchParams: {
+  searchParams: Promise<{
     vehicleId?: string | string[];
     category?: string | string[];
     dateFrom?: string;
@@ -23,10 +23,11 @@ interface TransactionsPageProps {
     sortBy?: string;
     sortDir?: string;
     txId?: string;
-  };
+  }>;
 }
 
-export default async function TransactionsPage({ searchParams }: TransactionsPageProps) {
+export default async function TransactionsPage(props: TransactionsPageProps) {
+  const searchParams = await props.searchParams;
   const vehicleId = toStringArray(searchParams.vehicleId);
   const category = toStringArray(searchParams.category);
   const page = Number(searchParams.page ?? "1") || 1;

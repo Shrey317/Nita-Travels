@@ -5,7 +5,8 @@ import { getVehicleTimeline } from "@/lib/db/vehicles";
 import { requireSession, handleApiError } from "@/lib/api-response";
 import { parseListQuery } from "@/lib/query-filters";
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireSession();
     const sp = request.nextUrl.searchParams;

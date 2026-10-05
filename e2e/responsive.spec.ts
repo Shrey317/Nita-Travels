@@ -16,7 +16,7 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       await expect(page.locator('main')).not.toContainText(/NaN|Infinity|\[object Object\]/);
       expect(await page.locator('html').evaluate(element => element.classList.contains('dark'))).toBe(theme === 'dark');
-      for (const width of [320, 375, 390, 430, 768, 1440]) {
+      for (const width of [320, 375, 390, 430, 768, 1024, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
         await expect.poll(async () => page.evaluate(() => {

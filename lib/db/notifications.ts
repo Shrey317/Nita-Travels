@@ -19,7 +19,7 @@ export interface FleetNotification {
 }
 
 /** Fresh reads keep notifications consistent after mutations, including non-React callers. */
-export async function getFleetNotifications(): Promise<FleetNotification[]> {
+export async function getFleetNotifications(serviceRead?: ReturnType<typeof getServiceStatusAllVehicles>): Promise<FleetNotification[]> {
   const today = businessToday();
   const weekStart = isoWeekStart(today);
   const [vehicles, serviceRows, mileageEntries] = await Promise.all([
@@ -28,7 +28,7 @@ export async function getFleetNotifications(): Promise<FleetNotification[]> {
       select: { id: true, registration: true, make: true, model: true, insuranceEndDate: true },
       orderBy: { id: "asc" },
     }),
-    getServiceStatusAllVehicles(),
+    serviceRead ?? getServiceStatusAllVehicles(),
     prisma.mileageEntry.findMany({
       where: { date: { gte: weekStart, lt: addDays(today, 1) }, vehicle: { active: true, deletedAt: null } },
       select: { id: true, vehicleId: true, date: true, previousMileageKm: true, currentMileageKm: true, distanceDrivenKm: true },

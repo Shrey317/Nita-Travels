@@ -4,8 +4,7 @@
  * Database-backed login attempt limits, shared by serverless instances. Each account/IP
  * key has a 15-minute window and an atomic attempt counter in the RateLimit table.
  *
- * Fails OPEN: any unexpected error in this module allows the login attempt through rather than
- * blocking it. A bug in rate-limiting code should never be the reason the admin can't log in.
+ * A storage failure temporarily denies authentication rather than bypassing attempt limits.
  */
 
 import { prisma } from "@/lib/db/client";
@@ -41,9 +40,9 @@ export async function checkLoginRateLimit(key: string): Promise<{ allowed: boole
     }
 
     return { allowed: true };
-  } catch (error) {
-    console.error("Rate limiter error — failing open:", error);
-    return { allowed: true };
+  } catch {
+    console.error("Login attempt limits are temporarily unavailable.");
+    return { allowed: false, retryAfterSeconds: 30 };
   }
 }
 
@@ -53,7 +52,7 @@ export async function clearLoginRateLimit(key: string): Promise<void> {
     await prisma.rateLimit.delete({
       where: { key }
     });
-  } catch (error) {
+  } catch {
     // Ignore if not found
   }
 }

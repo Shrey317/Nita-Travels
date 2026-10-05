@@ -1,5 +1,5 @@
 #!/bin/bash
-# scripts/backup.sh
+# Run from the project root: bash scripts/database/backup.sh
 # Performs a logical backup of the Neon PostgreSQL database using pg_dump.
 
 set -e
@@ -17,7 +17,9 @@ if [ -z "$DIRECT_URL" ]; then
 fi
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_FILE="backup_${TIMESTAMP}.sql"
+mkdir -p backups
+umask 077
+BACKUP_FILE="backups/backup_${TIMESTAMP}.sql"
 
 echo "Starting database backup to ${BACKUP_FILE}..."
 pg_dump "$DIRECT_URL" -F p -f "$BACKUP_FILE" --clean --if-exists

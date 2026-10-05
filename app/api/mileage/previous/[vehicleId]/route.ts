@@ -5,7 +5,8 @@ import { getPreviousMileage } from "@/lib/db/mileage";
 import { requireSession, handleApiError } from "@/lib/api-response";
 import { calendarDateSchema } from "@/lib/schemas/common.schema";
 
-export async function GET(request: Request, { params }: { params: { vehicleId: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ vehicleId: string }> }) {
+  const params = await props.params;
   try {
     await requireSession();
     const date = new URL(request.url).searchParams.get("date");

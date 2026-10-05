@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "./password-input";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "./submit-button";
 import { Truck } from "lucide-react";
 
 async function authenticate(formData: FormData): Promise<void> {
@@ -27,7 +27,8 @@ async function authenticate(formData: FormData): Promise<void> {
   }
 }
 
-export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
+export default async function LoginPage(props: { searchParams: Promise<{ error?: string }> }) {
+  const searchParams = await props.searchParams;
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-brand-navy px-4">
       {/* Animated subtle background */}
@@ -61,9 +62,7 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                 Incorrect username or password.
               </p>
             )}
-            <Button type="submit" className="mt-2 w-full bg-brand-blue text-white hover:bg-brand-blueAccent transition-colors">
-              Sign In
-            </Button>
+            <SubmitButton />
           </form>
         </CardContent>
       </Card>

@@ -10,7 +10,10 @@ import { summarizePeriods } from "@/lib/periods";
 import { formatZAR, formatKm } from "@/lib/format";
 import { prisma } from "@/lib/db/client";
 
-export default async function MonthlyPage({ searchParams }: { searchParams: { year?: string; range?: string; dateFrom?: string; dateTo?: string; vehicleId?: string } }) {
+export default async function MonthlyPage(
+  props: { searchParams: Promise<{ year?: string; range?: string; dateFrom?: string; dateTo?: string; vehicleId?: string }> }
+) {
+  const searchParams = await props.searchParams;
   const { year, mode, selection } = monthlySelection(searchParams);
   const [availableYears, rows, previousRows, vehicles] = await Promise.all([
     getAvailableYears(), getMonthlyBreakdown(year, selection.range, searchParams.vehicleId || undefined),

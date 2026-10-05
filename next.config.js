@@ -7,6 +7,7 @@ process.env.TZ = "UTC";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  devIndicators: false,
   images: {
     remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com' }],
   },
@@ -51,7 +52,7 @@ const nextConfig = {
       "font-src 'self' data:",
       // Dev's HMR client polls/reconnects over a websocket to the same host — 'self' alone
       // doesn't cover the ws:// scheme, so this only widens connect-src in development.
-      `connect-src 'self' https://*.public.blob.vercel-storage.com${isDev ? " ws://localhost:* ws://127.0.0.1:*" : ""}`,
+      `connect-src 'self' https://vercel.com/api/blob/ https://*.public.blob.vercel-storage.com${isDev ? " ws://localhost:* ws://127.0.0.1:*" : ""}`,
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

@@ -5,7 +5,6 @@ const generateTokenSchema = z.object({
   type: z.literal("blob.generate-client-token"),
   payload: z.object({
     pathname: z.string().min(1).max(1024),
-    callbackUrl: z.string().url(),
     multipart: z.boolean().default(false),
     clientPayload: z.string().max(2000).nullable().default(null),
   }),

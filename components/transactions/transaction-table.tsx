@@ -49,7 +49,18 @@ export function TransactionTable({ transactions, vehicles, initialEditingId }: T
 
   return (
     <>
-      <Table>
+      <div className="space-y-3 md:hidden" aria-label="Transaction cards">
+        {transactions.map(t => <article key={t.id} className="rounded-xl border border-border bg-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">{formatVehicleLabel(t.vehicleId)}</p><p className="text-xs text-muted">{formatDate(t.date)}</p></div>
+          <p className="mt-2 text-sm text-muted">{CATEGORY_LABELS[t.category] ?? t.category}</p>
+          <p className={`mt-2 break-words text-xl font-semibold tabular-nums ${t.incomeZarCents ? "text-status-success" : "text-ink"}`}>{t.incomeZarCents ? "+ " : "− "}{formatZAR(t.incomeZarCents || t.expenseZarCents)}</p>
+          <p className="mt-1 text-xs text-muted">{t.incomeZarCents ? "Income" : "Expense"}{t.category === "Service" ? ` · ${formatKm(t.mileageKm)}` : ""}</p>
+          {t.notes && <p className="mt-3 break-words text-sm text-ink-secondary">{t.notes}</p>}
+          <div className="mt-3 flex items-center justify-end gap-2 border-t border-border pt-2"><Button variant="ghost" aria-label="Edit transaction" onClick={() => setEditingId(t.id)}><Pencil aria-hidden="true" />Edit</Button><DeleteConfirmDialog title="Delete this transaction?" description={`Remove the ${CATEGORY_LABELS[t.category] ?? t.category} entry from ${formatDate(t.date)} from your active ledger and reports.`} onDelete={() => handleDelete(t.id)} successMessage="Transaction deleted" triggerLabel="Delete transaction" /></div>
+        </article>)}
+      </div>
+      <div className="hidden md:block">
+      <Table aria-label="Transactions">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <SortableHeader field="date">Date</SortableHeader>
@@ -95,7 +106,7 @@ export function TransactionTable({ transactions, vehicles, initialEditingId }: T
                   </Button>
                   <DeleteConfirmDialog
                     title="Delete this transaction?"
-                    description={`This permanently removes the ${CATEGORY_LABELS[t.category] ?? t.category} entry from ${formatDate(t.date)}. This can't be undone.`}
+                    description={`Remove the ${CATEGORY_LABELS[t.category] ?? t.category} entry from ${formatDate(t.date)} from your active ledger and reports.`}
                     onDelete={() => handleDelete(t.id)}
                     successMessage="Transaction deleted"
                     triggerLabel="Delete transaction"
@@ -106,6 +117,7 @@ export function TransactionTable({ transactions, vehicles, initialEditingId }: T
           ))}
         </TableBody>
       </Table>
+      </div>
 
       <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
         <DialogContent className="max-w-2xl">

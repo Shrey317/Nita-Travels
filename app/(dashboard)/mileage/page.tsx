@@ -19,10 +19,11 @@ import { analyzeMileage } from "@/lib/analytics";
 import { WEEKLY_MILEAGE_LIMIT } from "@/lib/mileage";
 
 interface MileagePageProps {
-  searchParams: { vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string };
+  searchParams: Promise<{ vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string }>;
 }
 
-export default async function MileagePage({ searchParams }: MileagePageProps) {
+export default async function MileagePage(props: MileagePageProps) {
+  const searchParams = await props.searchParams;
   const vehicleId = toStringArray(searchParams.vehicleId);
   const page = Number(searchParams.page ?? "1") || 1;
 
@@ -55,7 +56,7 @@ export default async function MileagePage({ searchParams }: MileagePageProps) {
 
   const vehiclesWithRecentMileage = new Set(recentEntries.map(e => e.vehicleId));
   const missingMileageVehicles = vehicles.filter(v => !vehiclesWithRecentMileage.has(v.id));
-  
+
   const overLimitVehicles = analyzeMileage(recentEntries, { from: startOfCurrentWeek, to: addDays(startOfCurrentWeek, 6) }).violations.flatMap(week => {
     const vehicle = vehicles.find(row => row.id === week.vehicleId);
     return vehicle ? [{ vehicle, overBy: week.km - WEEKLY_MILEAGE_LIMIT }] : [];

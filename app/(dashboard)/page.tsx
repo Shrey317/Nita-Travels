@@ -17,10 +17,14 @@ import { Button } from "@/components/ui/button";
 import { formatZAR, formatMargin } from "@/lib/format";
 import { businessToday, type AnalyticsSearchParams } from "@/lib/date-ranges";
 import { FinancialChart } from "@/components/vehicles/financial-chart";
+import { DetailSection } from "@/components/shared/detail-section";
+import { ArrowUpRight, Gauge, Plus, FileDown } from "lucide-react";
 
-export default async function DashboardPage({ searchParams }: { searchParams: AnalyticsSearchParams }) {
+export default async function DashboardPage(props: { searchParams: Promise<AnalyticsSearchParams> }) {
+  const searchParams = await props.searchParams;
+  const serviceRead = getServiceStatusAllVehicles();
   const [report, services, notifications] = await Promise.all([
-    getAnalyticsReport(searchParams), getServiceStatusAllVehicles(), getFleetNotifications(),
+    getAnalyticsReport(searchParams), serviceRead, getFleetNotifications(serviceRead),
   ]);
   const serviceMap = new Map(services.map((row) => [row.vehicleId, row]));
   const vehicleMap = new Map(report.vehicles.map((vehicle) => [vehicle.id, vehicle]));
@@ -45,28 +49,34 @@ export default async function DashboardPage({ searchParams }: { searchParams: An
   for (const [key, value] of Object.entries(searchParams)) if (value) query.set(key, value);
   const analyticsHref = `/analytics?${query}`;
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader title="Fleet Management" description={businessToday().toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}>
-        <Button asChild variant="outline"><Link href={`/reports?${query}`}>Reports</Link></Button>
-        <Button asChild><Link href="/transactions/new">Log transaction</Link></Button>
+        <Button asChild variant="outline"><Link href="/mileage/new"><Gauge aria-hidden="true" />Log mileage</Link></Button>
+        <Button asChild><Link href="/transactions/new"><Plus aria-hidden="true" />Log transaction</Link></Button>
       </PageHeader>
-      <section aria-label="Current fleet status" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {statuses.map((status) => <Link key={status.label} href={status.href} className="rounded-card border border-border bg-card p-4 transition-colors hover:border-brand-blue/50"><p className="text-xs font-medium text-muted">{status.label}</p><p className={`mt-2 text-2xl font-semibold tabular-nums ${status.tone}`}>{status.value}</p></Link>)}
+      <section aria-label="Current fleet status" className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border lg:grid-cols-4">
+        {statuses.map((status) => <Link key={status.label} href={status.href} className="group flex items-center gap-3 bg-card p-4 transition-colors hover:bg-surface-secondary"><span className={`text-2xl font-semibold tabular-nums ${status.tone}`}>{status.value}</span><span className="text-sm text-muted">{status.label}</span><ArrowUpRight aria-hidden="true" className="ml-auto hidden h-4 w-4 text-muted group-hover:text-brand-blue sm:block" /></Link>)}
       </section>
-      <TodaysPriorities items={priorities} />
       <section className="space-y-4">
         <SectionHeading title="Financial Snapshot" />
-        <AnalyticsFilters selection={report.selection} vehicles={report.vehicles} />
-        <FinancialSnapshot report={report} />
+        <DetailSection title="Reporting period" description={`${report.selection.label} · ${report.selection.vehicleId || "All vehicles"}`}>
+          <AnalyticsFilters selection={report.selection} vehicles={report.vehicles} />
+        </DetailSection>
+        <FinancialSnapshot report={report} compact />
       </section>
-      <section className="space-y-3">
-        <SectionHeading title="Fleet Performance" />
-        <p className="text-xs text-muted">{report.selection.label}. Totals include fleet-wide and unassigned records; inactive vehicles retain their financial history.</p>
+      <div className="grid items-start gap-5 xl:grid-cols-2">
+        <TodaysPriorities items={priorities} />
+        <section className="min-w-0 space-y-3" aria-label="Financial trends">
+          <div className="flex flex-wrap items-center justify-between gap-2"><SectionHeading title="Financial Trends" /><Link href={analyticsHref} className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-blue">Explore analytics<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></Link></div>
+          <FinancialChart data={report.current.monthly} />
+        </section>
+      </div>
+      <DetailSection title="Fleet Performance" description={`${vehicleRows.length} vehicles · profit, expenses and service status`}>
+        <p className="text-sm text-muted">{report.selection.label}. Totals include fleet-wide and unassigned records; inactive vehicles retain their financial history.</p>
         <VehicleSummaryTable vehicles={vehicleRows} fleetTotals={totals} totalLabel={report.selection.vehicleId ? "Selected vehicle total" : "Grand Total (fleet-wide)"} />
-      </section>
-      <section className="space-y-3">
-        <SectionHeading title="Maintenance & Mileage" />
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      </DetailSection>
+      <DetailSection title="Maintenance & Mileage" description={`${formatZAR(totals.maintenanceCents)} maintenance · ${totals.mileageKm.toLocaleString("en-ZA")} km recorded`}>
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {[
             { label: "Repair expenditure", value: formatZAR(totals.repairsCents), detail: `${report.current.maintenance.repairCount} repair records`, href: `${report.sourceHref}&category=Repairs&category=BrakePads&category=Tyres` },
             { label: "Service expenditure", value: formatZAR(totals.serviceCents), detail: `${report.current.maintenance.serviceCount} service records`, href: `${report.sourceHref}&category=Service` },
@@ -75,18 +85,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: An
           ].map((metric) => <Card key={metric.label}><CardContent className="p-4"><Link href={metric.href} className="text-sm font-medium text-muted hover:underline">{metric.label}</Link><p className="mt-2 break-words text-xl font-semibold tabular-nums">{metric.value}</p><p className="mt-1 text-xs text-muted">{metric.detail}</p></CardContent></Card>)}
         </div>
         <ServiceOverviewTable rows={serviceRows} />
-      </section>
-      <section className="space-y-3">
-        <SectionHeading title="Financial Trends" />
-        <FinancialChart data={report.current.monthly} />
-      </section>
+      </DetailSection>
       <section className="space-y-3">
         <SectionHeading title="Management Insights" />
         <div className="grid gap-3 md:grid-cols-2">
-          <Card><CardContent className="p-4"><h3 className="font-medium">Why profit changed</h3><p className="mt-2 text-sm text-muted">Current profit {formatZAR(totals.netProfitCents)}; comparison profit {formatZAR(report.previous.totals.netProfitCents)}.</p><p className="mt-2 text-sm">Revenue contribution to the change: {formatZAR(report.profitBridge.revenueChange)}.</p><Link href={`${analyticsHref}#financial`} className="mt-3 inline-block text-sm text-brand-blue hover:underline">Inspect all numerical contributors →</Link></CardContent></Card>
+          <Card><CardContent className="p-5"><h3 className="font-medium">Why profit changed</h3><p className="mt-2 text-sm text-muted">Current profit {formatZAR(totals.netProfitCents)}; comparison profit {formatZAR(report.previous.totals.netProfitCents)}.</p><p className="mt-2 text-sm">Revenue contribution to the change: {formatZAR(report.profitBridge.revenueChange)}.</p><Link href={`${analyticsHref}#financial`} className="mt-3 inline-flex min-h-11 items-center text-sm text-brand-blue hover:underline">Inspect all numerical contributors →</Link></CardContent></Card>
           <Card><CardContent className="p-4"><h3 className="font-medium">Records needing review</h3><p className="mt-2 text-sm text-muted">{report.current.repairPatterns.length} repeated repair category patterns and {report.current.dataIssues.length} data quality findings in this selection.</p><div className="mt-3 flex flex-wrap gap-4 text-sm"><Link href={`${analyticsHref}#maintenance`} className="text-brand-blue hover:underline">Maintenance evidence →</Link><Link href={`/data-quality?${query}`} className="text-brand-blue hover:underline">Data quality →</Link></div></CardContent></Card>
         </div>
       </section>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 text-sm text-muted"><p>Need the details for your next review?</p><Button asChild variant="outline"><Link href={`/reports?${query}`}><FileDown aria-hidden="true" />Download reports</Link></Button></div>
     </div>
   );
 }

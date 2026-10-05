@@ -13,10 +13,11 @@ import { DEFAULT_PAGE_SIZE, FLEET_WIDE_VEHICLE_ID, NO_VEHICLE_FILTER_VALUE } fro
 import { toStringArray } from "@/lib/utils";
 
 interface NotesPageProps {
-  searchParams: { noteId?: string; vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string };
+  searchParams: Promise<{ noteId?: string; vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string }>;
 }
 
-export default async function NotesPage({ searchParams }: NotesPageProps) {
+export default async function NotesPage(props: NotesPageProps) {
+  const searchParams = await props.searchParams;
   const vehicleIdFilter = toStringArray(searchParams.vehicleId);
   const page = Number(searchParams.page ?? "1") || 1;
 

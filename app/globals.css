@@ -18,7 +18,7 @@
   /* Text */
   --color-ink: 15 23 42;                    /* #0F172A */
   --color-ink-secondary: 71 85 105;         /* #475569 */
-  --color-muted: 100 116 139;               /* #64748B */
+  --color-muted: 82 99 121;
   --color-disabled: 148 163 184;            /* #94A3B8 */
 
   /* Semantic Backgrounds (Light) */
@@ -66,6 +66,13 @@
     @apply bg-surface text-ink antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+  html { scroll-padding-top: 5rem; }
+  summary { -webkit-tap-highlight-color: transparent; }
+  input, select, textarea { accent-color: #2563eb; }
+}
+
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 16px; }
 }
 
 .font-mono-figures {

@@ -44,11 +44,9 @@ function TransactionFiltersInner({ vehicles }: TransactionFiltersProps) {
       else params.delete("search");
       params.delete("page");
       router.push(`${pathname}?${params.toString()}`);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, 400);
     return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInput]);
+  }, [searchInput, urlSearch, searchParams, pathname, router]);
 
   const vehicleOptions = [
     ...vehicleIdOptions(vehicles),
@@ -120,6 +118,21 @@ function TransactionFiltersInner({ vehicles }: TransactionFiltersProps) {
           Clear filters
         </Button>
       )}
+      <label className="w-full space-y-1 text-sm font-medium md:hidden">Sort transactions
+        <select aria-label="Sort transactions" className="h-11 w-full rounded-input border border-border bg-card px-3" value={`${searchParams.get("sortBy") ?? "date"}:${searchParams.get("sortDir") ?? "desc"}`} onChange={event => {
+          const [field, direction] = event.target.value.split(":");
+          const params = new URLSearchParams(searchParams.toString());
+          params.set("sortBy", field!); params.set("sortDir", direction!); params.delete("page");
+          router.push(`${pathname}?${params}`, { scroll: false });
+        }}>
+          <option value="date:desc">Newest first</option><option value="date:asc">Oldest first</option>
+          <option value="incomeZarCents:desc">Highest income</option><option value="incomeZarCents:asc">Lowest income</option>
+          <option value="expenseZarCents:desc">Highest expense</option><option value="expenseZarCents:asc">Lowest expense</option>
+          <option value="vehicleId:asc">Vehicle A–Z</option><option value="vehicleId:desc">Vehicle Z–A</option>
+          <option value="category:asc">Category A–Z</option><option value="category:desc">Category Z–A</option>
+          <option value="mileageKm:desc">Highest mileage</option><option value="mileageKm:asc">Lowest mileage</option>
+        </select>
+      </label>
     </div>
   );
 }

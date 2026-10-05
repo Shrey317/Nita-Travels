@@ -1,9 +1,24 @@
 # Architecture after the production transformation
 
-The application retains Next.js 14 App Router, strict TypeScript, React 18, Prisma 5 and PostgreSQL.
+The application uses Next.js 15 App Router, strict TypeScript, React 19, Prisma 5 and PostgreSQL.
 It uses the existing design tokens, Radix components, credential-based single-admin authentication,
 SWR notification refresh and Vercel Blob attachment storage. No parallel storage/analytics service,
-new runtime dependency, database model or migration is introduced in this pass.
+new database model or migration is introduced by the interface modernization. Route parameters and
+search parameters use the framework's asynchronous request API.
+
+## Project boundaries
+
+- `app`: route composition, authentication boundaries and HTTP validation.
+- `components/<feature>`: feature presentation; `components/ui` and `components/shared`: reusable primitives.
+- `lib`: pure business rules; `lib/db`: persistence; `lib/schemas`: validation; `lib/hooks`: browser subscriptions.
+- `scripts/database`: explicit operational backup/restore; remaining scripts: isolated test setup and fixtures.
+- `__tests__/lib`, `__tests__/integration`, `e2e`: pure, database and browser verification respectively.
+- `docs/history`: historical audits. `.local-archive` and `.local-import` are ignored local recovery material, never application inputs.
+
+The dashboard uses native disclosure sections for optional detail. Mobile ledger and fleet views
+provide cards, with tables retained on desktop. Analytics filters navigate through the router and
+reset draft controls when browser history changes. A shared SWR hook deduplicates notification reads;
+dashboard service queries are shared with the notification calculation within the same request.
 
 ## Read paths
 

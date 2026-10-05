@@ -1,0 +1,9 @@
+.local-*/
+.env*
+!.env.example
+backups/
+playwright-report/
+test-results/
+coverage/
+docs/history/
+*.tsbuildinfo

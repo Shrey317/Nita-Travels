@@ -5,7 +5,8 @@ import type { AnalyticsSearchParams } from "@/lib/date-ranges";
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
 import { PageHeader } from "@/components/shared/page-header";
 
-export default async function DataQualityPage({ searchParams }: { searchParams: AnalyticsSearchParams }) {
+export default async function DataQualityPage(props: { searchParams: Promise<AnalyticsSearchParams> }) {
+  const searchParams = await props.searchParams;
   const report = await getAnalyticsReport(searchParams);
   return <div className="space-y-6"><PageHeader title="Data Quality" description="Find incomplete records and investigate inconsistencies before relying on the numbers." />
     <AnalyticsFilters selection={report.selection} vehicles={report.vehicles} />

@@ -1,7 +1,9 @@
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import { databaseIdentity, assertTestEnvironment } from '../lib/test-environment';
 
 function readEnv(file: string): Record<string, string> {
@@ -49,6 +51,12 @@ async function main() {
     NITA_E2E_AUTH: mode === 'e2e' ? 'true' : 'false',
     BLOB_READ_WRITE_TOKEN: '', TZ: 'UTC',
   };
+  // Exercise the real credential and rate-limit path with synthetic credentials.
+  env.ADMIN_USERNAME = env.TEST_USERNAME;
+  // Next's dotenv expansion also sees inherited values when a local .env exists.
+  // Escape bcrypt's dollars; authorize normalizes these for either environment source.
+  env.ADMIN_PASSWORD_HASH = (await bcrypt.hash(env.TEST_PASSWORD!, 10)).replace(/\$/g, '\\$');
+  env.AUTH_SECRET = env.NEXTAUTH_SECRET;
   assertTestEnvironment(env, true);
   const client = new PrismaClient({ datasources: { db: { url: directUrl.toString() } } });
   let created = false;
@@ -60,7 +68,7 @@ async function main() {
     created = true;
     console.info(`Isolated test schema: ${schema}`);
     run('prisma/build/index.js', ['migrate', 'deploy'], env);
-    if (mode === 'integration') run('vitest/vitest.mjs', ['run', '--config', 'vitest.integration.config.ts', ...process.argv.slice(3)], env);
+    if (mode === 'integration') run(join(dirname(require.resolve('vitest/package.json')), 'vitest.mjs'), ['run', '--config', 'vitest.integration.config.mts', ...process.argv.slice(3)], env);
     else run('@playwright/test/cli', ['test', ...process.argv.slice(3)], env);
   } finally {
     if (created) await client.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`);

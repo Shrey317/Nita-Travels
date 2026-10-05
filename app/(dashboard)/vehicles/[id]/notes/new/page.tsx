@@ -4,7 +4,8 @@ import { prisma } from "@/lib/db/client";
 import { NoteForm } from "@/components/notes/note-form";
 import { notFound } from "next/navigation";
 
-export default async function NewVehicleNotePage({ params }: { params: { id: string } }) {
+export default async function NewVehicleNotePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const vehicles = await prisma.vehicle.findMany({
     where: { active: true, deletedAt: null },
     select: { id: true, registration: true },

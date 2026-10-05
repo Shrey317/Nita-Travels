@@ -7,7 +7,8 @@ import { invalidateFleetData } from "@/lib/invalidate-fleet";
 import { z } from "zod";
 import { positiveIntegerSchema } from "@/lib/schemas/common.schema";
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireSession();
     const body = z.object({ currentMileageKm: positiveIntegerSchema }).parse(await request.json());
@@ -19,7 +20,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireSession();
     await deleteMileageEntry(params.id);

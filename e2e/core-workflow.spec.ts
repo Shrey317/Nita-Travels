@@ -53,6 +53,7 @@ test('transaction creation, filtering, editing, cancellation, soft delete and ex
   await expect(row).toBeVisible();
   await row.getByRole('button', { name: 'Delete transaction' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(page.getByRole('alertdialog')).not.toBeVisible();
   await expect(row).not.toBeVisible();
 });
 

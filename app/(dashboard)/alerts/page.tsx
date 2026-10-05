@@ -8,7 +8,10 @@ import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 
-export default async function AlertsPage({ searchParams }: { searchParams: AnalyticsSearchParams & { severity?: string; category?: string } }) {
+export default async function AlertsPage(
+  props: { searchParams: Promise<AnalyticsSearchParams & { severity?: string; category?: string }> }
+) {
+  const searchParams = await props.searchParams;
   const [report, operational] = await Promise.all([getAnalyticsReport(searchParams), getFleetNotifications()]);
   const all = intelligenceAlerts(report, operational);
   const alerts = all.filter(row => (!searchParams.severity || row.severity === searchParams.severity) && (!searchParams.category || row.category === searchParams.category));

@@ -4,7 +4,8 @@ import { VehicleForm } from "@/components/vehicles/vehicle-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditVehiclePage({ params }: { params: { id: string } }) {
+export default async function EditVehiclePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const vehicle = await prisma.vehicle.findUnique({ where: { id: params.id } });
   if (!vehicle) notFound();
 

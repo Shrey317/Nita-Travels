@@ -1,9 +1,8 @@
 import type { NextAuthConfig } from "next-auth";
 
 /**
- * Edge-safe half of the NextAuth config. middleware.ts runs on the Edge runtime, which can't
- * load bcryptjs (it needs Node's crypto internals) — so the actual Credentials provider lives
- * in auth.ts instead, and only this route-authorization logic runs in middleware.
+ * Shared route authorization. Credential verification and database access stay in auth.ts;
+ * middleware only verifies the session using this configuration on the Node.js runtime.
  */
 export const authConfig: NextAuthConfig = {
   pages: {

@@ -8,7 +8,8 @@ import { AnalyticsContent } from "@/components/analytics/analytics-content";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 
-export default async function AnalyticsPage({ searchParams }: { searchParams: AnalyticsSearchParams }) {
+export default async function AnalyticsPage(props: { searchParams: Promise<AnalyticsSearchParams> }) {
+  const searchParams = await props.searchParams;
   const report = await getAnalyticsReport(searchParams);
   return <div className="space-y-6">
     <PageHeader title="Analytics" description="Financial and operational evidence, reconciled to your records."><Button asChild variant="outline"><Link href={`/reports?${new URLSearchParams(searchParams)}`}>Export reports</Link></Button></PageHeader>

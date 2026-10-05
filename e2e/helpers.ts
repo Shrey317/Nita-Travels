@@ -5,6 +5,7 @@ export async function login(page: Page) {
   await page.getByLabel('Username', { exact: true }).fill(process.env.TEST_USERNAME!);
   await page.getByLabel('Password', { exact: true }).fill(process.env.TEST_PASSWORD!);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
-  await expect(page).toHaveURL(/\/$/);
+  // Allow a cold production server to initialize its database connection and dashboard.
+  await expect(page).toHaveURL(/\/$/, { timeout: 30000 });
   await expect(page.locator('main')).toBeVisible();
 }

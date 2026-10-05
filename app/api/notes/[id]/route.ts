@@ -5,7 +5,8 @@ import { deleteNote } from "@/lib/db/notes";
 import { requireSession, handleApiError } from "@/lib/api-response";
 import { invalidateFleetData } from "@/lib/invalidate-fleet";
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireSession();
     await deleteNote(params.id);

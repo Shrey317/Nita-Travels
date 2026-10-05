@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/db/client";
 import { TransactionForm } from "@/components/transactions/transaction-form";
 
-export default async function NewTransactionPage({ searchParams }: { searchParams: { vehicleId?: string } }) {
+export default async function NewTransactionPage(props: { searchParams: Promise<{ vehicleId?: string }> }) {
+  const searchParams = await props.searchParams;
   const vehicles = await prisma.vehicle.findMany({
     where: { active: true, deletedAt: null },
     select: { id: true, registration: true },

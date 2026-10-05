@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { Topbar } from "@/components/layout/topbar";
+import { MobileNavigation } from "@/components/layout/mobile-navigation";
+import { ConnectionStatus } from "@/components/layout/connection-status";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
@@ -15,11 +17,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <Sidebar />
       <div className="min-w-0 flex-1 flex flex-col">
         <Topbar />
-        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[1400px] px-4 py-6 outline-none sm:px-6 lg:px-8">
+        <ConnectionStatus />
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[1440px] px-4 pt-6 pb-28 outline-none sm:px-6 md:pb-8 lg:px-8">
           {children}
         </main>
       </div>
       <Toaster />
+      <MobileNavigation />
     </div>
   );
 }

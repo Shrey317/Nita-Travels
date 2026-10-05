@@ -9,7 +9,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { REPORT_TYPES } from "@/lib/reports";
 
-export default async function ReportsPage({ searchParams }: { searchParams: AnalyticsSearchParams }) {
+export default async function ReportsPage(props: { searchParams: Promise<AnalyticsSearchParams> }) {
+  const searchParams = await props.searchParams;
   const report = await getAnalyticsReport(searchParams);
   const query = new URLSearchParams({ range: report.selection.preset === "all" ? "all" : "custom", dateFrom: report.selection.label.slice(0, 10), dateTo: report.selection.label.slice(-10), comparison: report.selection.comparison });
   if (report.selection.vehicleId) query.set("vehicleId", report.selection.vehicleId);

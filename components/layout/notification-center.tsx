@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import useSWR from "swr";
+import { useFleetNotifications } from "@/lib/hooks/use-fleet-notifications";
 import { Bell, AlertTriangle, AlertCircle, Info, Check } from "lucide-react";
-import type { FleetNotification, NotificationPriority } from "@/lib/db/notifications";
+import type { NotificationPriority } from "@/lib/db/notifications";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const priorityConfig: Record<NotificationPriority, { Icon: typeof AlertTriangle; color: string; label: string }> = {
@@ -12,26 +12,18 @@ const priorityConfig: Record<NotificationPriority, { Icon: typeof AlertTriangle;
   warning: { Icon: AlertTriangle, color: "text-status-warning", label: "Warning" },
   info: { Icon: Info, color: "text-brand-blue", label: "Information" },
 };
-async function fetchNotifications(url: string): Promise<FleetNotification[]> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Alerts could not be loaded.");
-  return response.json();
-}
 
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
-  const { data: notifications = [], error, isLoading, mutate } = useSWR("/api/notifications", fetchNotifications, { refreshInterval: 60000 });
+  const { data: notifications = [], error, isLoading, mutate } = useFleetNotifications();
   const unreadCount = notifications.filter((item) => !readIds.has(item.id)).length;
   useEffect(() => {
     try {
       const saved: unknown = JSON.parse(localStorage.getItem("nita-read-notifications") ?? "[]");
       if (Array.isArray(saved)) setReadIds(new Set(saved.filter((id): id is string => typeof id === "string")));
     } catch { /* Read state is optional. */ }
-    const refresh = () => { void mutate(); };
-    window.addEventListener("fleet-data-changed", refresh);
-    return () => window.removeEventListener("fleet-data-changed", refresh);
-  }, [mutate]);
+  }, []);
   function markRead(ids: string[]) {
     const next = new Set([...readIds, ...ids]);
     setReadIds(next);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { upload } from "@vercel/blob/client";
 import { X, Upload, Loader2, FileText } from "lucide-react";
@@ -21,11 +21,15 @@ interface PhotoUploadProps {
 export function PhotoUpload({ photoUrls, onChange, label = "Photos or PDFs (optional)", onUploadingChange }: PhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const uploadController = useRef<AbortController | null>(null);
+  useEffect(() => () => uploadController.current?.abort(), []);
   const { toast } = useToast();
   const altBase = label.replace(/\s*\(optional\)\s*$/i, "").trim() || "Uploaded file";
 
   async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0 || isUploading) return;
+    if (!files || files.length === 0 || uploadController.current) return;
+    const controller = new AbortController();
+    uploadController.current = controller;
     setIsUploading(true);
     onUploadingChange?.(true);
     try {
@@ -39,17 +43,19 @@ export function PhotoUpload({ photoUrls, onChange, label = "Photos or PDFs (opti
         const blob = await upload(file.name, file, {
           access: "public",
           handleUploadUrl: "/api/upload",
+          abortSignal: controller.signal,
         });
         uploaded.push(blob.url);
         onChange([...photoUrls, ...uploaded]);
       }
     } catch (error) {
       toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Please try again.",
-        variant: "destructive",
+        title: controller.signal.aborted ? "Upload cancelled" : "Upload failed",
+        description: controller.signal.aborted ? "Files already uploaded remain attached. You can remove them before saving." : error instanceof Error ? error.message : "Please try again.",
+        variant: controller.signal.aborted ? "default" : "destructive",
       });
     } finally {
+      uploadController.current = null;
       setIsUploading(false);
       onUploadingChange?.(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -85,7 +91,7 @@ export function PhotoUpload({ photoUrls, onChange, label = "Photos or PDFs (opti
               onClick={() => removePhoto(url)}
               disabled={isUploading}
               aria-label={`Remove ${altBase.toLowerCase()} ${index + 1}`}
-              className="absolute right-1 top-1 rounded-full bg-navy/80 p-0.5 text-white opacity-0 transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal group-hover:opacity-100"
+              className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-navy/80 text-white transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal md:h-6 md:w-6 md:opacity-0 md:group-hover:opacity-100"
             >
               <X className="h-3 w-3" />
             </button>
@@ -102,6 +108,7 @@ export function PhotoUpload({ photoUrls, onChange, label = "Photos or PDFs (opti
           <span className="text-[10px]">{isUploading ? "Uploading" : "Add"}</span>
         </button>
       </div>
+      {isUploading && <button type="button" className="min-h-11 rounded px-3 text-sm font-medium text-brand-blue" onClick={() => uploadController.current?.abort()}>Cancel upload</button>}
       <input
         ref={inputRef}
         type="file"

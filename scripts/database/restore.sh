@@ -1,11 +1,11 @@
 #!/bin/bash
-# scripts/restore.sh
+# Run from the project root: bash scripts/database/restore.sh <backup.sql>
 # Restores a logical backup to the Neon PostgreSQL database using psql.
 
 set -e
 
 if [ -z "$1" ]; then
-    echo "Usage: ./scripts/restore.sh <backup_file.sql>"
+    echo "Usage: bash scripts/database/restore.sh <backup_file.sql>"
     exit 1
 fi
 
@@ -37,6 +37,6 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 echo "Starting database restore from ${BACKUP_FILE}..."
-psql "$DIRECT_URL" -f "$BACKUP_FILE"
+psql "$DIRECT_URL" --set ON_ERROR_STOP=on --single-transaction -f "$BACKUP_FILE"
 
 echo "Restore completed successfully!"
