@@ -48,7 +48,7 @@ export function LoginHero() {
              src="/images/suzuki-spresso.jpg" 
              alt="Suzuki S-Presso Fleet Vehicle"
              fill
-             className="object-contain object-bottom drop-shadow-[0_20px_30px_rgba(0,0,0,0.5)] [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)]"
+             className="object-contain object-bottom drop-shadow-[0_20px_30px_rgba(0,0,0,0.5)] [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)]"
              priority
              sizes="(max-width: 1024px) 100vw, 60vw"
            />
