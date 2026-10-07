@@ -8,15 +8,15 @@ interface InfoField {
 
 export function InfoCard({ title, fields }: { title: string; fields: InfoField[] }) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold text-muted">{title}</CardTitle>
+    <Card className="bg-card border-border-subtle shadow-card-elevated">
+      <CardHeader className="pb-3 border-b border-border-subtle bg-surface-elevated/30">
+        <CardTitle className="text-sm font-semibold text-white">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
-        {fields.map((f) => (
-          <div key={f.label} className="flex items-center justify-between gap-4 text-sm">
-            <span className="text-muted">{f.label}</span>
-            <span className="text-right font-mono text-ink">{f.value}</span>
+      <CardContent className="space-y-0 p-0">
+        {fields.map((f, i) => (
+          <div key={f.label} className={`flex items-center justify-between gap-4 px-5 py-3 text-sm ${i < fields.length - 1 ? "border-b border-border-subtle/50" : ""}`}>
+            <span className="text-ink-secondary">{f.label}</span>
+            <span className="text-right font-mono-figures text-white">{f.value}</span>
           </div>
         ))}
       </CardContent>

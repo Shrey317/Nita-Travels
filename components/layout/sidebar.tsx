@@ -120,7 +120,7 @@ function UserBlock({ isCollapsed = false }: { isCollapsed?: boolean }) {
 
 export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed] = useState(false);
 
   return (
     <>

@@ -10,7 +10,7 @@ export default async function ServicePage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Service Status" description="Fully computed from your Transactions log." />
-      <div className="rounded-xl border border-status-warning/20 bg-status-warning-bg/50 p-4 text-sm text-ink">
+      <div className="rounded-xl border border-warning/20 bg-warning/5 p-4 text-sm text-ink-secondary">
         Service records are entered via the Transactions log (Category → Service).
       </div>
       <ServiceTable rows={rows} />

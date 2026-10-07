@@ -5,7 +5,7 @@ import { Car, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { ClientOnlyChart } from "@/components/shared/client-only-chart";
-import { chartTooltipStyle, chartLabelStyle } from "@/components/shared/chart-style";
+import { chartTooltipStyle } from "@/components/shared/chart-style";
 import type { Vehicle } from "@prisma/client";
 
 export function FleetStatus({ 

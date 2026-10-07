@@ -47,40 +47,42 @@ export function NotesTable({ notes, vehicles }: NotesTableProps) {
   }
 
   return (
-    <Table className="min-w-[760px]">
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead>Date</TableHead>
-          <TableHead>Vehicle</TableHead>
-          <TableHead>Registration</TableHead>
-          <TableHead>Note</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {notes.map((n) => (
-          <TableRow key={n.id} id={`note-${n.id}`} className="scroll-mt-24 bg-notebg/50 hover:bg-notebg/80 target:bg-brand-blue/10">
-            <TableCell className="whitespace-nowrap">{formatDate(n.date)}</TableCell>
-            <TableCell>{n.vehicleId ?? "—"}</TableCell>
-            <TableCell>{registrationLabel(n.vehicleId, vehicles)}</TableCell>
-            <TableCell className="min-w-72 max-w-lg break-words">
-              <p className="whitespace-pre-wrap">{n.note}</p>
-              <PhotoThumbnails urls={n.photoUrls} label={`Note file for ${registrationLabel(n.vehicleId, vehicles)} on ${formatDate(n.date)}`} />
-            </TableCell>
-            <TableCell className="text-right">
-              <div className="flex justify-end">
-                <DeleteConfirmDialog
-                  title="Delete this note?"
-                  description="This permanently removes the note. This can't be undone."
-                  onDelete={() => handleDelete(n.id)}
-                  successMessage="Note deleted"
-                  triggerLabel="Delete note"
-                />
-              </div>
-            </TableCell>
+    <div className="rounded-xl border border-border-subtle bg-card overflow-hidden shadow-card-elevated">
+      <Table className="min-w-[760px]">
+        <TableHeader>
+          <TableRow className="hover:bg-transparent bg-surface-elevated/50">
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Date</TableHead>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Vehicle</TableHead>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Registration</TableHead>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Note</TableHead>
+            <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Actions</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody className="divide-y divide-border-subtle">
+          {notes.map((n) => (
+            <TableRow key={n.id} id={`note-${n.id}`} className="hover:bg-surface-elevated/50 transition-colors scroll-mt-24 target:bg-primary/10">
+              <TableCell className="whitespace-nowrap text-ink-secondary">{formatDate(n.date)}</TableCell>
+              <TableCell className="font-bold text-white">{n.vehicleId ?? "—"}</TableCell>
+              <TableCell className="text-ink-secondary">{registrationLabel(n.vehicleId, vehicles)}</TableCell>
+              <TableCell className="min-w-72 max-w-lg break-words">
+                <p className="whitespace-pre-wrap text-ink-secondary leading-relaxed">{n.note}</p>
+                <PhotoThumbnails urls={n.photoUrls} label={`Note file for ${registrationLabel(n.vehicleId, vehicles)} on ${formatDate(n.date)}`} />
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end">
+                  <DeleteConfirmDialog
+                    title="Delete this note?"
+                    description="This permanently removes the note. This can't be undone."
+                    onDelete={() => handleDelete(n.id)}
+                    successMessage="Note deleted"
+                    triggerLabel="Delete note"
+                  />
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

@@ -74,52 +74,54 @@ function TransactionFiltersInner({ vehicles }: TransactionFiltersProps) {
   const hasActiveFilters = vehicleIds.length > 0 || categories.length > 0 || dateFrom || dateTo || urlSearch;
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <MultiSelect label="Vehicle" options={vehicleOptions} selected={vehicleIds} onChange={(v) => updateListParam("vehicleId", v)} />
-      <MultiSelect label="Category" options={categoryOptions} selected={categories} onChange={(v) => updateListParam("category", v)} />
-      <div className="space-y-1">
-        <Label htmlFor="txFilterFrom" className="text-xs">
-          From
-        </Label>
-        <Input
-          id="txFilterFrom"
-          type="date"
-          className="h-9"
-          value={dateFrom}
-          onChange={(e) => updateSingleParam("dateFrom", e.target.value || null)}
-        />
+    <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
+      <div className="flex flex-wrap items-end gap-3">
+        <MultiSelect label="Vehicle" options={vehicleOptions} selected={vehicleIds} onChange={(v) => updateListParam("vehicleId", v)} />
+        <MultiSelect label="Category" options={categoryOptions} selected={categories} onChange={(v) => updateListParam("category", v)} />
+        <div className="space-y-1">
+          <Label htmlFor="txFilterFrom" className="text-xs text-ink-secondary">
+            From
+          </Label>
+          <Input
+            id="txFilterFrom"
+            type="date"
+            className="h-9 bg-surface-elevated border-border-subtle"
+            value={dateFrom}
+            onChange={(e) => updateSingleParam("dateFrom", e.target.value || null)}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="txFilterTo" className="text-xs text-ink-secondary">
+            To
+          </Label>
+          <Input
+            id="txFilterTo"
+            type="date"
+            className="h-9 bg-surface-elevated border-border-subtle"
+            value={dateTo}
+            onChange={(e) => updateSingleParam("dateTo", e.target.value || null)}
+          />
+        </div>
+        <div className="min-w-[180px] flex-1 space-y-1">
+          <Label htmlFor="txFilterSearch" className="text-xs text-ink-secondary">
+            Search notes
+          </Label>
+          <Input
+            id="txFilterSearch"
+            className="h-9 bg-surface-elevated border-border-subtle"
+            placeholder="Search..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
+        {hasActiveFilters && (
+          <Button type="button" variant="ghost" size="sm" className="h-9 text-xs text-muted hover:text-white" onClick={() => router.push(pathname)}>
+            Clear filters
+          </Button>
+        )}
       </div>
-      <div className="space-y-1">
-        <Label htmlFor="txFilterTo" className="text-xs">
-          To
-        </Label>
-        <Input
-          id="txFilterTo"
-          type="date"
-          className="h-9"
-          value={dateTo}
-          onChange={(e) => updateSingleParam("dateTo", e.target.value || null)}
-        />
-      </div>
-      <div className="min-w-[180px] flex-1 space-y-1">
-        <Label htmlFor="txFilterSearch" className="text-xs">
-          Search notes
-        </Label>
-        <Input
-          id="txFilterSearch"
-          className="h-9"
-          placeholder="Search..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
-      </div>
-      {hasActiveFilters && (
-        <Button type="button" variant="ghost" size="sm" className="h-9 text-xs" onClick={() => router.push(pathname)}>
-          Clear filters
-        </Button>
-      )}
-      <label className="w-full space-y-1 text-sm font-medium md:hidden">Sort transactions
-        <select aria-label="Sort transactions" className="h-11 w-full rounded-input border border-border bg-card px-3" value={`${searchParams.get("sortBy") ?? "date"}:${searchParams.get("sortDir") ?? "desc"}`} onChange={event => {
+      <label className="mt-3 w-full space-y-1 text-sm font-medium text-ink-secondary md:hidden">Sort transactions
+        <select aria-label="Sort transactions" className="h-11 w-full rounded-lg border border-border-subtle bg-surface-elevated text-white px-3 mt-1" value={`${searchParams.get("sortBy") ?? "date"}:${searchParams.get("sortDir") ?? "desc"}`} onChange={event => {
           const [field, direction] = event.target.value.split(":");
           const params = new URLSearchParams(searchParams.toString());
           params.set("sortBy", field!); params.set("sortDir", direction!); params.delete("page");
@@ -141,7 +143,7 @@ function TransactionFiltersInner({ vehicles }: TransactionFiltersProps) {
  *  build time; wrapping it here means callers don't need to remember it. */
 export function TransactionFilters(props: TransactionFiltersProps) {
   return (
-    <Suspense fallback={<div className="h-9 w-full max-w-3xl rounded-lg bg-border/60 animate-pulse" />}>
+    <Suspense fallback={<div className="h-9 w-full max-w-3xl rounded-lg bg-border-subtle/60 animate-pulse" />}>
       <TransactionFiltersInner {...props} />
     </Suspense>
   );

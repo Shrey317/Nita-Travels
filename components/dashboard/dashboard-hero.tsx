@@ -10,9 +10,6 @@ export function DashboardHero() {
     weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" 
   });
   
-  const timeStr = businessToday().toLocaleTimeString("en-ZA", {
-    hour: "2-digit", minute: "2-digit", timeZone: "UTC"
-  });
 
   return (
     <div className="relative flex w-full flex-col overflow-hidden rounded-[20px] bg-gradient-to-br from-surface-sidebar to-background border border-border-subtle p-6 sm:p-8 md:flex-row md:items-center">
@@ -33,7 +30,7 @@ export function DashboardHero() {
           Good morning, admin 👋
         </h1>
         <p className="text-sm sm:text-base text-ink-secondary max-w-md">
-          Here's what's happening with your fleet today. Monitor operations, expenses, and upcoming services.
+          Here&apos;s what&apos;s happening with your fleet today. Monitor operations, expenses, and upcoming services.
         </p>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">

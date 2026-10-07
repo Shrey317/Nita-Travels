@@ -43,12 +43,12 @@ export default async function NotesPage(props: NotesPageProps) {
     <div className="space-y-8">
       <PageHeader title="Vehicle Notes" description="Driver changes, accidents, and general fleet news." />
 
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="rounded-xl border border-border-subtle bg-card p-6 shadow-card-elevated">
         <NoteForm vehicles={vehicles} />
       </div>
 
       <section className="space-y-4">
-        {searchParams.noteId && <p className="rounded-card border border-border bg-card p-3 text-sm">Showing the selected note. <Link href="/notes" className="text-brand-blue underline">View all notes</Link></p>}
+        {searchParams.noteId && <p className="rounded-xl border border-border-subtle bg-card p-3 text-sm text-ink-secondary">Showing the selected note. <Link href="/notes" className="text-primary hover:underline">View all notes</Link></p>}
         <VehicleDateFilters vehicleOptions={filterVehicleOptions} idPrefix="notes" />
         <NotesTable notes={result.items} vehicles={vehicles} />
         <Pagination page={result.page} limit={result.limit} total={result.total} />

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Plus, StickyNote, Gauge } from "lucide-react";
+import { Pencil, Plus, StickyNote, Gauge, Car } from "lucide-react";
 import { getVehicleDetail } from "@/lib/db/vehicles";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -88,11 +88,11 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
       ? "Expired"
       : `${insuranceDaysRemaining} day${insuranceDaysRemaining !== 1 ? "s" : ""}`;
   const insuranceColor = insuranceDaysRemaining === null
-    ? "text-ink"
+    ? "text-white"
     : insuranceExpired
-      ? "text-status-error"
+      ? "text-error"
       : insuranceDaysRemaining <= 30
-        ? "text-status-warning"
+        ? "text-warning"
         : "text-status-success";
 
   return (
@@ -101,16 +101,19 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="inline-flex items-center rounded-md bg-navy px-2.5 py-1 text-sm font-semibold text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+              <Car className="h-5 w-5 text-primary" />
+            </div>
+            <span className="inline-flex items-center rounded-lg bg-surface-elevated px-3 py-1.5 text-sm font-bold text-white border border-border-subtle">
               {vehicle.id}
             </span>
-            <h1 className="text-2xl font-semibold tracking-tight text-ink">
+            <h1 className="text-2xl font-bold tracking-tight text-white">
               {vehicle.make} {vehicle.model}
             </h1>
             {!vehicle.active && <Badge variant="destructive">Inactive</Badge>}
             {service && <Badge variant={badgeVariant[service.status]}>{badgeLabel[service.status]}</Badge>}
           </div>
-          <p className="mt-1 text-sm text-muted">{registrationLine}</p>
+          <p className="mt-2 text-sm text-ink-secondary">{registrationLine}</p>
           <p className="mt-1 text-xs text-muted">Vehicle command center · lifetime financial totals</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap shrink-0">
@@ -142,44 +145,44 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
         </div>
       </div>
 
-      <nav aria-label="Vehicle sections" className="flex flex-wrap gap-2 border-b border-border pb-4 text-sm">
-        <Link className="rounded-input px-3 py-2 text-brand-blue hover:bg-surface-secondary" href="#vehicle-financials">Financial</Link>
-        <Link className="rounded-input px-3 py-2 text-brand-blue hover:bg-surface-secondary" href="#vehicle-maintenance">Maintenance</Link>
-        <Link className="rounded-input px-3 py-2 text-brand-blue hover:bg-surface-secondary" href="#vehicle-operations">Operations</Link>
-        <Link className="rounded-input px-3 py-2 text-brand-blue hover:bg-surface-secondary" href="#vehicle-activity">Activity</Link>
-        <Link className="rounded-input px-3 py-2 text-brand-blue hover:bg-surface-secondary" href={`/analytics?vehicleId=${vehicle.id}`}>Period analytics</Link>
-        <Link className="rounded-input px-3 py-2 text-brand-blue hover:bg-surface-secondary" href={`/mileage?vehicleId=${vehicle.id}`}>Mileage history</Link>
+      <nav aria-label="Vehicle sections" className="flex flex-wrap gap-2 border-b border-border-subtle pb-4 text-sm">
+        <Link className="rounded-lg px-3 py-2 text-primary hover:bg-primary/10 transition-colors" href="#vehicle-financials">Financial</Link>
+        <Link className="rounded-lg px-3 py-2 text-primary hover:bg-primary/10 transition-colors" href="#vehicle-maintenance">Maintenance</Link>
+        <Link className="rounded-lg px-3 py-2 text-primary hover:bg-primary/10 transition-colors" href="#vehicle-operations">Operations</Link>
+        <Link className="rounded-lg px-3 py-2 text-primary hover:bg-primary/10 transition-colors" href="#vehicle-activity">Activity</Link>
+        <Link className="rounded-lg px-3 py-2 text-primary hover:bg-primary/10 transition-colors" href={`/analytics?vehicleId=${vehicle.id}`}>Period analytics</Link>
+        <Link className="rounded-lg px-3 py-2 text-primary hover:bg-primary/10 transition-colors" href={`/mileage?vehicleId=${vehicle.id}`}>Mileage history</Link>
       </nav>
 
       {/* ── Scannable Status Strip ── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted uppercase tracking-wider">Status</p>
-          <p className={`mt-1 font-semibold ${vehicle.active ? "text-status-success" : "text-status-error"}`}>
+        <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
+          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Status</p>
+          <p className={`mt-1.5 font-bold ${vehicle.active ? "text-status-success" : "text-error"}`}>
             {vehicle.active ? "Active" : "Inactive"}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted uppercase tracking-wider">Mileage</p>
-          <p className="mt-1 font-semibold text-ink font-mono-figures">{formatKm(vehicle.currentMileageKm)}</p>
+        <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
+          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Mileage</p>
+          <p className="mt-1.5 font-bold text-white font-mono-figures">{formatKm(vehicle.currentMileageKm)}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted uppercase tracking-wider">Health</p>
-          <p className={`mt-1 font-semibold ${health.score >= 80 ? 'text-status-success' : health.score >= 50 ? 'text-status-warning' : 'text-status-error'}`}>
+        <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
+          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Health</p>
+          <p className={`mt-1.5 font-bold ${health.score >= 80 ? 'text-status-success' : health.score >= 50 ? 'text-warning' : 'text-error'}`}>
             {health.score} / 100
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted uppercase tracking-wider">Insurance</p>
-          <p className={`mt-1 font-semibold ${insuranceColor}`}>{insuranceDisplay}</p>
+        <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
+          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Insurance</p>
+          <p className={`mt-1.5 font-bold ${insuranceColor}`}>{insuranceDisplay}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted uppercase tracking-wider">Lifetime revenue</p>
-          <p className="mt-1 font-semibold text-brand-blue font-mono-figures">{formatZAR(incomeCents)}</p>
+        <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
+          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Lifetime revenue</p>
+          <p className="mt-1.5 font-bold text-primary font-mono-figures">{formatZAR(incomeCents)}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted uppercase tracking-wider">Lifetime profit</p>
-          <p className={`mt-1 font-semibold font-mono-figures ${netProfitCents >= 0 ? "text-status-success" : "text-status-error"}`}>
+        <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
+          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Lifetime profit</p>
+          <p className={`mt-1.5 font-bold font-mono-figures ${netProfitCents >= 0 ? "text-status-success" : "text-error"}`}>
             {formatZAR(netProfitCents)}
           </p>
         </div>
@@ -192,7 +195,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
 
       <section id="vehicle-operations" className="scroll-mt-24 space-y-3">
         <SectionHeading title="Operations & Maintenance" />
-        <p className="text-sm text-muted">Last 12 calendar months · {operations.selection.label}. Figures use recorded activity; missing mileage is not estimated.</p>
+        <p className="text-sm text-ink-secondary">Last 12 calendar months · {operations.selection.label}. Figures use recorded activity; missing mileage is not estimated.</p>
         <div className="grid gap-4 md:grid-cols-2">
           <InfoCard title="Mileage & Utilization" fields={[
             { label: "Recorded distance", value: formatKm(operations.current.totals.mileageKm) },
@@ -212,7 +215,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
             { label: "Average repair amount", value: operations.current.maintenance.averageRepairCents === null ? "—" : formatZAR(operations.current.maintenance.averageRepairCents) },
           ]} />
         </div>
-        {operations.current.repairPatterns.length > 0 && <div className="rounded-card border border-status-warning/30 bg-card p-4"><h3 className="font-medium">Repeat repair patterns detected</h3><ul className="mt-2 space-y-2 text-sm text-muted">{operations.current.repairPatterns.map(pattern => <li key={pattern.category}><Link href={`/repairs?vehicleId=${vehicle.id}&dateFrom=${operations.selection.range.from.toISOString().slice(0, 10)}&dateTo=${operations.selection.range.to.toISOString().slice(0, 10)}`} className="text-brand-blue hover:underline">{pattern.category}: {pattern.occurrences} records · {formatZAR(pattern.totalCostCents)}</Link><span className="block">Previous {pattern.previousDate}; latest {pattern.latestDate}; {pattern.daysBetween} days apart. Repeated categories are evidence for review, not a confirmed fault.</span></li>)}</ul></div>}
+        {operations.current.repairPatterns.length > 0 && <div className="rounded-xl border border-warning/20 bg-warning/5 p-4 shadow-sm"><h3 className="font-semibold text-warning">Repeat repair patterns detected</h3><ul className="mt-2 space-y-2 text-sm text-ink-secondary">{operations.current.repairPatterns.map(pattern => <li key={pattern.category}><Link href={`/repairs?vehicleId=${vehicle.id}&dateFrom=${operations.selection.range.from.toISOString().slice(0, 10)}&dateTo=${operations.selection.range.to.toISOString().slice(0, 10)}`} className="text-primary hover:underline">{pattern.category}: {pattern.occurrences} records · {formatZAR(pattern.totalCostCents)}</Link><span className="block">Previous {pattern.previousDate}; latest {pattern.latestDate}; {pattern.daysBetween} days apart. Repeated categories are evidence for review, not a confirmed fault.</span></li>)}</ul></div>}
         <p className="text-xs text-muted">Downtime requires repair start and completion dates, which are not recorded. Warranty remains the supplied coverage text; dates and mileage limits are not inferred from it.</p>
       </section>
 
@@ -294,7 +297,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
 
       <section id="vehicle-financials" className="scroll-mt-24 space-y-3">
         <SectionHeading title="Monthly Financials" />
-        <p className="text-sm text-muted">Lifetime per-kilometre figures use the odometer difference since purchase. Use period analytics to compare recorded mileage and financial activity over matching dates.</p>
+        <p className="text-sm text-ink-secondary">Lifetime per-kilometre figures use the odometer difference since purchase. Use period analytics to compare recorded mileage and financial activity over matching dates.</p>
         <FinancialChart data={monthlyFinancials} />
       </section>
 

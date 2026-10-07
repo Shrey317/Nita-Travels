@@ -25,10 +25,10 @@ export default async function WeeklyPage(
       <PageHeader title="Weekly Breakdown" description="Financial performance and fleet metrics by week">
         <WeeklyRangeSelector />
       </PageHeader>
-      <form className="flex flex-wrap items-end gap-3 rounded-card border bg-card p-4" aria-label="Weekly filters">
+      <form className="flex flex-wrap items-end gap-3 rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated" aria-label="Weekly filters">
         <input type="hidden" name="range" value={rangeParam} />
-        <label className="text-sm">Vehicle<select name="vehicleId" defaultValue={searchParams.vehicleId ?? ""} className="mt-1 block h-10 rounded-input border bg-card px-3"><option value="">All vehicles and overhead</option>{vehicles.map(vehicle => <option key={vehicle.id}>{vehicle.id}</option>)}</select></label>
-        {rangeParam === "custom" && <><label className="text-sm">From<input className="mt-1 block h-10 rounded-input border bg-card px-3" type="date" required name="dateFrom" defaultValue={from ? dateKey(from) : ""} /></label><label className="text-sm">To<input className="mt-1 block h-10 rounded-input border bg-card px-3" type="date" required name="dateTo" defaultValue={to ? dateKey(to) : ""} /></label></>}
+        <label className="text-sm text-ink-secondary">Vehicle<select name="vehicleId" defaultValue={searchParams.vehicleId ?? ""} className="mt-1 block h-10 rounded-lg border border-border-subtle bg-surface-elevated text-white px-3"><option value="">All vehicles and overhead</option>{vehicles.map(vehicle => <option key={vehicle.id}>{vehicle.id}</option>)}</select></label>
+        {rangeParam === "custom" && <><label className="text-sm text-ink-secondary">From<input className="mt-1 block h-10 rounded-lg border border-border-subtle bg-surface-elevated text-white px-3" type="date" required name="dateFrom" defaultValue={from ? dateKey(from) : ""} /></label><label className="text-sm text-ink-secondary">To<input className="mt-1 block h-10 rounded-lg border border-border-subtle bg-surface-elevated text-white px-3" type="date" required name="dateTo" defaultValue={to ? dateKey(to) : ""} /></label></>}
         <Button type="submit" variant="outline">Apply filters</Button>
       </form>
       <p className="text-xs text-muted">Monday-start ISO weeks. Boundary-week labels cover the full week; totals include only the selected dates. Mileage is attributed to the reading date.</p>
@@ -42,7 +42,7 @@ export default async function WeeklyPage(
 
       <section className="space-y-3">
         <SectionHeading title="Weekly Trends" />
-        <Card>
+        <Card className="bg-card border-border-subtle shadow-card-elevated">
           <CardContent className="pt-6">
             <WeeklyChart rows={rows} />
           </CardContent>

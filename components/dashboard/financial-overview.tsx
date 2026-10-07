@@ -1,10 +1,10 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { formatZAR } from "@/lib/format";
 import { calculateChange } from "@/lib/finance";
 import type { AnalyticsReport } from "@/lib/db/analytics";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { chartColors, chartTooltipStyle, chartLabelStyle, chartCurrencyAxis } from "@/components/shared/chart-style";
 import { ClientOnlyChart } from "@/components/shared/client-only-chart";
 import { ArrowUpRight, ArrowDownRight, Minus, TrendingUp, Wallet, Receipt, Percent } from "lucide-react";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 export function FinancialOverview({ report }: { report: AnalyticsReport }) {
   const { current, previous } = report;
   
-  const getChangeNode = (val: number | null, prev: number | null, isRatio: boolean = false, inverted: boolean = false) => {
+  const getChangeNode = (val: number | null, prev: number | null, inverted: boolean = false) => {
     const change = calculateChange(val, prev);
     if (change.delta === null || change.percent === null) {
       return <span className="text-muted text-xs">No prior data</span>;
@@ -99,7 +99,7 @@ export function FinancialOverview({ report }: { report: AnalyticsReport }) {
             </div>
             
             <div className="mt-auto pt-2">
-              {getChangeNode(m.value, m.prev, m.isRatio, m.inverted)}
+              {getChangeNode(m.value, m.prev, m.inverted)}
             </div>
           </div>
         ))}

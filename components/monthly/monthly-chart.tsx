@@ -21,8 +21,8 @@ interface NetProfitDotProps {
  *  a neutral grey so it doesn't visually compete with the two bar series. */
 function NetProfitDot({ cx, cy, payload }: NetProfitDotProps) {
   if (cx === undefined || cy === undefined || !payload) return null;
-  const color = payload.netProfit >= 0 ? "#16A34A" : "#DC2626";
-  return <circle cx={cx} cy={cy} r={4} fill={color} stroke="#FFFFFF" strokeWidth={1} />;
+  const color = payload.netProfit >= 0 ? "#18C98B" : "#F05252";
+  return <circle cx={cx} cy={cy} r={4} fill={color} stroke="#0A1628" strokeWidth={2} />;
 }
 
 export function MonthlyChart({ rows }: { rows: MonthlyRow[] }) {
@@ -36,14 +36,14 @@ export function MonthlyChart({ rows }: { rows: MonthlyRow[] }) {
 
   if (chartData.length === 0) {
     return (
-      <div className="flex h-80 items-center justify-center rounded-xl border border-dashed border-border bg-card text-sm text-muted">
+      <div className="flex h-80 items-center justify-center rounded-xl border border-dashed border-border-subtle bg-card text-sm text-ink-secondary">
         No data to chart yet.
       </div>
     );
   }
 
   return (
-    <ClientOnlyChart className="h-80 rounded-xl border border-border bg-card p-4">
+    <ClientOnlyChart className="h-80 rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart accessibilityLayer data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
@@ -51,7 +51,7 @@ export function MonthlyChart({ rows }: { rows: MonthlyRow[] }) {
           <YAxis tickFormatter={formatAxisTick} tick={{ fontSize: 12 }} stroke={chartColors.text} width={56} />
           <Tooltip formatter={(value: number) => formatZAR(value)} contentStyle={chartTooltipStyle} labelStyle={chartLabelStyle} />
           <Legend />
-          <Bar isAnimationActive={false} dataKey="income" name="Income" fill="#0D9488" radius={[4, 4, 0, 0]} />
+          <Bar isAnimationActive={false} dataKey="income" name="Income" fill="#2F6BFF" radius={[4, 4, 0, 0]} />
           <Bar isAnimationActive={false} dataKey="expense" name="Expense" fill={chartColors.expense} radius={[4, 4, 0, 0]} />
           <Line isAnimationActive={false} dataKey="netProfit" name="Net P/L" stroke="#94A3B8" strokeWidth={2} dot={<NetProfitDot />} />
         </ComposedChart>

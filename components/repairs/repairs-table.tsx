@@ -19,39 +19,45 @@ export function RepairsTable({ transactions }: { transactions: Transaction[] }) 
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead>Date</TableHead>
-          <TableHead>Vehicle</TableHead>
-          <TableHead>Category</TableHead>
-          <TableHead className="text-right">Cost (R)</TableHead>
-          <TableHead>Description</TableHead>
-          <TableHead className="text-right">Mileage (km)</TableHead>
-          <TableHead>Month</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {transactions.map((t) => (
-          <TableRow key={t.id}>
-            <TableCell className="whitespace-nowrap">{formatDate(t.date)}</TableCell>
-            <TableCell>{formatVehicleLabel(t.vehicleId)}</TableCell>
-            <TableCell>{CATEGORY_LABELS[t.category] ?? t.category}</TableCell>
-            <TableCell className="text-right font-mono text-sm">{formatZAR(t.expenseZarCents)}</TableCell>
-            <TableCell className="max-w-xs">
-              <p className="truncate" title={t.notes ?? undefined}>
-                {t.notes ?? "—"}
-              </p>
-              <PhotoThumbnails
-                urls={t.photoUrls}
-                label={`${CATEGORY_LABELS[t.category] ?? t.category} file for ${formatVehicleLabel(t.vehicleId)} on ${formatDate(t.date)}`}
-              />
-            </TableCell>
-            <TableCell className="text-right font-mono text-sm">{formatKm(t.mileageKm)}</TableCell>
-            <TableCell className="whitespace-nowrap text-sm text-muted">{formatMonthKey(t.date)}</TableCell>
+    <div className="rounded-xl border border-border-subtle bg-card overflow-hidden shadow-card-elevated">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent bg-surface-elevated/50">
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Date</TableHead>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Vehicle</TableHead>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Category</TableHead>
+            <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Cost (R)</TableHead>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Description</TableHead>
+            <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Mileage (km)</TableHead>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Month</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody className="divide-y divide-border-subtle">
+          {transactions.map((t) => (
+            <TableRow key={t.id} className="hover:bg-surface-elevated/50 transition-colors">
+              <TableCell className="whitespace-nowrap text-ink-secondary">{formatDate(t.date)}</TableCell>
+              <TableCell className="font-bold text-white">{formatVehicleLabel(t.vehicleId)}</TableCell>
+              <TableCell>
+                <span className="inline-flex items-center rounded-md bg-surface-elevated px-2 py-0.5 text-[11px] font-semibold text-ink-secondary border border-border-subtle">
+                  {CATEGORY_LABELS[t.category] ?? t.category}
+                </span>
+              </TableCell>
+              <TableCell className="text-right font-mono-figures text-sm font-semibold text-error">{formatZAR(t.expenseZarCents)}</TableCell>
+              <TableCell className="max-w-xs">
+                <p className="truncate text-ink-secondary" title={t.notes ?? undefined}>
+                  {t.notes ?? "—"}
+                </p>
+                <PhotoThumbnails
+                  urls={t.photoUrls}
+                  label={`${CATEGORY_LABELS[t.category] ?? t.category} file for ${formatVehicleLabel(t.vehicleId)} on ${formatDate(t.date)}`}
+                />
+              </TableCell>
+              <TableCell className="text-right font-mono-figures text-sm text-ink-secondary">{formatKm(t.mileageKm)}</TableCell>
+              <TableCell className="whitespace-nowrap text-sm text-muted">{formatMonthKey(t.date)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

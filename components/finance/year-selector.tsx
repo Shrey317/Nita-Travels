@@ -23,9 +23,9 @@ export function YearSelector({ availableYears, selectedYear }: YearSelectorProps
 
   return (
     <div className="flex items-center space-x-2 mb-6">
-      <Label htmlFor="year-selector" className="text-sm font-medium">Select Year:</Label>
+      <Label htmlFor="year-selector" className="text-sm font-medium text-ink-secondary">Select Year:</Label>
       <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
-        <SelectTrigger id="year-selector" className="w-[120px]">
+        <SelectTrigger id="year-selector" className="w-[120px] h-10 border-border-subtle bg-surface-elevated text-white">
           <SelectValue placeholder="Select year" />
         </SelectTrigger>
         <SelectContent>
