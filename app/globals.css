@@ -2,73 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light;
-  --color-success: 21 128 61;
-  --color-warning: 180 83 9;
-  --color-error: 185 28 28;
-  --color-info: 29 78 216;
-  --note-bg: rgb(var(--color-notebg));
-  /* Main Neutral System */
-  --color-surface: 248 250 252;             /* #F8FAFC */
-  --color-surface-secondary: 241 245 249;   /* #F1F5F9 */
-  --color-surface-elevated: 255 255 255;    /* #FFFFFF */
-  --color-border: 226 232 240;              /* #E2E8F0 */
-  
-  /* Text */
-  --color-ink: 15 23 42;                    /* #0F172A */
-  --color-ink-secondary: 71 85 105;         /* #475569 */
-  --color-muted: 82 99 121;
-  --color-disabled: 148 163 184;            /* #94A3B8 */
-
-  /* Semantic Backgrounds (Light) */
-  --color-success-bg: 220 252 231;          /* #DCFCE7 */
-  --color-warning-bg: 254 243 199;          /* #FEF3C7 */
-  --color-error-bg: 254 226 226;            /* #FEE2E2 */
-  --color-info-bg: 219 234 254;             /* #DBEAFE */
-  --color-notebg: 254 249 195;              /* #FEF9C3 */
-}
-
-.dark {
-  color-scheme: dark;
-  --color-success: 74 222 128;
-  --color-warning: 251 191 36;
-  --color-error: 248 113 113;
-  --color-info: 147 197 253;
-  
-  /* Main Neutral System */
-  --color-surface: 2 6 23;                  /* #020617 */
-  --color-surface-secondary: 15 23 42;      /* #0F172A */
-  --color-surface-elevated: 30 41 59;       /* #1E293B */
-  --color-border: 51 65 85;                 /* #334155 */
-  
-  /* Text */
-  --color-ink: 248 250 252;                 /* #F8FAFC */
-  --color-ink-secondary: 203 213 225;       /* #CBD5E1 */
-  --color-muted: 148 163 184;               /* #94A3B8 */
-  --color-disabled: 71 85 105;              /* #475569 */
-
-  /* Semantic Backgrounds (Dark - Using Surface Elevated or brand specific opacity logic generally) */
-  /* For dark mode, we dim the semantic backgrounds significantly so they don't overpower the dark aesthetic */
-  --color-success-bg: 20 55 37;
-  --color-warning-bg: 62 43 18;
-  --color-error-bg: 66 29 36;
-  --color-info-bg: 24 45 75;
-  --color-notebg: 67 36 24;                 /* dark note background */
-}
-
 @layer base {
+  :root, .dark {
+    /* Main Backgrounds */
+    --color-background: 5 10 20;             /* #050A14 App background */
+    --color-surface: 7 17 31;                /* #07111F Secondary background */
+    --color-surface-sidebar: 9 20 38;        /* #091426 Sidebar */
+    --color-surface-elevated: 13 26 45;      /* #0D1A2D Elevated surface */
+    --color-card: 16 30 50;                  /* #101E32 Card */
+    --color-card-hover: 20 36 58;            /* #14243A Card hover */
+    --color-input: 16 29 48;                 /* #101D30 Input */
+    
+    /* Borders */
+    --color-border-subtle: 148 163 184;      /* alpha applied in tailwind */
+    --color-border: 148 163 184;             /* alpha applied in tailwind */
+    
+    /* Text */
+    --color-ink: 248 250 252;                /* #F8FAFC Primary text */
+    --color-ink-secondary: 168 181 200;      /* #A8B5C8 Secondary text */
+    --color-muted: 114 129 153;              /* #728199 Muted text */
+    --color-disabled: 114 129 153;           /* Same as muted for now */
+    
+    /* Semantic / Accent Colors */
+    --color-primary: 47 107 255;             /* #2F6BFF Primary blue */
+    --color-primary-hover: 57 120 255;       /* #3978FF */
+    --color-bright-blue: 77 141 255;         /* #4D8DFF */
+    --color-soft-blue: 120 169 255;          /* #78A9FF */
+    
+    --color-success: 24 201 139;             /* #18C98B Positive */
+    --color-warning: 245 185 66;             /* #F5B942 Warning */
+    --color-error: 240 82 82;                /* #F05252 Danger */
+    --color-info: 59 130 246;                /* #3B82F6 Informational */
+    
+    /* Semantic Backgrounds (Dimmed for dark mode cards) */
+    --color-success-bg: 24 201 139;
+    --color-warning-bg: 245 185 66;
+    --color-error-bg: 240 82 82;
+    --color-info-bg: 59 130 246;
+    --color-notebg: 20 36 58;                /* Use card hover color for note bg */
+  }
+
   * {
-    @apply border-border;
+    @apply border-white/10;
   }
   
   body {
-    @apply bg-surface text-ink antialiased;
+    @apply bg-[#050A14] text-[#F8FAFC] antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+  
   html { scroll-padding-top: 5rem; }
   summary { -webkit-tap-highlight-color: transparent; }
-  input, select, textarea { accent-color: #2563eb; }
+  input, select, textarea { accent-color: #2F6BFF; }
 }
 
 @media (max-width: 639px) {
@@ -79,12 +64,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.dark .text-brand-blue { color: #93c5fd; }
-.dark .text-status-success, .dark .text-status-green { color: rgb(var(--color-success)); }
-.dark .text-status-warning, .dark .text-status-yellow { color: rgb(var(--color-warning)); }
-.dark .text-status-error, .dark .text-status-red { color: rgb(var(--color-error)); }
-.dark .text-status-info { color: rgb(var(--color-info)); }
-
 @media print {
   aside, header, nav, button, [data-no-print] { display: none !important; }
   main { max-width: none !important; padding: 0 !important; }
@@ -93,7 +72,7 @@
 
 @layer base {
   :focus-visible {
-    outline: 2px solid theme('colors.brand.blue');
+    outline: 2px solid #2F6BFF;
     outline-offset: 2px;
   }
 }
@@ -107,17 +86,17 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.25);
+  background: rgba(148, 163, 184, 0.2);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.45);
+  background: rgba(148, 163, 184, 0.4);
 }
 
 /* ─── Brand-colored text selection ─── */
 ::selection {
-  background: rgba(37, 99, 235, 0.2); /* Brand Blue */
-  color: rgb(var(--color-ink));
+  background: rgba(47, 107, 255, 0.3); /* Primary Blue */
+  color: #F8FAFC;
 }
 
 /* ─── Reduced Motion Support ─── */
@@ -133,7 +112,7 @@
 [cmdk-overlay] {
   position: fixed;
   inset: 0;
-  background-color: rgba(2, 6, 23, 0.7);
+  background-color: rgba(5, 10, 20, 0.7);
   backdrop-filter: blur(4px);
   z-index: 50;
 }

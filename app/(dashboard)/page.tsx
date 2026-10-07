@@ -1,99 +1,67 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
 import { getAnalyticsReport } from "@/lib/db/analytics";
 import { getServiceStatusAllVehicles } from "@/lib/db/service";
 import { getFleetNotifications } from "@/lib/db/notifications";
-import { SERVICE_STATUS_SORT_ORDER } from "@/lib/service";
-import { FinancialSnapshot } from "@/components/analytics/financial-snapshot";
-import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
-import { VehicleSummaryTable } from "@/components/dashboard/vehicle-summary-table";
-import { ServiceOverviewTable } from "@/components/dashboard/service-overview-table";
-import { TodaysPriorities } from "@/components/dashboard/todays-priorities";
-import { PageHeader } from "@/components/shared/page-header";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { formatZAR, formatMargin } from "@/lib/format";
-import { businessToday, type AnalyticsSearchParams } from "@/lib/date-ranges";
-import { FinancialChart } from "@/components/vehicles/financial-chart";
-import { DetailSection } from "@/components/shared/detail-section";
-import { ArrowUpRight, Gauge, Plus, FileDown } from "lucide-react";
+import { getTransactions } from "@/lib/db/transactions";
+import type { AnalyticsSearchParams } from "@/lib/date-ranges";
+
+// New Phase 4 Components
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { FleetKPIs } from "@/components/dashboard/fleet-kpis";
+import { FinancialOverview } from "@/components/dashboard/financial-overview";
+import { FleetStatus } from "@/components/dashboard/fleet-status";
+import { RecentTransactions } from "@/components/dashboard/recent-transactions";
+import { UpcomingServices } from "@/components/dashboard/upcoming-services";
+import { AlertsPanel } from "@/components/dashboard/alerts-panel";
 
 export default async function DashboardPage(props: { searchParams: Promise<AnalyticsSearchParams> }) {
   const searchParams = await props.searchParams;
+  
+  // Fetch all necessary dashboard data
   const serviceRead = getServiceStatusAllVehicles();
-  const [report, services, notifications] = await Promise.all([
-    getAnalyticsReport(searchParams), serviceRead, getFleetNotifications(serviceRead),
+  const [report, services, notifications, transactionsData] = await Promise.all([
+    getAnalyticsReport(searchParams),
+    serviceRead,
+    getFleetNotifications(serviceRead),
+    getTransactions({ limit: 10 }), // fetch recent transactions
   ]);
-  const serviceMap = new Map(services.map((row) => [row.vehicleId, row]));
-  const vehicleMap = new Map(report.vehicles.map((vehicle) => [vehicle.id, vehicle]));
-  const vehicleRows = report.current.vehicles.flatMap((row) => {
-    const vehicle = vehicleMap.get(row.vehicleId);
-    return vehicle ? [{ vehicle, incomeCents: row.incomeCents, expenseCents: row.expenseCents,
-      repairsCents: row.repairsCents, netProfitCents: row.netProfitCents,
-      marginLabel: formatMargin(row.incomeCents, row.expenseCents), service: serviceMap.get(row.vehicleId) ?? null }] : [];
-  });
-  const serviceRows = [...services].sort((a, b) => SERVICE_STATUS_SORT_ORDER[a.status] - SERVICE_STATUS_SORT_ORDER[b.status]);
+
   const activeCount = report.vehicles.filter((vehicle) => vehicle.active).length;
   const attentionCount = new Set(notifications.filter((item) => item.vehicleId && item.priority !== "info").map((item) => item.vehicleId)).size;
-  const statuses = [
-    { label: "Total vehicles", value: report.vehicles.length, href: "/vehicles", tone: "text-ink" },
-    { label: "Active", value: activeCount, href: "/vehicles?status=active", tone: "text-status-success" },
-    { label: "Attention required", value: attentionCount, href: "/alerts", tone: attentionCount ? "text-status-warning" : "text-ink" },
-    { label: "Inactive", value: report.vehicles.length - activeCount, href: "/vehicles?status=inactive", tone: "text-muted" },
-  ];
-  const priorities = notifications.map((item) => ({ vehicleId: item.vehicleId ?? "Fleet", severity: item.priority, title: item.title, description: item.description, href: item.href }));
-  const totals = report.current.totals;
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(searchParams)) if (value) query.set(key, value);
-  const analyticsHref = `/analytics?${query}`;
+  const inactiveCount = report.vehicles.length - activeCount;
+
   return (
-    <div className="space-y-6">
-      <PageHeader title="Fleet Management" description={businessToday().toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}>
-        <Button asChild variant="outline"><Link href="/mileage/new"><Gauge aria-hidden="true" />Log mileage</Link></Button>
-        <Button asChild><Link href="/transactions/new"><Plus aria-hidden="true" />Log transaction</Link></Button>
-      </PageHeader>
-      <section aria-label="Current fleet status" className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border lg:grid-cols-4">
-        {statuses.map((status) => <Link key={status.label} href={status.href} className="group flex items-center gap-3 bg-card p-4 transition-colors hover:bg-surface-secondary"><span className={`text-2xl font-semibold tabular-nums ${status.tone}`}>{status.value}</span><span className="text-sm text-muted">{status.label}</span><ArrowUpRight aria-hidden="true" className="ml-auto hidden h-4 w-4 text-muted group-hover:text-brand-blue sm:block" /></Link>)}
-      </section>
-      <section className="space-y-4">
-        <SectionHeading title="Financial Snapshot" />
-        <DetailSection title="Reporting period" description={`${report.selection.label} · ${report.selection.vehicleId || "All vehicles"}`}>
-          <AnalyticsFilters selection={report.selection} vehicles={report.vehicles} />
-        </DetailSection>
-        <FinancialSnapshot report={report} compact />
-      </section>
-      <div className="grid items-start gap-5 xl:grid-cols-2">
-        <TodaysPriorities items={priorities} />
-        <section className="min-w-0 space-y-3" aria-label="Financial trends">
-          <div className="flex flex-wrap items-center justify-between gap-2"><SectionHeading title="Financial Trends" /><Link href={analyticsHref} className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-blue">Explore analytics<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></Link></div>
-          <FinancialChart data={report.current.monthly} />
-        </section>
+    <div className="space-y-6 flex flex-col w-full animate-fade-in">
+      {/* SECTION 1: Welcome / context header */}
+      <DashboardHero />
+
+      {/* SECTION 2: Fleet KPI cards */}
+      <FleetKPIs 
+        total={report.vehicles.length}
+        active={activeCount}
+        attention={attentionCount}
+        inactive={inactiveCount}
+      />
+
+      {/* SECTION 3 & 4: Financial Overview (with chart) + Fleet Status */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <FinancialOverview report={report} />
+        <FleetStatus 
+          total={report.vehicles.length}
+          active={activeCount}
+          attention={attentionCount}
+          inactive={inactiveCount}
+          recentVehicles={report.vehicles} // Using report vehicles as recent (can sort if needed)
+        />
       </div>
-      <DetailSection title="Fleet Performance" description={`${vehicleRows.length} vehicles · profit, expenses and service status`}>
-        <p className="text-sm text-muted">{report.selection.label}. Totals include fleet-wide and unassigned records; inactive vehicles retain their financial history.</p>
-        <VehicleSummaryTable vehicles={vehicleRows} fleetTotals={totals} totalLabel={report.selection.vehicleId ? "Selected vehicle total" : "Grand Total (fleet-wide)"} />
-      </DetailSection>
-      <DetailSection title="Maintenance & Mileage" description={`${formatZAR(totals.maintenanceCents)} maintenance · ${totals.mileageKm.toLocaleString("en-ZA")} km recorded`}>
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          {[
-            { label: "Repair expenditure", value: formatZAR(totals.repairsCents), detail: `${report.current.maintenance.repairCount} repair records`, href: `${report.sourceHref}&category=Repairs&category=BrakePads&category=Tyres` },
-            { label: "Service expenditure", value: formatZAR(totals.serviceCents), detail: `${report.current.maintenance.serviceCount} service records`, href: `${report.sourceHref}&category=Service` },
-            { label: "Total maintenance", value: formatZAR(totals.maintenanceCents), detail: "Repairs, services and maintenance categories", href: `${analyticsHref}#maintenance` },
-            { label: "Recorded distance", value: `${totals.mileageKm.toLocaleString("en-ZA")} km`, detail: `${report.current.mileage.violations.length} complete vehicle-weeks over limit`, href: report.mileageHref },
-          ].map((metric) => <Card key={metric.label}><CardContent className="p-4"><Link href={metric.href} className="text-sm font-medium text-muted hover:underline">{metric.label}</Link><p className="mt-2 break-words text-xl font-semibold tabular-nums">{metric.value}</p><p className="mt-1 text-xs text-muted">{metric.detail}</p></CardContent></Card>)}
-        </div>
-        <ServiceOverviewTable rows={serviceRows} />
-      </DetailSection>
-      <section className="space-y-3">
-        <SectionHeading title="Management Insights" />
-        <div className="grid gap-3 md:grid-cols-2">
-          <Card><CardContent className="p-5"><h3 className="font-medium">Why profit changed</h3><p className="mt-2 text-sm text-muted">Current profit {formatZAR(totals.netProfitCents)}; comparison profit {formatZAR(report.previous.totals.netProfitCents)}.</p><p className="mt-2 text-sm">Revenue contribution to the change: {formatZAR(report.profitBridge.revenueChange)}.</p><Link href={`${analyticsHref}#financial`} className="mt-3 inline-flex min-h-11 items-center text-sm text-brand-blue hover:underline">Inspect all numerical contributors →</Link></CardContent></Card>
-          <Card><CardContent className="p-4"><h3 className="font-medium">Records needing review</h3><p className="mt-2 text-sm text-muted">{report.current.repairPatterns.length} repeated repair category patterns and {report.current.dataIssues.length} data quality findings in this selection.</p><div className="mt-3 flex flex-wrap gap-4 text-sm"><Link href={`${analyticsHref}#maintenance`} className="text-brand-blue hover:underline">Maintenance evidence →</Link><Link href={`/data-quality?${query}`} className="text-brand-blue hover:underline">Data quality →</Link></div></CardContent></Card>
-        </div>
-      </section>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 text-sm text-muted"><p>Need the details for your next review?</p><Button asChild variant="outline"><Link href={`/reports?${query}`}><FileDown aria-hidden="true" />Download reports</Link></Button></div>
+
+      {/* SECTION 5, 6, 7: Bottom Grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <RecentTransactions transactions={transactionsData.items} />
+        <UpcomingServices services={services} />
+        <AlertsPanel alerts={notifications} />
+      </div>
     </div>
   );
 }

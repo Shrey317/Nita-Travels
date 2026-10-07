@@ -12,20 +12,26 @@ const config: Config = {
       colors: {
         // Nita Travels Brand Colors
         brand: {
-          navy: "#0F172A",
-          blue: "#2563EB",
-          blueAccent: "#3B82F6",
+          navy: "#050A14",
+          blue: "#2F6BFF",
+          blueAccent: "#4D8DFF",
           teal: "#0D9488",
         },
-        navy: { DEFAULT: "#0F172A", light: "#1E293B" },
+        navy: { DEFAULT: "#050A14", light: "#07111F" },
         teal: { DEFAULT: "#0D9488", light: "#14B8A6", dark: "#0F766E" },
 
         // Neutral System (Semantic custom properties via globals.css)
+        background: "rgb(var(--color-background) / <alpha-value>)",
         surface: "rgb(var(--color-surface) / <alpha-value>)",
-        "surface-secondary": "rgb(var(--color-surface-secondary) / <alpha-value>)",
+        "surface-sidebar": "rgb(var(--color-surface-sidebar) / <alpha-value>)",
+        "surface-secondary": "rgb(var(--color-surface) / <alpha-value>)",
         "surface-elevated": "rgb(var(--color-surface-elevated) / <alpha-value>)",
-        card: "rgb(var(--color-surface-elevated) / <alpha-value>)",
-        border: "rgb(var(--color-border) / <alpha-value>)",
+        card: "rgb(var(--color-card) / <alpha-value>)",
+        "card-hover": "rgb(var(--color-card-hover) / <alpha-value>)",
+        input: "rgb(var(--color-input) / <alpha-value>)",
+        
+        border: "rgba(148, 163, 184, 0.18)",
+        "border-subtle": "rgba(148, 163, 184, 0.12)",
 
         // Text Colors
         ink: "rgb(var(--color-ink) / <alpha-value>)",
@@ -33,15 +39,21 @@ const config: Config = {
         muted: "rgb(var(--color-muted) / <alpha-value>)",
         disabled: "rgb(var(--color-disabled) / <alpha-value>)",
 
+        // Primary Buttons / Accents
+        primary: {
+          DEFAULT: "rgb(var(--color-primary) / <alpha-value>)",
+          hover: "rgb(var(--color-primary-hover) / <alpha-value>)",
+        },
+
         // Semantic Status Colors
         status: {
-          success: { DEFAULT: "#15803D", bg: "rgb(var(--color-success-bg) / <alpha-value>)" },
-          warning: { DEFAULT: "#B45309", bg: "rgb(var(--color-warning-bg) / <alpha-value>)" },
-          error: { DEFAULT: "#B91C1C", bg: "rgb(var(--color-error-bg) / <alpha-value>)" },
-          info: { DEFAULT: "#1D4ED8", bg: "rgb(var(--color-info-bg) / <alpha-value>)" },
-          red: "#B91C1C",
-          yellow: "#B45309",
-          green: "#15803D",
+          success: { DEFAULT: "rgb(var(--color-success) / <alpha-value>)", bg: "rgb(var(--color-success-bg) / 0.1)" },
+          warning: { DEFAULT: "rgb(var(--color-warning) / <alpha-value>)", bg: "rgb(var(--color-warning-bg) / 0.1)" },
+          error: { DEFAULT: "rgb(var(--color-error) / <alpha-value>)", bg: "rgb(var(--color-error-bg) / 0.1)" },
+          info: { DEFAULT: "rgb(var(--color-info) / <alpha-value>)", bg: "rgb(var(--color-info-bg) / 0.1)" },
+          red: "rgb(var(--color-error) / <alpha-value>)",
+          yellow: "rgb(var(--color-warning) / <alpha-value>)",
+          green: "rgb(var(--color-success) / <alpha-value>)",
         },
         notebg: "rgb(var(--color-notebg) / <alpha-value>)",
       },
@@ -50,15 +62,15 @@ const config: Config = {
       },
       borderRadius: {
         badge: "0.375rem",   // 6px
-        input: "0.5rem",     // 8px
-        button: "0.5rem",    // 8px
-        card: "0.75rem",     // 12px
-        dialog: "0.875rem",  // 14px
+        input: "0.75rem",    // 12px
+        button: "0.75rem",   // 12px
+        card: "1rem",        // 16px
+        dialog: "1.25rem",   // 20px
       },
       boxShadow: {
-        "soft": "0 2px 8px -2px rgba(15, 23, 42, 0.05)",
-        "card-hover": "0 10px 40px -10px rgba(15, 23, 42, 0.15), 0 4px 12px -2px rgba(15, 23, 42, 0.08)",
-        "card-elevated": "0 20px 60px -15px rgba(15, 23, 42, 0.2)",
+        "soft": "0 2px 8px -2px rgba(0, 0, 0, 0.1)",
+        "card-hover": "0 10px 40px -10px rgba(0, 0, 0, 0.2), 0 4px 12px -2px rgba(0, 0, 0, 0.1)",
+        "card-elevated": "0 20px 60px -15px rgba(0, 0, 0, 0.3)",
       },
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },

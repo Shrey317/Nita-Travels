@@ -24,14 +24,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
-      <body className="font-sans antialiased">
-        {/* Inline script prevents flash of wrong theme on page load by setting the `dark` class
-            before React hydrates. Runs synchronously before any content paints. */}
-        <script dangerouslySetInnerHTML={{
-          __html:
-            `try{var t=localStorage.getItem("theme");if(t==="dark"||((!t||t==="system")&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){if(window.matchMedia("(prefers-color-scheme: dark)").matches)document.documentElement.classList.add("dark")}`
-        }} />
+    <html lang="en" className={`dark ${inter.variable}`} suppressHydrationWarning>
+      <body className="font-sans antialiased bg-[#050A14] text-[#F8FAFC]">
         <ThemeProvider>
           <TooltipProvider>{children}</TooltipProvider>
         </ThemeProvider>
