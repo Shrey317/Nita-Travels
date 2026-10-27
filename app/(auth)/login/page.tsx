@@ -4,6 +4,9 @@ import { signIn } from "@/auth";
 import { LoginHero } from "./components/LoginHero";
 import { LoginForm } from "./components/LoginForm";
 import { Metadata } from "next";
+import { RouteBackground } from "./components/RouteBackground";
+import { BrandLogo } from "./components/BrandLogo";
+import styles from "./login.module.css";
 
 export const metadata: Metadata = {
   title: "Login | Nita Travels Fleet Management",
@@ -30,14 +33,13 @@ export default async function LoginPage(props: { searchParams: Promise<{ error?:
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-[#050B18]">
-      {/* Desktop Left Side */}
-      <LoginHero />
-      
-      {/* Right Side (Full width on mobile, 38-40% on desktop) */}
-      <div className="flex w-full lg:w-[38%] items-center justify-center p-6 sm:p-12">
+    <main className={styles.page}>
+      <RouteBackground />
+      <div className={styles.layout}>
+        <BrandLogo className={styles.brand} />
+        <LoginHero />
         <LoginForm action={authenticate} error={searchParams?.error} />
       </div>
-    </div>
+    </main>
   );
 }

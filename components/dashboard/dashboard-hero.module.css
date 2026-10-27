@@ -1,0 +1,78 @@
+.banner {
+  container-type: inline-size;
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 85% 55%, rgb(47 107 255 / 12%), transparent 48%),
+    linear-gradient(115deg, #0b1220, #101b2d);
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  padding: 28px 24px;
+}
+
+.greeting {
+  max-width: 560px;
+  font-size: 30px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.actions {
+  flex-direction: column;
+}
+
+.vehicle {
+  display: none;
+  position: absolute;
+  pointer-events: none;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 46%;
+  max-width: 560px;
+  aspect-ratio: 1.65;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, #000 20%, #000 86%, transparent);
+}
+
+.vehicleFade {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 80%, transparent);
+}
+
+.vehicleScene {
+  position: absolute;
+  left: -20%;
+  top: -75%;
+  width: 210%;
+  aspect-ratio: 1672 / 941;
+}
+
+/* Use available panel width, since the expanded sidebar consumes tablet space. */
+@container (min-width: 440px) {
+  .content { padding: 32px; }
+  .actions { flex-direction: row; flex-wrap: wrap; }
+  .greeting { font-size: 32px; }
+}
+
+@container (min-width: 640px) {
+  .content { width: 62%; min-height: 290px; }
+  .vehicle { display: block; opacity: 0.85; }
+}
+
+@container (min-width: 860px) {
+  .content { width: 60%; min-height: 304px; padding: 36px 40px; }
+  .greeting { font-size: 40px; }
+  .vehicle { opacity: 1; }
+}
+
+@container (min-width: 1100px) {
+  .vehicle { right: 6%; }
+}

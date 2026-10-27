@@ -1,65 +1,75 @@
 import Image from "next/image";
-import { businessToday } from "@/lib/date-ranges";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus, Gauge, Calendar } from "lucide-react";
-import { RouteBackground } from "@/app/(auth)/login/components/RouteBackground"; // Reuse background
+import { auth } from "@/auth";
+import { businessToday } from "@/lib/date-ranges";
+import { Button } from "@/components/ui/button";
+import suzukiSpresso from "@/public/images/suzuki-spresso.jpg";
+import styles from "./dashboard-hero.module.css";
 
-export function DashboardHero() {
-  const today = businessToday().toLocaleDateString("en-ZA", { 
-    weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" 
+export async function DashboardHero() {
+  const session = await auth();
+  const now = new Date();
+  const date = businessToday(now);
+  const today = date.toLocaleDateString("en-ZA", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
   });
-  
+  const hour = Number(new Intl.DateTimeFormat("en-ZA", {
+    hour: "numeric", hourCycle: "h23", timeZone: "Africa/Johannesburg",
+  }).format(now));
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const name = session?.user?.name?.trim();
+  // The single-admin account has a branded name. Shorten it for display only.
+  const displayName = !name || /^(admin|nita travels admin)$/i.test(name)
+    ? "Admin"
+    : name.charAt(0).toLocaleUpperCase("en-ZA") + name.slice(1);
 
   return (
-    <div className="relative flex w-full flex-col overflow-hidden rounded-[20px] bg-gradient-to-br from-surface-sidebar to-background border border-border-subtle p-6 sm:p-8 md:flex-row md:items-center">
-      {/* Background Graphic */}
-      <div className="absolute inset-0 z-0 opacity-30 mix-blend-screen pointer-events-none">
-        <RouteBackground />
-      </div>
-
-      <div className="relative z-10 flex flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-muted mb-4">
-          <div className="flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface/50 px-3 py-1 backdrop-blur-md">
-            <Calendar className="h-3.5 w-3.5" />
-            {today}
-          </div>
+    <section aria-labelledby="dashboard-greeting" className={`${styles.banner} rounded-[24px] border border-border-subtle shadow-soft`}>
+      <div className={styles.content}>
+        <div className="mb-4 flex w-fit max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium leading-5 text-[#A8B5C8]">
+          <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <time dateTime={date.toISOString().slice(0, 10)}>{today}</time>
         </div>
-        
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-2">
-          Good morning, admin 👋
+
+        <h1 id="dashboard-greeting" className={`${styles.greeting} mb-3 font-semibold tracking-tight text-white`}>
+          {greeting}, {displayName}
         </h1>
-        <p className="text-sm sm:text-base text-ink-secondary max-w-md">
-          Here&apos;s what&apos;s happening with your fleet today. Monitor operations, expenses, and upcoming services.
+        <p className="max-w-[480px] text-base leading-relaxed text-[#A8B5C8]">
+          Track your fleet, manage expenses, and stay ahead of maintenance.
         </p>
 
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Button asChild className="h-11 rounded-[12px] bg-primary hover:bg-primary-hover text-white shadow-soft font-semibold px-5">
+        <div className={`${styles.actions} mt-6 flex gap-3`}>
+          <Button asChild className="h-12 rounded-button bg-primary px-5 font-semibold text-white hover:bg-primary hover:brightness-95 focus-visible:ring-brand-blueAccent focus-visible:ring-offset-[#0B1220]">
             <Link href="/mileage/new">
-              <Gauge className="mr-2 h-4 w-4" aria-hidden="true" /> Log Mileage
+              <Gauge aria-hidden="true" /> Log Mileage
             </Link>
           </Button>
-          <Button asChild variant="outline" className="h-11 rounded-[12px] border-border-subtle bg-surface-elevated hover:bg-surface hover:text-white text-ink-secondary shadow-sm font-semibold px-5">
+          <Button asChild variant="outline" className="h-12 rounded-button border-white/15 bg-[#142238] px-5 font-semibold text-white hover:border-white/25 hover:bg-[#1C304C] hover:text-white focus-visible:ring-brand-blueAccent focus-visible:ring-offset-[#0B1220]">
             <Link href="/transactions/new">
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" /> Log Transaction
+              <Plus aria-hidden="true" /> Log Transaction
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* Decorative Vehicle Image - hidden on very small screens */}
-      <div className="relative z-10 hidden md:block w-1/3 h-[180px] mt-6 md:mt-0 pointer-events-none">
-        <div className="absolute inset-0 right-[-10%] bottom-[-20%] scale-110">
-          <Image 
-             src="/images/suzuki-spresso.jpg" 
-             alt="Fleet Vehicle"
-             fill
-             className="object-contain object-bottom drop-shadow-[0_15px_25px_rgba(0,0,0,0.6)] [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)]"
-             priority
-             sizes="(max-width: 1024px) 30vw, 20vw"
-           />
+      <div aria-hidden="true" className={styles.vehicle}>
+        {/* Reframe the original scene around the car, without stretching it.
+            Nested masks blend both axes without masking the vehicle itself. */}
+        <div className={styles.vehicleFade}>
+          <div className={styles.vehicleScene}>
+            <Image
+              src={suzukiSpresso}
+              alt=""
+              fill
+              className="object-contain"
+              sizes="(min-width: 1600px) 1176px, (min-width: 1024px) 95vw, 100vw"
+              quality={90}
+              priority
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
