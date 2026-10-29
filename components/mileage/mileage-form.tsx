@@ -17,6 +17,7 @@ import { mileageEntrySchema } from "@/lib/schemas/mileage.schema";
 import { vehicleIdOptions } from "@/components/shared/vehicle-options";
 import { formatKm } from "@/lib/format";
 import { WEEKLY_MILEAGE_LIMIT } from "@/lib/mileage";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 
 interface MileageFormProps {
   vehicles: { id: string; registration: string }[];
@@ -40,6 +41,7 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isPending, setIsPending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
 
   // Server-fetched, read-only — SRS 13.5 forbids trusting a client-submitted previous reading.
   useEffect(() => {
@@ -99,7 +101,12 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
       return;
     }
     setErrors({});
+    setReviewing(true);
+  }
 
+  async function saveReviewedEntry() {
+    if (isPending || isUploading) return;
+    const payload = buildPayload();
     setIsPending(true);
       try {
         const res = await fetch("/api/mileage", {
@@ -121,6 +128,7 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
         toast({ title: "Network error — please try again", variant: "destructive" });
       } finally {
         setIsPending(false);
+        setReviewing(false);
       }
   }
 
@@ -171,6 +179,8 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
           <Input
             id="mCurrent"
             type="number"
+            inputMode="numeric"
+            step={1}
             min={0}
             value={currentMileageKm}
             onChange={(e) => setCurrentMileageKm(e.target.value)}
@@ -211,6 +221,25 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
         </Button>
       </div>
       </ReadyFieldset>
+      <AlertDialog open={reviewing} onOpenChange={(open) => { if (!isPending) setReviewing(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Check mileage before saving</AlertDialogTitle>
+            <AlertDialogDescription>Confirm the vehicle, reading date and odometer number. Choose Go back to correct them.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <dl className="grid grid-cols-2 gap-3 text-sm">
+            <dt>Vehicle</dt><dd className="font-semibold">{vehicleId}</dd>
+            <dt>Reading date</dt><dd className="font-semibold">{date ? new Intl.DateTimeFormat('en-ZA', { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`)) : ''}</dd>
+            <dt>Previous reading</dt><dd>{formatKm(previousMileageKm)}</dd>
+            <dt>New reading</dt><dd className="font-semibold">{formatKm(currentKmNum)}</dd>
+            <dt>Distance</dt><dd>{formatKm(distance)}</dd>
+          </dl>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Go back</AlertDialogCancel>
+            <Button type="button" disabled={isPending} onClick={saveReviewedEntry}>{isPending ? 'Saving...' : 'Confirm mileage'}</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   );
 }

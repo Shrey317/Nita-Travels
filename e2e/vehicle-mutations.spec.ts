@@ -35,6 +35,11 @@ test('mileage create and edit update the stored odometer; deletion can be cancel
   await expect(page.getByLabel('Previous Mileage', { exact: true })).toHaveValue(/30.*000/);
   await page.getByLabel('Current Mileage (km)', { exact: true }).fill('31500');
   await page.getByRole('button', { name: 'Log Mileage', exact: true }).click();
+  await expect(page.getByRole('alertdialog')).toContainText('Check mileage before saving');
+  await page.getByRole('button', { name: 'Go back', exact: true }).click();
+  await expect(page).toHaveURL(/\/mileage\/new/);
+  await page.getByRole('button', { name: 'Log Mileage', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm mileage', exact: true }).click();
   await expect(page).toHaveURL(/\/mileage$/);
   await page.goto('/mileage?vehicleId=CR93');
   // Modal dialogs temporarily hide background roles; use the stable DOM row identity.
