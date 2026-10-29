@@ -32,6 +32,11 @@ test('dashboard document and images finish loading after login', async ({ page }
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   try { await page.waitForLoadState('load', { timeout: 15000 }); }
-  catch { throw new Error(`Dashboard load event did not finish. Pending paths: ${[...pending].join(', ')}. Image state: ${JSON.stringify(await page.locator('img').evaluateAll(nodes => nodes.map(node => ({ path: new URL(node.currentSrc || node.src).pathname, complete: node.complete, width: node.naturalWidth }))))}`); }
+  catch {
+    const images = await page.locator('img').evaluateAll(nodes => nodes
+      .filter((node): node is HTMLImageElement => node instanceof HTMLImageElement)
+      .map(node => ({ path: new URL(node.currentSrc || node.src).pathname, complete: node.complete, width: node.naturalWidth })));
+    throw new Error(`Dashboard load event did not finish. Pending paths: ${[...pending].join(', ')}. Image state: ${JSON.stringify(images)}`);
+  }
   for (const image of await page.locator('main img').all()) await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0)).toBeTruthy();
 });
