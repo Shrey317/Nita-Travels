@@ -46,13 +46,13 @@ export default async function DashboardPage(props: { searchParams: Promise<Analy
 
       {/* SECTION 3 & 4: Financial Overview (with chart) + Fleet Status */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <FinancialOverview report={report} />
+        <FinancialOverview report={{ current: { totals: report.current.totals, monthly: report.current.monthly }, previous: { totals: report.previous.totals } }} />
         <FleetStatus 
           total={report.vehicles.length}
           active={activeCount}
           attention={attentionCount}
           inactive={inactiveCount}
-          recentVehicles={report.vehicles} // Using report vehicles as recent (can sort if needed)
+          recentVehicles={report.vehicles.slice(0, 4).map(({ id, make, model, active, currentMileageKm }) => ({ id, make, model, active, currentMileageKm }))}
         />
       </div>
 

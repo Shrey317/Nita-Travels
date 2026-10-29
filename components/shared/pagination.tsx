@@ -34,7 +34,7 @@ function PaginationInner({ page, limit, total }: PaginationProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted">
       <span>
-        Showing {start}–{end} of {total}
+        {start > total ? `No records on this page (${total} total)` : `Showing ${start}–${end} of ${total}`}
       </span>
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={() => goToPage(page - 1)} disabled={page <= 1} aria-label="Previous page">

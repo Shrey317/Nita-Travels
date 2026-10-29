@@ -10,8 +10,7 @@ describe("Notifications Integration Tests", () => {
   });
   afterAll(async () => {
     await verifyTestEnvironment(true);
-    await prisma.mileageEntry.deleteMany({ where: { vehicleId: { in: ['TEST-NOTIF-01', 'TEST-NOTIF-02'] } } });
-    await prisma.vehicle.deleteMany({ where: { id: { in: ['TEST-NOTIF-01', 'TEST-NOTIF-02'] } } });
+
   });
 
   it("handles Monday-Sunday boundaries correctly and ignores inactive vehicles", async () => {
@@ -20,8 +19,7 @@ describe("Notifications Integration Tests", () => {
     const inactiveId = "TEST-NOTIF-02";
 
     // Clean up first
-    await prisma.mileageEntry.deleteMany({ where: { vehicleId: { in: [activeId, inactiveId] } } });
-    await prisma.vehicle.deleteMany({ where: { id: { in: [activeId, inactiveId] } } });
+
 
     await prisma.vehicle.create({
       data: {

@@ -20,6 +20,18 @@ describe("historical mileage chain", () => {
     expect(() => deriveMileageChain([reading("first", "2026-01-07", 10_000)], 10_000)).toThrow();
     expect(() => deriveMileageChain([reading("first", "2026-01-07", 9_000)], 10_000)).toThrow();
   });
+  it("rejects an edit equal to its successor even when it exceeds its predecessor", () => {
+    expect(() => deriveMileageChain([
+      reading("first", "2026-01-07", 11_000),
+      reading("edited", "2026-01-14", 12_000),
+      reading("last", "2026-01-21", 12_000),
+    ], 10_000, "edited")).toThrow(/preceding reading/);
+  });
+  it("recalculates a valid purchase correction and rejects one above the first reading", () => {
+    const entries = [reading("first", "2026-01-07", 11_000), reading("last", "2026-01-14", 12_000)];
+    expect(deriveMileageChain(entries, 10_500).map(entry => entry.distanceDrivenKm)).toEqual([500, 1_000]);
+    expect(() => deriveMileageChain(entries, 11_500)).toThrow(/purchase mileage/);
+  });
   it("preserves the established 5,000 km entry validation while allowing a gap bridged after deletion", () => {
     const entries = [reading("last", "2026-01-21", 16_000)];
     expect(() => deriveMileageChain(entries, 10_000, "last")).toThrow(/5,000/);

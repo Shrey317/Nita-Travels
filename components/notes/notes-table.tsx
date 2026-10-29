@@ -62,7 +62,7 @@ export function NotesTable({ notes, vehicles }: NotesTableProps) {
           {notes.map((n) => (
             <TableRow key={n.id} id={`note-${n.id}`} className="hover:bg-surface-elevated/50 transition-colors scroll-mt-24 target:bg-primary/10">
               <TableCell className="whitespace-nowrap text-ink-secondary">{formatDate(n.date)}</TableCell>
-              <TableCell className="font-bold text-white">{n.vehicleId ?? "—"}</TableCell>
+              <TableCell className="font-bold text-ink">{n.vehicleId ?? "—"}</TableCell>
               <TableCell className="text-ink-secondary">{registrationLabel(n.vehicleId, vehicles)}</TableCell>
               <TableCell className="min-w-72 max-w-lg break-words">
                 <p className="whitespace-pre-wrap text-ink-secondary leading-relaxed">{n.note}</p>

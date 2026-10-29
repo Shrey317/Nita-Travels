@@ -3,24 +3,15 @@ import { login } from './helpers';
 
 test.beforeEach(async ({ page }) => login(page));
 
-test('dashboard prioritizes financials and keeps detail keyboard accessible', async ({ page }) => {
-  const financials = page.getByRole('region', { name: 'Financial snapshot', exact: true });
-  await expect(financials.getByRole('link', { name: 'Revenue', exact: true })).toBeVisible();
-  const period = page.locator('details').filter({ has: page.locator('summary', { hasText: 'Reporting period' }) });
-  await expect(period).not.toHaveAttribute('open');
-  await period.locator('summary').click();
-  await expect(period.getByLabel('Period', { exact: true })).toBeVisible();
-  await period.locator('summary').click();
-  const priorities = page.locator('main').locator('div.rounded-card').filter({ has: page.getByText("Today's Priorities", { exact: true }) });
-  // The dashboard exposes at most three source alerts, with a link to the full list.
-  await expect(page.getByRole('link', { name: /View all \d+ alerts/ })).toBeVisible();
-  expect(await priorities.locator('a').count()).toBeLessThanOrEqual(4);
-  const details = page.locator('details').filter({ has: page.locator('summary', { hasText: 'Fleet Performance' }) });
-  await expect(details).not.toHaveAttribute('open');
-  await details.locator('summary').focus();
+test('dashboard exposes financial figures and working transaction drill-down', async ({ page }) => {
+  await expect(page.getByRole('heading', { name: 'Financial Overview', exact: true })).toBeVisible();
+  const figures = page.locator('summary').filter({ hasText: 'View monthly figures' });
+  await figures.focus();
   await page.keyboard.press('Enter');
-  await expect(details).toHaveAttribute('open');
-  await expect(details.getByRole('table')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Monthly financial figures' })).toBeVisible();
+  const transaction = page.locator('a[href^="/transactions?txId="]').first();
+  await transaction.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
 });
 
 test('upload policy permits the Blob API transport without contacting a live store', async ({ page }) => {
@@ -62,14 +53,14 @@ test('mobile navigation, transaction cards, sorting and offline status work', as
 
 test('filter browser history restores controls and rejects reversed dates', async ({ page }) => {
   await page.goto('/analytics?range=12-months');
-  await page.getByLabel('Period', { exact: true }).selectOption('last-month');
+  await page.getByRole('form', { name: 'Analytics filters' }).getByLabel('Period', { exact: true }).selectOption('last-month');
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
   await expect(page).toHaveURL(/range=last-month/);
   await page.goBack();
-  await expect(page.getByLabel('Period', { exact: true })).toHaveValue('12-months');
-  await page.getByLabel('Period', { exact: true }).selectOption('custom');
-  await page.getByLabel('From', { exact: true }).fill('2026-06-20');
-  await page.getByLabel('To', { exact: true }).fill('2026-06-01');
+  await expect(page.getByRole('form', { name: 'Analytics filters' }).getByLabel('Period', { exact: true })).toHaveValue('12-months');
+  await page.getByRole('form', { name: 'Analytics filters' }).getByLabel('Period', { exact: true }).selectOption('custom');
+  await page.getByRole('form', { name: 'Analytics filters' }).getByLabel('From', { exact: true }).fill('2026-06-20');
+  await page.getByRole('form', { name: 'Analytics filters' }).getByLabel('To', { exact: true }).fill('2026-06-01');
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
   await expect(page).toHaveURL(/range=12-months/);
   expect(await page.getByRole('form', { name: 'Analytics filters' }).evaluate((form: HTMLFormElement) => form.checkValidity())).toBe(false);

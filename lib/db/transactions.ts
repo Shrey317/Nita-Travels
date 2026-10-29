@@ -7,6 +7,7 @@
  */
 
 import type { Prisma, Transaction, Category } from "@prisma/client";
+import { verifyNewAttachments } from "@/lib/verify-attachments";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
 import { NotFoundError } from "@/lib/errors";
 import { requireVehicleReference } from "@/lib/db/vehicle-reference";
@@ -99,10 +100,9 @@ export async function getTransactionById(id: string): Promise<Transaction | null
  * an earlier, lower reading entered after a later one (e.g. correcting historical data) must not
  * regress the fleet's live mileage figure.
  */
-async function syncVehicleMileageFromService(
+async function syncVehicleMileageFromReading(
   tx: Prisma.TransactionClient,
   vehicleId: string | null,
-  category: string,
   mileageKm: number | null | undefined
 ): Promise<void> {
   if (mileageKm == null || !vehicleId || vehicleId === FLEET_WIDE_VEHICLE_ID) return;
@@ -111,10 +111,11 @@ async function syncVehicleMileageFromService(
 
 export async function createTransaction(input: TransactionInput): Promise<Transaction> {
   const data = transactionSchema.parse(input);
+  await verifyNewAttachments(data.photoUrls);
   return prisma.$transaction(async (tx) => {
     await requireVehicleReference(tx, data.vehicleId);
     const created = await tx.transaction.create({ data });
-    await syncVehicleMileageFromService(tx, data.vehicleId, data.category, data.mileageKm);
+    await syncVehicleMileageFromReading(tx, data.vehicleId, data.mileageKm);
     return created;
   }, TRANSACTION_OPTIONS);
 }
@@ -122,16 +123,16 @@ export async function createTransaction(input: TransactionInput): Promise<Transa
 /** Merges the PATCH body onto the existing row, validates the complete result, then writes —
  *  see vehicles.schema's equivalent comment for why this matters for cross-field rules. */
 export async function updateTransaction(id: string, input: TransactionUpdateInput): Promise<Transaction> {
-  const existing = await prisma.transaction.findUnique({ where: { id, deletedAt: null } });
-  if (!existing) throw new NotFoundError(`Transaction ${id} not found`);
-
   const partial = transactionUpdateSchema.parse(input);
-  const merged = transactionSchema.parse({ ...existing, ...partial });
-
   return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Transaction" WHERE id = ${id} FOR UPDATE`;
+    const existing = await tx.transaction.findUnique({ where: { id, deletedAt: null } });
+    if (!existing) throw new NotFoundError(`Transaction ${id} not found`);
+    const merged = transactionSchema.parse({ ...existing, ...partial });
+    await verifyNewAttachments(merged.photoUrls, existing.photoUrls);
     await requireVehicleReference(tx, merged.vehicleId);
     const updated = await tx.transaction.update({ where: { id, deletedAt: null }, data: merged });
-    await syncVehicleMileageFromService(tx, merged.vehicleId, merged.category, merged.mileageKm);
+    await syncVehicleMileageFromReading(tx, merged.vehicleId, merged.mileageKm);
     return updated;
   }, TRANSACTION_OPTIONS);
 }
@@ -242,7 +243,7 @@ export async function getRepairsAnomalies(): Promise<RepairAnomaly[]> {
       anomalies.push({
         vehicleId,
         type: "HIGH_COST",
-        description: `Repair spending (R${(cost / 100).toFixed(0)}) is more than double the fleet average (R${(avgCost / 100).toFixed(0)}).`
+        description: `Repair spending (R${(cost / 100).toFixed(0)}) is more than double the average among vehicles with repair records (R${(avgCost / 100).toFixed(0)}).`
       });
     }
   }
@@ -255,11 +256,21 @@ const CSV_HEADER = ["Date", "Vehicle", "Category", "Income (R)", "Expense (R)", 
 /** CSV export of a filtered transaction set (SRS 16, GET /api/transactions/export) — no page
  *  limit, since an export is expected to return everything the filter matches. */
 export async function exportTransactionsToCsv(filters: Omit<TransactionFilters, "page" | "limit"> = {}): Promise<string> {
-  const where = buildTransactionWhere(filters);
-  const rows = await prisma.transaction.findMany({ where, orderBy: { date: "desc" } });
+  const chunks: string[] = [];
+  for await (const chunk of transactionCsvChunks(filters)) chunks.push(chunk);
+  return chunks.join("");
+}
 
-  const lines = [CSV_HEADER.join(",")];
-  for (const row of rows) {
+/** Bound each database transfer; the HTTP route consumes chunks with backpressure. */
+export async function* transactionCsvChunks(filters: Omit<TransactionFilters, "page" | "limit"> = {}): AsyncGenerator<string> {
+  const where = buildTransactionWhere(filters);
+  let cursor: string | undefined;
+  let first = true;
+  while (true) {
+    const rows: Transaction[] = await prisma.transaction.findMany({ where, orderBy: [{ date: "desc" }, { id: "asc" }], take: 500,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}) });
+    const lines: string[] = first ? [CSV_HEADER.join(",")] : [];
+    for (const row of rows) {
     lines.push(
       [
         formatDate(row.date),
@@ -273,6 +284,10 @@ export async function exportTransactionsToCsv(filters: Omit<TransactionFilters, 
         .map((v) => csvEscape(String(v)))
         .join(",")
     );
+    }
+    if (lines.length) yield `${first ? "" : "\n"}${lines.join("\n")}`;
+    first = false;
+    if (rows.length < 500) break;
+    cursor = rows[rows.length - 1]!.id;
   }
-  return lines.join("\n");
 }

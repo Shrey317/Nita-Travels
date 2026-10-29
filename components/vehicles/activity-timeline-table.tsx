@@ -9,7 +9,7 @@ function getTypeConfig(type: string, isNote: boolean) {
   if (isNote) return { icon: PenSquare, color: "bg-status-warning/10 text-status-warning", label: "Note" };
   
   switch (type.toLowerCase()) {
-    case "service": return { icon: Settings, color: "bg-brand-blue/10 text-brand-blue", label: "Service" };
+    case "service": return { icon: Settings, color: "bg-brand-blue/10 text-primary", label: "Service" };
     case "repair": return { icon: Wrench, color: "bg-status-error/10 text-status-error", label: "Repair" };
     case "fuel": return { icon: Fuel, color: "bg-status-success/10 text-status-success", label: "Fuel" };
     case "insurance": return { icon: ShieldAlert, color: "bg-status-info/10 text-status-info", label: "Insurance" };

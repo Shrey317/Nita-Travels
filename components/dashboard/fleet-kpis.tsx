@@ -64,14 +64,10 @@ export function FleetKPIs({ total, active, attention, inactive }: FleetKPIsProps
             <div className={cn("flex h-10 w-10 items-center justify-center rounded-[10px]", card.bg)}>
               <card.icon className={cn("h-5 w-5", card.color)} />
             </div>
-            {/* Sparkline placeholder (only decorative right now, we don't have historical counts easily accessible) */}
-            <svg className="h-6 w-16 stroke-current opacity-30 transition-opacity group-hover:opacity-70" viewBox="0 0 100 30" fill="none" strokeWidth="2">
-              <path d="M0,25 C20,25 30,15 50,15 C70,15 80,5 100,5" className={card.color} />
-            </svg>
           </div>
           
           <div className="relative z-10">
-            <h3 className="text-3xl font-bold tracking-tight text-white">{card.value}</h3>
+            <h3 className="text-3xl font-bold tracking-tight text-ink">{card.value}</h3>
             <p className="mt-1 text-sm font-medium text-ink-secondary">{card.label}</p>
           </div>
         </Link>

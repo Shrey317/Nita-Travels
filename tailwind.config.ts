@@ -19,6 +19,7 @@ const config: Config = {
         },
         navy: { DEFAULT: "#050A14", light: "#07111F" },
         teal: { DEFAULT: "#0D9488", light: "#14B8A6", dark: "#0F766E" },
+        "teal-text": "rgb(var(--color-teal-text) / <alpha-value>)",
 
         // Neutral System (Semantic custom properties via globals.css)
         background: "rgb(var(--color-background) / <alpha-value>)",

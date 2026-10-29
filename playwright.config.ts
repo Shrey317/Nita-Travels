@@ -13,8 +13,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 1,
-  reporter: [['list'], ['html', { open: 'never' }], ['json', { outputFile: 'test-results/results.json' }]],
+  outputDir: `test-results/${process.env.PLAYWRIGHT_REPORT_NAMESPACE || 'all'}`,
+  reporter: [['list'], ['html', { open: 'never', outputFolder: `playwright-report/${process.env.PLAYWRIGHT_REPORT_NAMESPACE || 'all'}` }], ['json', { outputFile: `test-results/${process.env.PLAYWRIGHT_REPORT_NAMESPACE || 'all'}-results.json` }]],
   use: {
+    navigationTimeout: 30000,
     baseURL: 'http://127.0.0.1:3100',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',

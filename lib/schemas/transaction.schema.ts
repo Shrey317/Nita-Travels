@@ -50,7 +50,11 @@ export const transactionSchema = transactionBaseSchema
   });
 
 /** Shape-only validation for a PATCH body — see transactionSchema's comment for how it's applied. */
-export const transactionUpdateSchema = transactionBaseSchema.partial();
+export const transactionUpdateSchema = transactionBaseSchema.partial().extend({
+  incomeZarCents: nonnegativeIntegerSchema.optional(),
+  expenseZarCents: nonnegativeIntegerSchema.optional(),
+  photoUrls: attachmentUrlsSchema.removeDefault().optional(),
+});
 
 export type TransactionInput = z.infer<typeof transactionSchema>;
 export type TransactionUpdateInput = z.infer<typeof transactionUpdateSchema>;

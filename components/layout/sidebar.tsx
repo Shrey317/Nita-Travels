@@ -21,7 +21,7 @@ function NavLinks({ onNavigate, isCollapsed = false }: { onNavigate?: () => void
       {NAV_GROUPS.map((group) => (
         <div key={group.label} className="space-y-1">
           {!isCollapsed && (
-            <div className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-[#728199]">
+            <div className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-muted">
               {group.label}
             </div>
           )}
@@ -40,8 +40,8 @@ function NavLinks({ onNavigate, isCollapsed = false }: { onNavigate?: () => void
                 className={cn(
                   "group relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   active
-                    ? "bg-gradient-to-r from-primary/20 to-transparent text-white"
-                    : "text-muted hover:bg-white/5 hover:text-white",
+                    ? "bg-gradient-to-r from-primary/20 to-transparent text-ink"
+                    : "text-muted hover:bg-white/5 hover:text-ink",
                   isCollapsed && "justify-center px-0"
                 )}
               >
@@ -50,33 +50,33 @@ function NavLinks({ onNavigate, isCollapsed = false }: { onNavigate?: () => void
                   <span className="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full bg-primary shadow-[0_0_10px_rgba(47,107,255,0.5)]" />
                 )}
                 
-                <Icon className={cn("shrink-0 transition-colors", active ? "text-primary" : "text-muted group-hover:text-white", isCollapsed ? "h-5 w-5" : "h-[18px] w-[18px]")} aria-hidden="true" />
+                <Icon className={cn("shrink-0 transition-colors", active ? "text-primary" : "text-muted group-hover:text-ink", isCollapsed ? "h-5 w-5" : "h-[18px] w-[18px]")} aria-hidden="true" />
                 
                 {!isCollapsed && <span className="truncate flex-1">{item.label}</span>}
                 
                 {/* Badges */}
                 {!isCollapsed && item.href === "/service" && badges?.serviceCount > 0 && (
-                  <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1.5 text-[11px] font-bold text-white shadow-sm">
+                  <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-700 px-1.5 text-[11px] font-bold text-white shadow-sm">
                     {badges.serviceCount}
                   </span>
                 )}
                 {!isCollapsed && item.href === "/mileage" && badges?.mileageCount > 0 && (
-                  <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warning px-1.5 text-[11px] font-bold text-[#050A14] shadow-sm">
+                  <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-300 px-1.5 text-[11px] font-bold text-slate-950 shadow-sm">
                     {badges.mileageCount}
                   </span>
                 )}
                 {!isCollapsed && item.href === "/alerts" && badges?.alertCount > 0 && (
-                  <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1.5 text-[11px] font-bold text-white shadow-sm">
+                  <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-700 px-1.5 text-[11px] font-bold text-white shadow-sm">
                     {badges.alertCount}
                   </span>
                 )}
                 
                 {/* Collapsed dot indicators */}
                 {isCollapsed && item.href === "/service" && badges?.serviceCount > 0 && (
-                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-error" />
+                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-status-error" />
                 )}
                 {isCollapsed && item.href === "/mileage" && badges?.mileageCount > 0 && (
-                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-warning" />
+                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-status-warning" />
                 )}
               </Link>
             );
@@ -106,7 +106,7 @@ function UserBlock({ isCollapsed = false }: { isCollapsed?: boolean }) {
           type="submit"
           aria-label="Sign Out"
           className={cn(
-            "flex h-10 items-center gap-2 rounded-xl text-sm font-medium text-muted transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+            "flex h-10 items-center gap-2 rounded-xl text-sm font-medium text-muted transition-colors hover:bg-white/5 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             isCollapsed ? "w-10 justify-center" : "w-full px-3"
           )}
         >
@@ -128,19 +128,19 @@ export function Sidebar() {
         {/* Mobile top bar */}
         <div className="flex h-[72px] items-center justify-between border-b border-border-subtle bg-surface-sidebar px-4 md:hidden">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-bright-blue shadow-soft">
-              <CarFront className="h-5 w-5 text-white" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-brand-blueAccent shadow-soft">
+              <CarFront className="h-5 w-5 text-ink" />
             </div>
             <div>
-              <div className="text-[15px] font-bold tracking-tight text-white leading-tight">Nita Travels</div>
-              <div className="text-[10px] font-medium text-soft-blue leading-tight">Fleet Management System</div>
+              <div className="text-[15px] font-bold tracking-tight text-ink leading-tight">Nita Travels</div>
+              <div className="text-[10px] font-medium text-primary leading-tight">Fleet Management System</div>
             </div>
           </div>
           <DialogPrimitive.Trigger asChild>
             <button
               type="button"
               aria-label="Open navigation menu"
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-muted hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-muted hover:bg-white/5 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -154,19 +154,19 @@ export function Sidebar() {
             <DialogPrimitive.Title className="sr-only">Navigation menu</DialogPrimitive.Title>
             <div className="flex h-[72px] items-center justify-between border-b border-border-subtle px-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-bright-blue shadow-soft">
-                  <CarFront className="h-5 w-5 text-white" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-brand-blueAccent shadow-soft">
+                  <CarFront className="h-5 w-5 text-ink" />
                 </div>
                 <div>
-                  <div className="text-[15px] font-bold tracking-tight text-white leading-tight">Nita Travels</div>
-                  <div className="text-[10px] font-medium text-soft-blue leading-tight">Fleet Management System</div>
+                  <div className="text-[15px] font-bold tracking-tight text-ink leading-tight">Nita Travels</div>
+                  <div className="text-[10px] font-medium text-primary leading-tight">Fleet Management System</div>
                 </div>
               </div>
               <DialogPrimitive.Close asChild>
                 <button
                   type="button"
                   aria-label="Close navigation menu"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl text-muted hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-muted hover:bg-white/10 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -187,13 +187,13 @@ export function Sidebar() {
       >
         <div className="flex h-[72px] shrink-0 items-center border-b border-border-subtle px-4">
           <div className={cn("flex items-center gap-3 overflow-hidden", isCollapsed && "justify-center w-full")}>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-primary to-bright-blue shadow-[0_0_15px_rgba(47,107,255,0.3)]">
-              <CarFront className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-primary to-brand-blueAccent shadow-[0_0_15px_rgba(47,107,255,0.3)]">
+              <CarFront className="h-5 w-5 text-ink" />
             </div>
             {!isCollapsed && (
               <div className="flex flex-col whitespace-nowrap animate-fade-in">
-                <span className="text-[15px] font-bold tracking-tight text-white leading-tight">Nita Travels</span>
-                <span className="text-[10px] font-medium text-soft-blue leading-tight">Fleet Management System</span>
+                <span className="text-[15px] font-bold tracking-tight text-ink leading-tight">Nita Travels</span>
+                <span className="text-[10px] font-medium text-primary leading-tight">Fleet Management System</span>
               </div>
             )}
           </div>

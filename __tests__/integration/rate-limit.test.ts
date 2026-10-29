@@ -13,7 +13,7 @@ describe('persistent login limits', () => {
     expect((await checkLoginRateLimit(key)).allowed).toBe(true);
     expect((await prisma.rateLimit.findUniqueOrThrow({ where: { key } })).points).toBe(1);
     await clearLoginRateLimit(key);
-    expect(await prisma.rateLimit.findUnique({ where: { key } })).toBeNull();
+    expect(await prisma.rateLimit.findUnique({ where: { key } })).toMatchObject({ points: 0, expiresAt: new Date(0) });
     await clearLoginRateLimit(key);
   });
   it('counts simultaneous attempts atomically', async () => {

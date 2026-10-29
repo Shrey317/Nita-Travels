@@ -11,8 +11,8 @@ const badgeVariants = cva(
         secondary: "border-border-subtle bg-surface-elevated text-ink-secondary",
         outline: "border-border-subtle text-ink-secondary",
         success: "border-status-success/30 bg-status-success/10 text-status-success",
-        warning: "border-warning/30 bg-warning/10 text-warning",
-        destructive: "border-error/30 bg-error/10 text-error",
+        warning: "border-status-warning/30 bg-status-warning/10 text-status-warning",
+        destructive: "border-status-error/30 bg-status-error/10 text-status-error",
       },
     },
     defaultVariants: {

@@ -6,8 +6,8 @@ interface SectionHeadingProps {
 const accentClasses = {
   blue: "bg-primary",
   teal: "bg-status-success",
-  warning: "bg-warning",
-  error: "bg-error",
+  warning: "bg-status-warning",
+  error: "bg-status-error",
 };
 
 /**
@@ -16,7 +16,7 @@ const accentClasses = {
  */
 export function SectionHeading({ title, accentColor = "blue" }: SectionHeadingProps) {
   return (
-    <h2 className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-white">
+    <h2 className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-ink">
       <span className={`inline-block h-5 w-1 rounded-full ${accentClasses[accentColor]}`} aria-hidden="true" />
       {title}
     </h2>

@@ -1,6 +1,9 @@
 "use client";
 
+import { businessToday, dateKey } from "@/lib/date-ranges";
+
 import { useState, type FormEvent } from "react";
+import { ReadyFieldset } from "@/components/shared/ready-fieldset";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +23,7 @@ interface NoteFormProps {
 }
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return dateKey(businessToday());
 }
 
 /** No edit path exists (SRS 11: delete and re-enter only), so this form only ever creates. */
@@ -92,6 +95,7 @@ export function NoteForm({ vehicles, initialVehicleId }: NoteFormProps) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <ReadyFieldset label="Note details" className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="nDate">Date</Label>
@@ -147,6 +151,7 @@ export function NoteForm({ vehicles, initialVehicleId }: NoteFormProps) {
           {isPending ? "Saving..." : "Add Note"}
         </Button>
       </div>
+      </ReadyFieldset>
     </form>
   );
 }

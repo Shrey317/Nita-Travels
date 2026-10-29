@@ -98,7 +98,7 @@ export function EditMileageDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" aria-label="Edit mileage entry">
-          <Pencil className="h-4 w-4 text-teal" />
+          <Pencil className="h-4 w-4 text-teal-text" />
         </Button>
       </DialogTrigger>
       <DialogContent>

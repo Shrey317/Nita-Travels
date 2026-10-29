@@ -6,7 +6,7 @@ const safe: NodeJS.ProcessEnv = {
   NODE_ENV: 'test',
   APP_ENV: 'test', DATABASE_URL: url, TEST_DATABASE_URL: url,
   TEST_DATABASE_SCHEMA: 'nita_test_fixture', TEST_DB_APPROVED: 'true',
-  TEST_DATABASE_IDENTITY: databaseIdentity(url), ALLOW_DESTRUCTIVE_TEST_DB: 'true',
+  TEST_DATABASE_IDENTITY: databaseIdentity(url), ALLOW_TEST_MUTATIONS: 'true',
 };
 
 describe('isolated test environment', () => {
@@ -16,7 +16,7 @@ describe('isolated test environment', () => {
   it.each([
     { APP_ENV: undefined }, { VERCEL_ENV: 'production' }, { TEST_DB_APPROVED: undefined },
     { TEST_DATABASE_SCHEMA: 'public' }, { DATABASE_URL: 'postgresql://localhost/other' },
-    { TEST_DATABASE_IDENTITY: 'wrong' }, { ALLOW_DESTRUCTIVE_TEST_DB: undefined },
+    { TEST_DATABASE_IDENTITY: 'wrong' }, { ALLOW_TEST_MUTATIONS: undefined },
     { PRODUCTION_DATABASE_IDENTITY: databaseIdentity(url) },
   ])('rejects unsafe configuration %j', override => {
     expect(() => assertTestEnvironment({ ...safe, ...override }, true)).toThrow();

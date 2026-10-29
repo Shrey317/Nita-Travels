@@ -18,18 +18,18 @@ export function VehicleCard({ vehicle, incomeCents, expenseCents, netProfitCents
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Car className="h-4 w-4" />
               </span>
-              <span className="inline-flex rounded-md bg-surface-elevated px-2 py-1 text-xs font-bold text-white border border-border-subtle">{vehicle.id}</span>
+              <span className="inline-flex rounded-md bg-surface-elevated px-2 py-1 text-xs font-bold text-ink border border-border-subtle">{vehicle.id}</span>
             </div>
-            <h2 className="font-bold text-white group-hover:text-primary transition-colors">{vehicle.make} {vehicle.model}</h2>
+            <h2 className="font-bold text-ink group-hover:text-primary transition-colors">{vehicle.make} {vehicle.model}</h2>
             <p className="break-words text-sm text-ink-secondary">{registrationLine}</p>
           </div>
           {!vehicle.active ? <Badge variant="secondary">Inactive</Badge> : service ? <Badge variant={badgeVariant[service.status]}>{badgeLabel[service.status]}</Badge> : <Badge variant="warning">Needs Data</Badge>}
         </div>
         <div className="flex justify-between gap-3 text-xs text-ink-secondary"><span>Lifetime financials</span><span className="font-mono-figures">{formatKm(vehicle.currentMileageKm)}</span></div>
         <dl className="space-y-2.5 border-y border-border-subtle py-3.5 text-sm">
-          <div className="flex flex-wrap justify-between gap-x-3"><dt className="text-ink-secondary">Revenue</dt><dd className="font-mono-figures text-white">{formatZAR(incomeCents)}</dd></div>
-          <div className="flex flex-wrap justify-between gap-x-3"><dt className="text-ink-secondary">Expenses</dt><dd className="font-mono-figures text-white">{formatZAR(expenseCents)}</dd></div>
-          <div className="flex flex-wrap justify-between gap-x-3"><dt className="font-medium text-white">Net profit</dt><dd className={`font-mono-figures font-semibold ${netProfitCents > 0 ? "text-status-success" : netProfitCents < 0 ? "text-error" : "text-white"}`}>{formatZAR(netProfitCents)}</dd></div>
+          <div className="flex flex-wrap justify-between gap-x-3"><dt className="text-ink-secondary">Revenue</dt><dd className="font-mono-figures text-ink">{formatZAR(incomeCents)}</dd></div>
+          <div className="flex flex-wrap justify-between gap-x-3"><dt className="text-ink-secondary">Expenses</dt><dd className="font-mono-figures text-ink">{formatZAR(expenseCents)}</dd></div>
+          <div className="flex flex-wrap justify-between gap-x-3"><dt className="font-medium text-ink">Net profit</dt><dd className={`font-mono-figures font-semibold ${netProfitCents > 0 ? "text-status-success" : netProfitCents < 0 ? "text-status-error" : "text-ink"}`}>{formatZAR(netProfitCents)}</dd></div>
         </dl>
         <Button asChild variant="outline" className="w-full group-hover:border-primary/30 group-hover:text-primary transition-colors">
           <Link href={`/vehicles/${vehicle.id}`}>

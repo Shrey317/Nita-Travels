@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { ReadyFieldset } from "@/components/shared/ready-fieldset";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -161,6 +162,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-8">
+      <ReadyFieldset label="Vehicle details" className="space-y-8">
       <section className="space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Identity & Specs</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -304,10 +306,11 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               value={form.currentMileageKm}
               onChange={(e) => update("currentMileageKm", e.target.value)}
               aria-invalid={!!errors.currentMileageKm}
-              aria-describedby="currentMileageKm-error"
+                aria-describedby="currentMileageKm-help currentMileageKm-error"
               required
             />
             <FieldError id="currentMileageKm-error" message={errors.currentMileageKm} />
+              <p id="currentMileageKm-help" className="text-xs text-muted">New readings can increase this value. Correcting an older reading does not automatically lower it; verify the actual odometer before adjusting it here.</p>
           </div>
         </div>
       </section>
@@ -419,6 +422,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
           {isPending ? "Saving..." : isEdit ? "Save Changes" : "Add Vehicle"}
         </Button>
       </div>
+      </ReadyFieldset>
     </form>
   );
 }

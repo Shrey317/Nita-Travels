@@ -15,10 +15,10 @@ export function FleetStatus({
   active: number; 
   attention: number; 
   inactive: number;
-  recentVehicles: Vehicle[];
+  recentVehicles: Pick<Vehicle, "id" | "make" | "model" | "active" | "currentMileageKm">[];
 }) {
   const data = [
-    { name: "Active", value: active, color: "#18C98B" },
+    { name: "Active, no alerts", value: Math.max(0, active - attention), color: "#18C98B" },
     { name: "Attention Required", value: attention, color: "#F5B942" },
     { name: "Inactive", value: inactive, color: "#728199" },
   ].filter(d => d.value > 0);
@@ -27,13 +27,13 @@ export function FleetStatus({
     <Card className="col-span-1 flex flex-col h-full bg-card border-border-subtle shadow-card-elevated">
       <div className="flex items-center justify-between border-b border-border-subtle p-5 bg-gradient-to-r from-surface-elevated/50 to-transparent">
         <div className="flex items-center gap-2">
-          <Car className="h-5 w-5 text-bright-blue" />
-          <h2 className="text-base font-semibold text-white tracking-tight">Fleet Status</h2>
+          <Car className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-semibold text-ink tracking-tight">Fleet Status</h2>
         </div>
         <Link href="/vehicles" className="text-xs font-medium text-primary hover:text-primary-hover">View all →</Link>
       </div>
 
-      <div className="p-6 flex items-center justify-center gap-8 border-b border-border-subtle bg-surface-elevated/20">
+      <div className="p-4 flex flex-wrap items-center justify-center gap-4 border-b border-border-subtle bg-surface-elevated/20">
         <div className="relative h-32 w-32 shrink-0">
           <ClientOnlyChart className="h-full w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -63,7 +63,7 @@ export function FleetStatus({
           
           {/* Center text */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-3xl font-bold text-white">{total}</span>
+            <span className="text-3xl font-bold text-ink">{total}</span>
             <span className="text-[10px] uppercase font-bold text-muted tracking-wider">Total</span>
           </div>
         </div>
@@ -77,7 +77,7 @@ export function FleetStatus({
                 <span className="text-ink-secondary">{d.name}</span>
               </div>
               <div className="flex items-center gap-4">
-                <span className="font-bold text-white">{d.value}</span>
+                <span className="font-bold text-ink">{d.value}</span>
                 <span className="text-muted text-xs w-8 text-right">{((d.value / total) * 100).toFixed(0)}%</span>
               </div>
             </div>
@@ -87,7 +87,7 @@ export function FleetStatus({
 
       <div className="flex-1 p-0 flex flex-col">
         <div className="px-5 py-3 border-b border-border-subtle bg-surface-elevated/30">
-          <h3 className="text-sm font-semibold text-white">Recent Vehicles</h3>
+          <h3 className="text-sm font-semibold text-ink">Fleet Vehicles</h3>
         </div>
         <div className="flex-1 flex flex-col divide-y divide-border-subtle overflow-y-auto max-h-[220px]">
           {recentVehicles.slice(0, 4).map(v => (
@@ -97,7 +97,7 @@ export function FleetStatus({
                   <Car className="h-5 w-5 text-muted group-hover:text-primary transition-colors" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-white group-hover:text-primary transition-colors">{v.id}</span>
+                  <span className="text-sm font-bold text-ink group-hover:text-primary transition-colors">{v.id}</span>
                   <span className="text-xs text-muted">{v.make} {v.model}</span>
                 </div>
               </div>

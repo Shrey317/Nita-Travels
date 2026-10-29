@@ -15,6 +15,8 @@ CHANGES.md
 playwright-report/
 test-results/
 .local-test-db/
+.local-test-db-audit/
+.local-verification/
 .local-import/
 .local-archive/
 *.tsbuildinfo

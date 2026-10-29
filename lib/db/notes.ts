@@ -6,6 +6,7 @@
  */
 
 import type { VehicleNote, Prisma } from "@prisma/client";
+import { verifyNewAttachments } from "@/lib/verify-attachments";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
 import { requireVehicleReference } from "@/lib/db/vehicle-reference";
 import { NotFoundError } from "@/lib/errors";
@@ -42,7 +43,7 @@ export async function getNotes(filters: NoteFilters = {}): Promise<NoteListResul
   };
 
   const [items, total] = await Promise.all([
-    prisma.vehicleNote.findMany({ where, orderBy: { date: "desc" }, skip: (page - 1) * limit, take: limit }),
+    prisma.vehicleNote.findMany({ where, orderBy: [{ date: "desc" }, { id: "asc" }], skip: (page - 1) * limit, take: limit }),
     prisma.vehicleNote.count({ where }),
   ]);
 
@@ -51,6 +52,7 @@ export async function getNotes(filters: NoteFilters = {}): Promise<NoteListResul
 
 export async function createNote(input: VehicleNoteInput): Promise<VehicleNote> {
   const data = vehicleNoteSchema.parse(input);
+  await verifyNewAttachments(data.photoUrls);
   return prisma.$transaction(async (tx) => {
     await requireVehicleReference(tx, data.vehicleId);
     return tx.vehicleNote.create({ data });

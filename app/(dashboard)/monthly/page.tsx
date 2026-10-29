@@ -26,8 +26,8 @@ export default async function MonthlyPage(
   const kpiItems = [
     { label: "Revenue", value: formatZAR(current.incomeCents), prior: formatZAR(previous.incomeCents), icon: TrendingUp, color: "text-status-success", bgColor: "bg-status-success/10 border-status-success/20" },
     { label: "Expenses", value: formatZAR(current.expenseCents), prior: formatZAR(previous.expenseCents), icon: TrendingDown, color: "text-primary", bgColor: "bg-primary/10 border-primary/20" },
-    { label: "Profit", value: formatZAR(current.netProfitCents), prior: formatZAR(previous.netProfitCents), icon: DollarSign, color: current.netProfitCents >= 0 ? "text-status-success" : "text-error", bgColor: current.netProfitCents >= 0 ? "bg-status-success/10 border-status-success/20" : "bg-error/10 border-error/20" },
-    { label: "Mileage", value: formatKm(current.mileageKm), prior: formatKm(previous.mileageKm), icon: Gauge, color: "text-white", bgColor: "bg-primary/10 border-primary/20" },
+    { label: "Profit", value: formatZAR(current.netProfitCents), prior: formatZAR(previous.netProfitCents), icon: DollarSign, color: current.netProfitCents >= 0 ? "text-status-success" : "text-status-error", bgColor: current.netProfitCents >= 0 ? "bg-status-success/10 border-status-success/20" : "bg-status-error/10 border-status-error/20" },
+    { label: "Mileage", value: formatKm(current.mileageKm), prior: formatKm(previous.mileageKm), icon: Gauge, color: "text-ink", bgColor: "bg-primary/10 border-primary/20" },
   ];
 
   return <div className="space-y-6">
@@ -35,10 +35,10 @@ export default async function MonthlyPage(
     <YearSelector availableYears={availableYears} selectedYear={year} />
     <form className="grid gap-3 rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated sm:grid-cols-2 lg:grid-cols-5" aria-label="Monthly filters">
       <input type="hidden" name="year" value={year} />
-      <label className="text-sm text-ink-secondary">Range<select name="range" defaultValue={mode} className="mt-1 block h-10 w-full rounded-lg border border-border-subtle bg-surface-elevated text-white px-3"><option value="year">Full selected year</option><option value="ytd">Year to date</option><option value="custom">Custom dates</option></select></label>
-      <label className="text-sm text-ink-secondary">Vehicle<select name="vehicleId" defaultValue={searchParams.vehicleId ?? ""} className="mt-1 block h-10 w-full rounded-lg border border-border-subtle bg-surface-elevated text-white px-3"><option value="">All vehicles and overhead</option>{vehicles.map(vehicle => <option key={vehicle.id}>{vehicle.id}</option>)}</select></label>
-      <label className="text-sm text-ink-secondary">Custom from<input type="date" name="dateFrom" defaultValue={dateKey(selection.range.from)} className="mt-1 block h-10 w-full rounded-lg border border-border-subtle bg-surface-elevated text-white px-3" /></label>
-      <label className="text-sm text-ink-secondary">Custom to<input type="date" name="dateTo" defaultValue={dateKey(selection.range.to)} className="mt-1 block h-10 w-full rounded-lg border border-border-subtle bg-surface-elevated text-white px-3" /></label>
+      <label className="text-sm text-ink-secondary">Range<select name="range" defaultValue={mode} className="mt-1 block h-10 w-full rounded-lg border border-border-subtle bg-surface-elevated text-ink px-3"><option value="year">Full selected year</option><option value="ytd">Year to date</option><option value="custom">Custom dates</option></select></label>
+      <label className="text-sm text-ink-secondary">Vehicle<select name="vehicleId" defaultValue={searchParams.vehicleId ?? ""} className="mt-1 block h-10 w-full rounded-lg border border-border-subtle bg-surface-elevated text-ink px-3"><option value="">All vehicles and overhead</option>{vehicles.map(vehicle => <option key={vehicle.id}>{vehicle.id}</option>)}</select></label>
+      <label className="text-sm text-ink-secondary">Custom from<input type="date" name="dateFrom" defaultValue={dateKey(selection.range.from)} className="mt-1 block h-10 w-full rounded-lg border border-border-subtle bg-surface-elevated text-ink px-3" /></label>
+      <label className="text-sm text-ink-secondary">Custom to<input type="date" name="dateTo" defaultValue={dateKey(selection.range.to)} className="mt-1 block h-10 w-full rounded-lg border border-border-subtle bg-surface-elevated text-ink px-3" /></label>
       <div className="flex items-end"><Button type="submit" variant="outline" className="w-full">Apply filters</Button></div>
     </form>
     <p className="text-xs text-muted">{selection.label}. Compared with {dateKey(selection.comparisonRange.from)} – {dateKey(selection.comparisonRange.to)}. Custom dates apply only when Custom dates is selected.</p>

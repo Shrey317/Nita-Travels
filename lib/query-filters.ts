@@ -24,3 +24,13 @@ export function parseListQuery(searchParams: URLSearchParams) {
     sortDir: searchParams.has("sortDir") ? z.enum(["asc", "desc"]).parse(searchParams.get("sortDir")) : undefined,
   };
 }
+
+/** Adapt Next page params to the same validation used by JSON and CSV routes. */
+export function parsePageListQuery(values: Record<string, string | string[] | undefined>) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(values)) {
+    for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value]) params.append(key, item);
+  }
+  try { return { filters: parseListQuery(params), error: null }; }
+  catch { return { filters: parseListQuery(new URLSearchParams()), error: "These filters are invalid. Showing unfiltered records; correct the dates, categories or page number and try again." }; }
+}

@@ -26,7 +26,7 @@ export function WeeklyRangeSelector() {
     <div className="flex flex-wrap items-center gap-2">
       <Label htmlFor="range-selector" className="text-sm font-medium text-ink-secondary">Select Range:</Label>
       <Select value={currentRange} onValueChange={handleRangeChange}>
-        <SelectTrigger id="range-selector" className="w-[180px] h-10 border-border-subtle bg-surface-elevated text-white">
+        <SelectTrigger id="range-selector" className="w-[180px] h-10 border-border-subtle bg-surface-elevated text-ink">
           <SelectValue placeholder="Select range" />
         </SelectTrigger>
         <SelectContent>

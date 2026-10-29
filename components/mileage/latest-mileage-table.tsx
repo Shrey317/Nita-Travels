@@ -11,7 +11,7 @@ type LatestMileageRow = {
 export function LatestMileageTable({ vehicles }: { vehicles: LatestMileageRow[] }) {
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold tracking-tight text-white">Latest Mileage (Active Fleet)</h3>
+      <h3 className="text-lg font-bold tracking-tight text-ink">Latest Mileage (Active Fleet)</h3>
       <div className="rounded-xl border border-border-subtle bg-card overflow-hidden shadow-card-elevated">
         <Table>
           <TableHeader>
@@ -25,9 +25,9 @@ export function LatestMileageTable({ vehicles }: { vehicles: LatestMileageRow[] 
           <TableBody className="divide-y divide-border-subtle">
             {vehicles.map((v) => (
               <TableRow key={v.id} className="hover:bg-surface-elevated/50 transition-colors">
-                <TableCell className="font-bold text-white">{v.id}</TableCell>
+                <TableCell className="font-bold text-ink">{v.id}</TableCell>
                 <TableCell className="text-ink-secondary">{v.registration}</TableCell>
-                <TableCell className="text-right font-mono-figures text-sm text-white">
+                <TableCell className="text-right font-mono-figures text-sm text-ink">
                   {formatKm(v.currentMileageKm)}
                 </TableCell>
                 <TableCell>

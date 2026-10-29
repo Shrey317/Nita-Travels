@@ -1,6 +1,9 @@
 "use client";
 
+import { businessToday, dateKey } from "@/lib/date-ranges";
+
 import { useState, useEffect, type FormEvent } from "react";
+import { ReadyFieldset } from "@/components/shared/ready-fieldset";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -21,7 +24,7 @@ interface MileageFormProps {
 }
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return dateKey(businessToday());
 }
 
 export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
@@ -42,9 +45,11 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
   useEffect(() => {
     if (!vehicleId || !date) {
       setPreviousMileageKm(null);
+      setIsLoadingPrevious(false);
       return;
     }
     let cancelled = false;
+    setPreviousMileageKm(null);
     setIsLoadingPrevious(true);
     fetch(`/api/mileage/previous/${vehicleId}?date=${encodeURIComponent(date)}`)
       .then((res) => res.json())
@@ -121,6 +126,7 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <ReadyFieldset label="Mileage details" className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="mDate">Date</Label>
@@ -204,6 +210,7 @@ export function MileageForm({ vehicles, initialVehicleId }: MileageFormProps) {
           {isPending ? "Saving..." : "Log Mileage"}
         </Button>
       </div>
+      </ReadyFieldset>
     </form>
   );
 }

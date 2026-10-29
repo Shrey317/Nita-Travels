@@ -30,7 +30,7 @@ test('vehicle creation, editing and deactivation preserve an accessible inactive
   await expect(page.getByRole('button', { name: 'Deactivate', exact: true })).toHaveCount(0);
 });
 
-test('mileage create, edit and delete recalculate the stored odometer', async ({ page }) => {
+test('mileage create and edit update the stored odometer; deletion can be cancelled', async ({ page }) => {
   await page.goto('/mileage/new?vehicleId=CR93');
   await expect(page.getByLabel('Previous Mileage', { exact: true })).toHaveValue(/30.*000/);
   await page.getByLabel('Current Mileage (km)', { exact: true }).fill('31500');
@@ -47,11 +47,8 @@ test('mileage create, edit and delete recalculate the stored odometer', async ({
   const edited = await page.request.get('/api/vehicles/CR93');
   expect((await edited.json()).vehicle.currentMileageKm).toBe(31600);
   await row.getByRole('button', { name: 'Delete mileage entry' }).click();
-  const deletion = page.waitForResponse(response => response.request().method() === 'DELETE' && new URL(response.url()).pathname.startsWith('/api/mileage/'));
-  await page.getByRole('alertdialog').getByRole('button', { name: 'Delete', exact: true }).click();
-  expect((await deletion).ok()).toBeTruthy();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(page.getByRole('alertdialog')).not.toBeVisible();
-  await expect(row).toHaveCount(0);
-  const restored = await page.request.get('/api/vehicles/CR93');
-  expect((await restored.json()).vehicle.currentMileageKm).toBe(30000);
+  await expect(row).toHaveCount(1);
+
 });

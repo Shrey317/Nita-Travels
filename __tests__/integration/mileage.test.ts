@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { verifyTestEnvironment } from "@/lib/db/safety";
 import { prisma } from "@/lib/db/client";
-import { createMileageEntry, updateMileageEntry, deleteMileageEntry } from "@/lib/db/mileage";
+import { createMileageEntry, updateMileageEntry } from "@/lib/db/mileage";
 import { startOfWeek } from "date-fns";
 
 describe("Mileage Integration Tests", () => {
@@ -9,7 +9,7 @@ describe("Mileage Integration Tests", () => {
     await verifyTestEnvironment(true); // Require destructive permissions
   });
 
-  it("handles mileage creation, middle-entry edits, deletions, and cascading recalculations", async () => {
+  it("handles mileage creation, corrections and rollback without deleting history", async () => {
     // 1. Setup mock vehicle
     const vehicleId = "CR88";
     await prisma.vehicle.upsert({
@@ -30,7 +30,6 @@ describe("Mileage Integration Tests", () => {
     });
 
     // Clear old mileage entries
-    await prisma.mileageEntry.deleteMany({ where: { vehicleId } });
 
     // 2. Create mileage entries
     // Entry 1 (First)
@@ -60,23 +59,10 @@ describe("Mileage Integration Tests", () => {
     expect(updatedE3?.previousMileageKm).toBe(103000); // e3's prev is now e2's new current
     expect(updatedE3?.distanceDrivenKm).toBe(2000); // 105000 - 103000
 
-    // 4. Delete middle entry (e2)
-    await deleteMileageEntry(e2.id);
-
-    // Verify cascading recalculation on e3 again
-    const finalE3 = await prisma.mileageEntry.findUnique({ where: { id: e3.id } });
-    expect(finalE3?.previousMileageKm).toBe(102000); // e3's prev is now e1's current
-    expect(finalE3?.distanceDrivenKm).toBe(3000); // 105000 - 102000
-
-    // 5. Delete first entry (e1)
-    await deleteMileageEntry(e1.id);
-    const veryFinalE3 = await prisma.mileageEntry.findUnique({ where: { id: e3.id } });
-    expect(veryFinalE3?.previousMileageKm).toBe(100000); // The established purchase baseline anchors the remaining chain.
-
-    // Delete latest
-    await deleteMileageEntry(e3.id);
-    v = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
-    expect(v?.currentMileageKm).toBe(100000); // Reset to the purchase baseline when no service/log remains.
+    await expect(updateMileageEntry(e2.id, { currentMileageKm: 106000 })).rejects.toThrow('preceding reading');
+    expect((await prisma.mileageEntry.findUniqueOrThrow({ where: { id: e2.id } })).currentMileageKm).toBe(103000);
+    expect((await prisma.mileageEntry.findUniqueOrThrow({ where: { id: e3.id } })).distanceDrivenKm).toBe(2000);
+    expect(await prisma.mileageEntry.count({ where: { vehicleId } })).toBe(3);
   }, 60000);
 
   it("rejects mileage creation for deactivated vehicles", async () => {

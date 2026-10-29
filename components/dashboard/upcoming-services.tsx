@@ -19,45 +19,45 @@ export function UpcomingServices({ services }: { services: VehicleServiceRow[] }
     <Card className="col-span-1 flex flex-col h-full bg-card border-border-subtle shadow-card-elevated">
       <div className="flex items-center justify-between border-b border-border-subtle p-5 bg-gradient-to-r from-surface-elevated/50 to-transparent">
         <div className="flex items-center gap-2">
-          <Wrench className="h-5 w-5 text-warning" />
-          <h2 className="text-base font-semibold text-white tracking-tight">Services & Maintenance</h2>
+          <Wrench className="h-5 w-5 text-status-warning" />
+          <h2 className="text-base font-semibold text-ink tracking-tight">Services & Maintenance</h2>
         </div>
-        <Link href="/service" className="text-xs font-medium text-muted hover:text-white">View all →</Link>
+        <Link href="/service" className="text-xs font-medium text-muted hover:text-ink">View all →</Link>
       </div>
 
       <div className="flex-1 flex flex-col divide-y divide-border-subtle overflow-y-auto max-h-[300px]">
         {sortedServices.map(s => {
-          const isOverdue = s.kmRemaining !== null && s.kmRemaining < 0;
-          const isWarning = s.kmRemaining !== null && s.kmRemaining >= 0 && s.kmRemaining < 1500;
-          
+          const isOverdue = s.status === "OVERDUE";
+          const isWarning = s.status === "DUE_SOON";
+
           return (
-            <Link key={s.vehicleId} href={`/service?vehicleId=${s.vehicleId}`} className="group flex items-center justify-between px-5 py-4 hover:bg-surface-elevated/50 transition-colors">
+            <Link key={s.vehicleId} href={`/vehicles/${s.vehicleId}#vehicle-maintenance`} className="group flex items-center justify-between px-5 py-4 hover:bg-surface-elevated/50 transition-colors">
               <div className="flex items-center gap-3">
                 <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${
-                  isOverdue ? 'bg-error/10 border-error/20 text-error' : 
-                  isWarning ? 'bg-warning/10 border-warning/20 text-warning' : 
+                  isOverdue ? 'bg-status-error/10 border-status-error/20 text-status-error' :
+                  isWarning ? 'bg-status-warning/10 border-status-warning/20 text-status-warning' :
                   'bg-surface border-border-subtle text-muted group-hover:text-primary'
                 }`}>
                   {isOverdue ? <AlertCircle className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-white group-hover:text-primary transition-colors">{s.vehicleId}</span>
+                  <span className="text-sm font-bold text-ink group-hover:text-primary transition-colors">{s.vehicleId}</span>
                   <span className="text-[11px] text-muted">
-                    Last service: {s.lastServiceDate ? formatDistanceToNow(s.lastServiceDate, { addSuffix: true }) : 'Never'}
+                    Last service: {s.lastServiceDate ? formatDistanceToNow(s.lastServiceDate, { addSuffix: true }) : 'Not recorded'}
                   </span>
                 </div>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex flex-col items-end">
                   <span className={`text-sm font-mono-figures font-bold ${
-                    isOverdue ? 'text-error' : 
-                    isWarning ? 'text-warning' : 
-                    'text-status-success'
+                    isOverdue ? 'text-status-error' :
+                    isWarning ? 'text-status-warning' :
+                    s.status === 'NEEDS_DATA' ? 'text-muted' : 'text-status-success'
                   }`}>
-                    {s.kmRemaining === null 
-                      ? 'No data' 
-                      : isOverdue 
-                        ? `${Math.abs(s.kmRemaining).toLocaleString()} km overdue` 
+                    {s.kmRemaining === null
+                      ? 'No data'
+                      : isOverdue
+                        ? `${Math.abs(s.kmRemaining!).toLocaleString()} km overdue`
                         : `${s.kmRemaining.toLocaleString()} km left`}
                   </span>
                   <span className="text-[11px] text-muted">

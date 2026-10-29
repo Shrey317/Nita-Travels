@@ -36,13 +36,13 @@ export function RepairsTable({ transactions }: { transactions: Transaction[] }) 
           {transactions.map((t) => (
             <TableRow key={t.id} className="hover:bg-surface-elevated/50 transition-colors">
               <TableCell className="whitespace-nowrap text-ink-secondary">{formatDate(t.date)}</TableCell>
-              <TableCell className="font-bold text-white">{formatVehicleLabel(t.vehicleId)}</TableCell>
+              <TableCell className="font-bold text-ink">{formatVehicleLabel(t.vehicleId)}</TableCell>
               <TableCell>
                 <span className="inline-flex items-center rounded-md bg-surface-elevated px-2 py-0.5 text-[11px] font-semibold text-ink-secondary border border-border-subtle">
                   {CATEGORY_LABELS[t.category] ?? t.category}
                 </span>
               </TableCell>
-              <TableCell className="text-right font-mono-figures text-sm font-semibold text-error">{formatZAR(t.expenseZarCents)}</TableCell>
+              <TableCell className="text-right font-mono-figures text-sm font-semibold text-status-error">{formatZAR(t.expenseZarCents)}</TableCell>
               <TableCell className="max-w-xs">
                 <p className="truncate text-ink-secondary" title={t.notes ?? undefined}>
                   {t.notes ?? "—"}

@@ -7,7 +7,7 @@
  *   - NotFoundError            -> 404
  *   - ConflictError            -> 409
  *   - UnauthorizedError        -> 401
- *   - anything else            -> 500, generic message, full detail logged server-side only
+ *   - anything else            -> 500, generic message, allowlisted diagnostic code only
  *
  * Nothing here ever puts a Prisma error message, a stack trace, or an env var value in the
  * response body — only the four cases above (and their safe, pre-written messages) reach the
@@ -35,7 +35,7 @@ export function jsonError(message: string, status: number, field?: string) {
 export function handleApiError(error: unknown): NextResponse {
   if (error instanceof SyntaxError) return jsonError("Invalid JSON request body", 400);
   if (error instanceof ZodError) {
-    const first = error.errors[0];
+    const first = error.issues[0];
     return jsonError(first?.message ?? "Invalid input", 400, first?.path?.join(".") || undefined);
   }
   if (error instanceof ValidationError) return jsonError(error.message, 400, error.field);
@@ -48,8 +48,7 @@ export function handleApiError(error: unknown): NextResponse {
     if (error.code === "P2003") return jsonError("Select a valid related record.", 400);
   }
 
-  // Unexpected failure (e.g. a Prisma error) — log the real thing server-side, tell the
-  // client nothing beyond "something went wrong".
-  console.error("Unhandled API error:", error);
+  // Error objects may contain connection details or submitted data; log only an allowlisted code.
+  console.error("Unhandled API error", { kind: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : "UNEXPECTED" });
   return jsonError("Something went wrong. Please try again.", 500);
 }

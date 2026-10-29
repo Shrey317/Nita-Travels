@@ -10,8 +10,7 @@ describe("Health Score Integration Tests", () => {
   });
   afterAll(async () => {
     await verifyTestEnvironment(true);
-    await prisma.transaction.deleteMany({ where: { vehicleId: { in: ['TEST-HLT-01', 'TEST-HLT-02'] } } });
-    await prisma.vehicle.deleteMany({ where: { id: { in: ['TEST-HLT-01', 'TEST-HLT-02'] } } });
+
   });
 
   it("calculates 12-month repair cost accurately vs fleet average and totals exactly 100%", async () => {
@@ -19,8 +18,7 @@ describe("Health Score Integration Tests", () => {
     const v2 = "TEST-HLT-02";
 
     // Clean up
-    await prisma.transaction.deleteMany({ where: { vehicleId: { in: [v1, v2] } } });
-    await prisma.vehicle.deleteMany({ where: { id: { in: [v1, v2] } } });
+
 
     await prisma.vehicle.create({
       data: {

@@ -1,4 +1,4 @@
-import { buildMileageEntry, validateMileageReading } from "@/lib/mileage";
+import { buildMileageEntry, isValidMileageProgression, validateMileageReading } from "@/lib/mileage";
 import { ValidationError } from "@/lib/errors";
 
 export interface MileageChainReading {
@@ -15,6 +15,11 @@ export function deriveMileageChain<T extends MileageChainReading>(entries: T[], 
     a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id));
   let previousMileageKm = baselineKm;
   return chronological.map((entry) => {
+    // Every neighbor must remain valid after a backfill, edit or baseline correction.
+    // Only the changed reading gets the jump limit: deletion can bridge a valid larger gap.
+    if (!isValidMileageProgression(entry.currentMileageKm, previousMileageKm)) {
+      throw new ValidationError(`Reading on ${entry.date.toISOString().slice(0, 10)} must be greater than the preceding reading or purchase mileage.`, "currentMileageKm");
+    }
     if (entry.id === changedId) {
       const error = validateMileageReading(entry.currentMileageKm, previousMileageKm);
       if (error) throw new ValidationError(`Reading on ${entry.date.toISOString().slice(0, 10)} is invalid: ${error}`, "currentMileageKm");

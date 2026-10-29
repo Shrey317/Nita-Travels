@@ -7,6 +7,7 @@ process.env.TZ = "UTC";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  outputFileTracingRoot: __dirname,
   devIndicators: false,
   images: {
     remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com' }],
@@ -44,6 +45,11 @@ const nextConfig = {
      * charts all work with no CSP violations reported. Loosen whichever directive is flagged.
      */
     const isDev = process.env.NODE_ENV === "development";
+    let localHttp = false;
+    try {
+      const origin = new URL(process.env.AUTH_URL || process.env.NEXTAUTH_URL || "");
+      localHttp = origin.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname);
+    } catch { /* Unknown/deployed origins retain HTTPS upgrading. */ }
     const csp = [
       "default-src 'self'",
       `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
@@ -57,7 +63,8 @@ const nextConfig = {
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'none'",
-      "upgrade-insecure-requests",
+      // Safari also upgrades loopback HTTP resources, breaking local sign-in without TLS.
+      ...(!isDev && !localHttp ? ["upgrade-insecure-requests"] : []),
     ].join("; ");
 
     return [

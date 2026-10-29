@@ -3,7 +3,36 @@
 @tailwind utilities;
 
 @layer base {
-  :root, .dark {
+  :root {
+    color-scheme: light;
+    --color-background: 245 247 251;
+    --color-surface: 237 242 248;
+    --color-surface-sidebar: 255 255 255;
+    --color-surface-elevated: 240 244 249;
+    --color-card: 255 255 255;
+    --color-card-hover: 237 242 248;
+    --color-input: 255 255 255;
+    --color-border-subtle: 100 116 139;
+    --color-border: 71 85 105;
+    --color-ink: 15 23 42;
+    --color-ink-secondary: 51 65 85;
+    --color-muted: 82 96 116;
+    --color-disabled: 82 96 116;
+    --color-primary: 29 78 216;
+    --color-primary-hover: 30 64 175;
+    --color-teal-text: 15 118 110;
+    --color-success: 4 120 87;
+    --color-warning: 146 64 14;
+    --color-error: 185 28 28;
+    --color-info: 29 78 216;
+    --color-success-bg: 4 120 87;
+    --color-warning-bg: 146 64 14;
+    --color-error-bg: 185 28 28;
+    --color-info-bg: 29 78 216;
+    --color-notebg: 254 249 219;
+  }
+  .dark {
+    color-scheme: dark;
     /* Main Backgrounds */
     --color-background: 5 10 20;             /* #050A14 App background */
     --color-surface: 7 17 31;                /* #07111F Secondary background */
@@ -20,18 +49,19 @@
     /* Text */
     --color-ink: 248 250 252;                /* #F8FAFC Primary text */
     --color-ink-secondary: 168 181 200;      /* #A8B5C8 Secondary text */
-    --color-muted: 114 129 153;              /* #728199 Muted text */
+    --color-muted: 148 163 184;
     --color-disabled: 114 129 153;           /* Same as muted for now */
     
     /* Semantic / Accent Colors */
-    --color-primary: 47 107 255;             /* #2F6BFF Primary blue */
-    --color-primary-hover: 57 120 255;       /* #3978FF */
+    --color-primary: 120 169 255;
+    --color-primary-hover: 147 197 253;
+    --color-teal-text: 45 212 191;
     --color-bright-blue: 77 141 255;         /* #4D8DFF */
     --color-soft-blue: 120 169 255;          /* #78A9FF */
     
     --color-success: 24 201 139;             /* #18C98B Positive */
     --color-warning: 245 185 66;             /* #F5B942 Warning */
-    --color-error: 240 82 82;                /* #F05252 Danger */
+    --color-error: 255 112 112;
     --color-info: 59 130 246;                /* #3B82F6 Informational */
     
     /* Semantic Backgrounds (Dimmed for dark mode cards) */
@@ -43,11 +73,11 @@
   }
 
   * {
-    @apply border-white/10;
+    @apply border-border;
   }
   
   body {
-    @apply bg-[#050A14] text-[#F8FAFC] antialiased;
+    @apply bg-background text-ink antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   

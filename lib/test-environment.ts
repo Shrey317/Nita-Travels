@@ -23,8 +23,8 @@ export function assertTestEnvironment(env: NodeJS.ProcessEnv, destructive = fals
   if (env.PRODUCTION_DATABASE_IDENTITY === env.TEST_DATABASE_IDENTITY) {
     throw new Error('SAFETY ABORT: Test and production database targets match.');
   }
-  if (destructive && env.ALLOW_DESTRUCTIVE_TEST_DB !== 'true') {
-    throw new Error('SAFETY ABORT: ALLOW_DESTRUCTIVE_TEST_DB=true is required for mutations.');
+  if (destructive && env.ALLOW_TEST_MUTATIONS !== 'true') {
+    throw new Error('SAFETY ABORT: ALLOW_TEST_MUTATIONS=true is required for mutations.');
   }
   return { database: decodeURIComponent(url.pathname.slice(1)), schema };
 }

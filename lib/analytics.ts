@@ -65,7 +65,9 @@ export function detectRepeatRepairs(rows: readonly AnalyticsTransaction[]): Repa
   for (const row of rows) {
     if (row.deletedAt || !row.vehicleId || row.vehicleId === FLEET_WIDE_VEHICLE_ID || !repairCategories.includes(row.category)) continue;
     const key = `${row.vehicleId}:${row.category}`;
-    groups.set(key, [...(groups.get(key) ?? []), row]);
+    const group = groups.get(key) ?? [];
+    group.push(row);
+    groups.set(key, group);
   }
   return [...groups.values()].filter(group => group.length >= 2).map(group => {
     const sorted = [...group].sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -100,7 +102,10 @@ export function analyzeMileage(entries: readonly AnalyticsMileage[], range: Clos
   const complete = weekly.filter(row => new Date(row.week) >= range.from && addDays(new Date(row.week), 6) <= range.to);
   const anomalies: { vehicleId: string; week: string; km: number; averageKm: number; changePercent: number }[] = [];
   for (const row of complete) {
-    const earlier = [...baselineWeeks.values()].filter(other => other.vehicleId === row.vehicleId && other.week < row.week).sort((a, b) => a.week.localeCompare(b.week)).slice(-4);
+    const earlier = [4, 3, 2, 1].flatMap(offset => {
+      const prior = baselineWeeks.get(`${row.vehicleId}:${dateKey(addDays(new Date(row.week), -7 * offset))}`);
+      return prior ? [prior] : [];
+    });
     if (earlier.length !== 4) continue;
     // Require four consecutive recorded weeks; missing logs cannot masquerade as zero usage.
     if (dateKey(addDays(new Date(earlier[0]!.week), 28)) !== row.week) continue;
@@ -127,15 +132,37 @@ export function buildPeriodAnalysis(input: {
   const vehicles = input.vehicles.filter(row => !vehicleId || row.id === vehicleId);
   const mileage = analyzeMileage(input.mileage.filter(row => !vehicleId || row.vehicleId === vehicleId), range);
   const totals = summarizeFinancialRows(transactions, mileage.totalKm, scale);
+  const rowsByVehicle = new Map<string | null, AnalyticsTransaction[]>();
+  const rowsByMonth = new Map<string, AnalyticsTransaction[]>();
+  for (const row of transactions) {
+    const vehicleRows = rowsByVehicle.get(row.vehicleId) ?? [];
+    vehicleRows.push(row);
+    rowsByVehicle.set(row.vehicleId, vehicleRows);
+    const month = dateKey(row.date).slice(0, 7);
+    const monthRows = rowsByMonth.get(month) ?? [];
+    monthRows.push(row);
+    rowsByMonth.set(month, monthRows);
+  }
+  const kmByVehicle = new Map<string, number>();
+  for (const row of mileage.weekly) kmByVehicle.set(row.vehicleId, (kmByVehicle.get(row.vehicleId) ?? 0) + row.km);
+  const invalidMileageIds = new Set(mileage.invalidEntries.map(row => row.id));
+  const kmByMonth = new Map<string, number>();
+  const loggedVehicles = new Set(mileageEntries.map(row => row.vehicleId));
+  for (const row of mileageEntries) {
+    if (invalidMileageIds.has(row.id)) continue;
+    const month = dateKey(row.date).slice(0, 7);
+    kmByMonth.set(month, (kmByMonth.get(month) ?? 0) + row.distanceDrivenKm);
+  }
   const vehicleMetrics = vehicles.map(vehicle => {
-    const rows = transactions.filter(row => row.vehicleId === vehicle.id);
-    const km = mileage.weekly.filter(row => row.vehicleId === vehicle.id).reduce((n, row) => n + row.km, 0);
+    const rows = rowsByVehicle.get(vehicle.id) ?? [];
+    const km = kmByVehicle.get(vehicle.id) ?? 0;
     const metrics = summarizeFinancialRows(rows, km, scale);
     return { vehicleId: vehicle.id, registration: vehicle.registration, active: vehicle.active, ...metrics,
       roiPercent: calculateRoiPercent(metrics.netProfitCents, vehicle.purchasePriceCents),
       revenueShare: totals.incomeCents === 0 ? null : metrics.incomeCents / totals.incomeCents };
   });
   const realIds = new Set(input.vehicles.map(vehicle => vehicle.id));
+  const vehicleById = new Map(vehicles.map(vehicle => [vehicle.id, vehicle]));
   const unallocated = summarizeFinancialRows(transactions.filter(row => !row.vehicleId || !realIds.has(row.vehicleId)), 0, scale);
   const dataIssues: DataIssue[] = [];
   for (const vehicle of vehicles) {
@@ -143,20 +170,20 @@ export function buildPeriodAnalysis(input: {
     if (!vehicle.insurer || !vehicle.policyNumber || !vehicle.insuranceEndDate) dataIssues.push({ id: `insurance-${vehicle.id}`, vehicleId: vehicle.id, title: "Incomplete insurance information", evidence: "Insurer, policy number and expiry date are required for a complete insurance record.", href });
     if (!vehicle.warranty?.trim()) dataIssues.push({ id: `warranty-${vehicle.id}`, vehicleId: vehicle.id, title: "Warranty information not recorded", evidence: "Coverage is unknown. Confirm whether a warranty applies.", href });
     if (vehicle.currentMileageKm < vehicle.mileageAtPurchaseKm) dataIssues.push({ id: `odometer-${vehicle.id}`, vehicleId: vehicle.id, title: "Odometer below purchase reading", evidence: `${vehicle.currentMileageKm} km current; ${vehicle.mileageAtPurchaseKm} km at purchase.`, href });
-    if (vehicle.active && !mileageEntries.some(row => row.vehicleId === vehicle.id)) dataIssues.push({ id: `mileage-${vehicle.id}`, vehicleId: vehicle.id, title: "No mileage recorded in selected period", evidence: `${dateKey(range.from)} to ${dateKey(range.to)}; per-km metrics unavailable.`, href: `/mileage/new?vehicleId=${vehicle.id}` });
+    if (vehicle.active && !loggedVehicles.has(vehicle.id)) dataIssues.push({ id: `mileage-${vehicle.id}`, vehicleId: vehicle.id, title: "No mileage recorded in selected period", evidence: `${dateKey(range.from)} to ${dateKey(range.to)}; per-km metrics unavailable.`, href: `/mileage/new?vehicleId=${vehicle.id}` });
   }
   for (const row of transactions) {
     if (row.vehicleId && row.vehicleId !== FLEET_WIDE_VEHICLE_ID && !realIds.has(row.vehicleId)) dataIssues.push({ id: `orphan-${row.id}`, vehicleId: row.vehicleId, title: "Transaction has no available vehicle record", evidence: `Transaction ${row.id} refers to ${row.vehicleId}. It remains included in ledger totals.`, href: `/transactions?txId=${row.id}` });
     if ((row.incomeZarCents > 0 && row.expenseZarCents > 0) || row.incomeZarCents < 0 || row.expenseZarCents < 0 || (row.category === "Service" && row.mileageKm == null)) dataIssues.push({ id: `transaction-${row.id}`, vehicleId: row.vehicleId, title: "Transaction requires review", evidence: "Check income/expense amounts and the mileage required for a service record.", href: `/transactions?txId=${row.id}` });
-    const vehicle = vehicles.find(item => item.id === row.vehicleId);
+    const vehicle = row.vehicleId ? vehicleById.get(row.vehicleId) : undefined;
     if (vehicle && row.date < vehicle.purchaseDate) dataIssues.push({ id: `date-${row.id}`, vehicleId: row.vehicleId, title: "Transaction precedes purchase date", evidence: `${dateKey(row.date)} transaction; ${dateKey(vehicle.purchaseDate)} purchase.`, href: `/transactions?txId=${row.id}` });
   }
   for (const row of mileage.invalidEntries) dataIssues.push({ id: `invalid-mileage-${row.id}`, vehicleId: row.vehicleId, title: "Inconsistent mileage record", evidence: `Stored distance ${row.distanceDrivenKm} km; odometer ${row.previousMileageKm} → ${row.currentMileageKm}. Excluded from mileage metrics.`, href: `/mileage?vehicleId=${row.vehicleId}` });
   const monthly: { month: string; incomeCents: number; expenseCents: number; netProfitCents: number; maintenanceCents: number; mileageKm: number }[] = [];
   for (let date = new Date(Date.UTC(range.from.getUTCFullYear(), range.from.getUTCMonth(), 1)); date <= range.to; date = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1))) {
     const month = dateKey(date).slice(0, 7);
-    const km = mileageEntries.filter(row => dateKey(row.date).startsWith(month) && !mileage.invalidEntries.includes(row)).reduce((n, row) => n + row.distanceDrivenKm, 0);
-    const metrics = summarizeFinancialRows(transactions.filter(row => dateKey(row.date).startsWith(month)), km);
+    const km = kmByMonth.get(month) ?? 0;
+    const metrics = summarizeFinancialRows(rowsByMonth.get(month) ?? [], km);
     monthly.push({ month, incomeCents: metrics.incomeCents, expenseCents: metrics.expenseCents, netProfitCents: metrics.netProfitCents, maintenanceCents: metrics.maintenanceCents, mileageKm: km });
   }
   const repairRows = transactions.filter(row => repairCategories.includes(row.category));

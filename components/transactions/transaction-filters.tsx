@@ -115,13 +115,13 @@ function TransactionFiltersInner({ vehicles }: TransactionFiltersProps) {
           />
         </div>
         {hasActiveFilters && (
-          <Button type="button" variant="ghost" size="sm" className="h-9 text-xs text-muted hover:text-white" onClick={() => router.push(pathname)}>
+          <Button type="button" variant="ghost" size="sm" className="h-9 text-xs text-muted hover:text-ink" onClick={() => router.push(pathname)}>
             Clear filters
           </Button>
         )}
       </div>
       <label className="mt-3 w-full space-y-1 text-sm font-medium text-ink-secondary md:hidden">Sort transactions
-        <select aria-label="Sort transactions" className="h-11 w-full rounded-lg border border-border-subtle bg-surface-elevated text-white px-3 mt-1" value={`${searchParams.get("sortBy") ?? "date"}:${searchParams.get("sortDir") ?? "desc"}`} onChange={event => {
+        <select aria-label="Sort transactions" className="h-11 w-full rounded-lg border border-border-subtle bg-surface-elevated text-ink px-3 mt-1" value={`${searchParams.get("sortBy") ?? "date"}:${searchParams.get("sortDir") ?? "desc"}`} onChange={event => {
           const [field, direction] = event.target.value.split(":");
           const params = new URLSearchParams(searchParams.toString());
           params.set("sortBy", field!); params.set("sortDir", direction!); params.delete("page");

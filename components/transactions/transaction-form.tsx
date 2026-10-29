@@ -1,6 +1,9 @@
 "use client";
 
+import { businessToday, dateKey } from "@/lib/date-ranges";
+
 import { useState, useEffect, type FormEvent } from "react";
+import { ReadyFieldset } from "@/components/shared/ready-fieldset";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -21,7 +24,7 @@ function categoryLabel(cat: string): string {
 }
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return dateKey(businessToday());
 }
 
 interface TransactionFormProps {
@@ -143,6 +146,7 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <ReadyFieldset label="Transaction details" className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="txDate">Date</Label>
@@ -177,7 +181,12 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
         </div>
         <div className="space-y-2">
           <Label htmlFor="txCategory">Category</Label>
-          <Select value={category} onValueChange={setCategory}>
+          <Select value={category} onValueChange={(next) => {
+            setCategory(next);
+            if (next === "Income" || next === "UberFees") setExpenseRand("");
+            else setIncomeRand("");
+            setErrors({});
+          }}>
             <SelectTrigger id="txCategory" aria-invalid={!!errors.category} aria-describedby="txCategory-error">
               <SelectValue placeholder="Select a category..." />
             </SelectTrigger>
@@ -258,6 +267,7 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
           {isPending ? "Saving..." : isEdit ? "Save Changes" : "Add Transaction"}
         </Button>
       </div>
+      </ReadyFieldset>
     </form>
   );
 }

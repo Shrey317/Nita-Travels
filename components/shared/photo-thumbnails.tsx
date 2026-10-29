@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import { AttachmentImage } from "./attachment-image";
 import { FileText } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { isPdfUrl } from "@/lib/attachments";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { isPdfUrl, isTrustedAttachmentUrl } from "@/lib/attachments";
 
 interface PhotoThumbnailsProps {
   urls: string[];
@@ -27,7 +27,7 @@ export function PhotoThumbnails({ urls, label = "Attached file" }: PhotoThumbnai
     <>
       <div className="mt-1 flex flex-wrap gap-1">
         {urls.map((url, index) =>
-          isPdfUrl(url) ? (
+          isTrustedAttachmentUrl(url) && isPdfUrl(url) ? (
             // PDFs open directly in a new tab rather than the lightbox below — that's built to
             // display an <Image>, and the browser's own PDF viewer is more capable anyway.
             <a
@@ -36,7 +36,7 @@ export function PhotoThumbnails({ urls, label = "Attached file" }: PhotoThumbnai
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`Open ${altFor(index).toLowerCase()} (PDF, opens in a new tab)`}
-              className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border border-border bg-surface text-muted transition-colors hover:text-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+              className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border border-border bg-surface text-muted transition-colors hover:text-teal-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
             >
               <FileText className="h-4 w-4" aria-hidden="true" />
             </a>
@@ -48,7 +48,7 @@ export function PhotoThumbnails({ urls, label = "Attached file" }: PhotoThumbnai
               aria-label={`View ${altFor(index).toLowerCase()}`}
               className="relative h-10 w-10 overflow-hidden rounded-md border border-border transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
             >
-              <Image src={url} alt="" fill sizes="40px" className="object-cover" />
+              <AttachmentImage src={url} alt="" sizes="40px" className="object-cover" />
             </button>
           )
         )}
@@ -56,11 +56,13 @@ export function PhotoThumbnails({ urls, label = "Attached file" }: PhotoThumbnai
       <Dialog open={activeUrl !== undefined} onOpenChange={(open) => !open && setOpenIndex(null)}>
         <DialogContent className="max-w-3xl p-2">
           <DialogTitle className="sr-only">{openIndex !== null ? altFor(openIndex) : "Photo"}</DialogTitle>
+          <DialogDescription className="sr-only">Attachment preview. Some formats require opening the original file.</DialogDescription>
           {activeUrl !== undefined && openIndex !== null && (
             <div className="relative aspect-video w-full">
-              <Image src={activeUrl} alt={altFor(openIndex)} fill sizes="(max-width: 768px) 100vw, 768px" className="object-contain" />
+              <AttachmentImage key={activeUrl} src={activeUrl} alt={altFor(openIndex)} sizes="(max-width: 768px) 100vw, 768px" className="object-contain" />
             </div>
           )}
+          {activeUrl && isTrustedAttachmentUrl(activeUrl) && <a href={activeUrl} target="_blank" rel="noopener noreferrer" className="p-3 text-sm text-primary underline">Open original file (new tab)</a>}
         </DialogContent>
       </Dialog>
     </>

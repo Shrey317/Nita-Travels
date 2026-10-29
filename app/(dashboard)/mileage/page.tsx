@@ -1,3 +1,4 @@
+import { parsePageListQuery } from "@/lib/query-filters";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -11,7 +12,6 @@ import { VehicleDateFilters } from "@/components/shared/vehicle-date-filters";
 import { Pagination } from "@/components/shared/pagination";
 import { vehicleIdOptions } from "@/components/shared/vehicle-options";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
-import { toStringArray } from "@/lib/utils";
 import { MileageAlerts } from "@/components/mileage/mileage-alerts";
 import { PageHeader } from "@/components/shared/page-header";
 import { addDays, businessToday, isoWeekStart } from "@/lib/date-ranges";
@@ -24,8 +24,9 @@ interface MileagePageProps {
 
 export default async function MileagePage(props: MileagePageProps) {
   const searchParams = await props.searchParams;
-  const vehicleId = toStringArray(searchParams.vehicleId);
-  const page = Number(searchParams.page ?? "1") || 1;
+  const { filters, error: filterError } = parsePageListQuery(searchParams);
+  const vehicleId = filters.vehicleId ?? [];
+  const page = filters.page;
 
   const [vehicles, result] = await Promise.all([
     prisma.vehicle.findMany({
@@ -40,8 +41,8 @@ export default async function MileagePage(props: MileagePageProps) {
     }),
     getMileageEntries({
       vehicleId: vehicleId.length ? vehicleId : undefined,
-      dateFrom: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,
-      dateTo: searchParams.dateTo ? new Date(searchParams.dateTo) : undefined,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo,
       page,
       limit: DEFAULT_PAGE_SIZE,
     }),
@@ -69,6 +70,7 @@ export default async function MileagePage(props: MileagePageProps) {
 
   return (
     <div className="space-y-6">
+      {filterError && <p role="alert" className="rounded-lg border border-status-error p-4 text-status-error">{filterError}</p>}
       <PageHeader title="Mileage Log" description={`${result.total} entries logged`}>
         <Button asChild variant="outline">
           <a href={`/api/mileage/export?${exportParams.toString()}`}>

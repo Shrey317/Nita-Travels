@@ -1,3 +1,4 @@
+import { verifyNewAttachments } from "@/lib/verify-attachments";
 /**
  * lib/db/mileage.ts
  *
@@ -73,6 +74,7 @@ export async function getPreviousMileage(vehicleId: string, readingDate?: Date):
 
 export async function createMileageEntry(input: MileageEntryInput): Promise<MileageEntry> {
   const data = mileageEntrySchema.parse(input);
+  await verifyNewAttachments(data.photoUrls);
   return prisma.$transaction(async (tx) => {
     const vehicle = await lockMileageVehicle(tx, data.vehicleId);
     if (!vehicle.active || vehicle.deletedAt) {

@@ -19,9 +19,9 @@ test('invalid files, provider errors and cancellation leave the form usable', as
   await page.goto('/vehicles/CR91/notes/new');
   const input = page.locator('main input[type="file"]');
   await input.setInputFiles({ name: 'attack.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg/>') });
-  await expect(page.getByText(/Choose a JPEG/)).toBeVisible();
+  await expect(page.getByText('attack.svg: Choose a JPEG, PNG, WebP, HEIC, HEIF or PDF file.', { exact: true })).toBeVisible();
   await input.setInputFiles({ name: 'large.png', mimeType: 'image/png', buffer: Buffer.alloc(10485761) });
-  await expect(page.getByText(/no larger than 10 MB/)).toBeVisible();
+  await expect(page.getByText('large.png: Files must be non-empty and no larger than 10 MB.', { exact: true })).toBeVisible();
   await page.route('**/api/upload', route => route.fulfill({ status: 500, json: { error: 'Simulated storage failure' } }));
   await input.setInputFiles(file());
   await expect(page.getByRole('button', { name: 'Add photo or PDF' })).toBeEnabled();
@@ -39,7 +39,7 @@ test('invalid files, provider errors and cancellation leave the form usable', as
   await expect(page.getByRole('button', { name: 'Add Note', exact: true })).toBeEnabled();
 });
 
-test('simulated Blob transport preserves attachment order through actual note persistence', async ({ page }) => {
+test('simulated uploads retain preview order but cannot bypass server completion verification', async ({ page }) => {
   await login(page);
   const urls: string[] = [];
   await page.route('**/api/upload', async route => {
@@ -61,17 +61,8 @@ test('simulated Blob transport preserves attachment order through actual note pe
   const saved = page.waitForResponse(response => new URL(response.url()).pathname === '/api/notes' && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Add Note', exact: true }).click();
   const response = await saved;
-  expect(response.status()).toBe(201);
-  const data = await response.json();
+  expect(response.status()).toBe(400);
   expect(urls).toHaveLength(2);
-  expect(data.note.photoUrls).toEqual(urls);
-  await expect(page.getByText('Note added', { exact: true })).toBeVisible();
-  await page.goto('/notes?vehicleId=CR91');
-  const thumbnail = page.getByRole('button', { name: /View .*1 of 2/ }).first();
-  await expect(thumbnail).toBeVisible();
-  await thumbnail.focus();
-  await page.keyboard.press('Enter');
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add Note', exact: true })).toBeEnabled();
+  await expect(page).toHaveURL(/notes\/new$/);
 });

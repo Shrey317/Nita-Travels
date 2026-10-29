@@ -26,11 +26,11 @@ export function MonthlyTable({ rows }: { rows: MonthlyRow[] }) {
         <TableBody className="divide-y divide-border-subtle">
           {rows.map((r) => (
             <TableRow key={r.monthKey} className="hover:bg-surface-elevated/50 transition-colors">
-              <TableCell className="whitespace-nowrap font-bold text-white">{r.monthKey}</TableCell>
+              <TableCell className="whitespace-nowrap font-bold text-ink">{r.monthKey}</TableCell>
               <TableCell className="text-right font-mono-figures text-sm text-status-success">{formatZAR(r.incomeCents)}</TableCell>
               <TableCell className="text-right font-mono-figures text-sm text-ink-secondary">{formatZAR(r.expenseCents)}</TableCell>
-              <TableCell className="text-right font-mono-figures text-sm text-error">{formatZAR(r.repairsCents)}</TableCell>
-              <TableCell className={`text-right font-mono-figures text-sm font-semibold ${r.netProfitCents >= 0 ? "text-status-success" : "text-error"}`}>{formatZAR(r.netProfitCents)}</TableCell>
+              <TableCell className="text-right font-mono-figures text-sm text-status-error">{formatZAR(r.repairsCents)}</TableCell>
+              <TableCell className={`text-right font-mono-figures text-sm font-semibold ${r.netProfitCents >= 0 ? "text-status-success" : "text-status-error"}`}>{formatZAR(r.netProfitCents)}</TableCell>
               <TableCell className="text-right font-mono-figures text-sm text-ink-secondary">{r.marginLabel}</TableCell>
               <TableCell className="text-right font-mono-figures text-sm text-ink-secondary">{formatZAR(r.maintenanceCents)}</TableCell>
               <TableCell className="text-right whitespace-nowrap font-mono-figures text-sm text-ink-secondary">{formatKm(r.mileageKm)}</TableCell>
@@ -39,14 +39,14 @@ export function MonthlyTable({ rows }: { rows: MonthlyRow[] }) {
         </TableBody>
         <TableFooter>
           <TableRow className="hover:bg-transparent bg-surface-elevated/80 border-t-2 border-border-subtle">
-            <TableCell className="font-bold text-white">Grand Total</TableCell>
+            <TableCell className="font-bold text-ink">Grand Total</TableCell>
             <TableCell className="text-right font-mono-figures text-sm font-bold text-status-success">{formatZAR(totals.incomeCents)}</TableCell>
-            <TableCell className="text-right font-mono-figures text-sm font-bold text-white">{formatZAR(totals.expenseCents)}</TableCell>
-            <TableCell className="text-right font-mono-figures text-sm font-bold text-error">{formatZAR(totals.repairsCents)}</TableCell>
-            <TableCell className={`text-right font-mono-figures text-sm font-bold ${totals.netProfitCents >= 0 ? "text-status-success" : "text-error"}`}>{formatZAR(totals.netProfitCents)}</TableCell>
-            <TableCell className="text-right font-mono-figures text-sm font-bold text-white">{formatMargin(totals.incomeCents, totals.expenseCents)}</TableCell>
-            <TableCell className="text-right font-mono-figures text-sm font-bold text-white">{formatZAR(totals.maintenanceCents)}</TableCell>
-            <TableCell className="text-right whitespace-nowrap font-mono-figures text-sm font-bold text-white">{formatKm(totals.mileageKm)}</TableCell>
+            <TableCell className="text-right font-mono-figures text-sm font-bold text-ink">{formatZAR(totals.expenseCents)}</TableCell>
+            <TableCell className="text-right font-mono-figures text-sm font-bold text-status-error">{formatZAR(totals.repairsCents)}</TableCell>
+            <TableCell className={`text-right font-mono-figures text-sm font-bold ${totals.netProfitCents >= 0 ? "text-status-success" : "text-status-error"}`}>{formatZAR(totals.netProfitCents)}</TableCell>
+            <TableCell className="text-right font-mono-figures text-sm font-bold text-ink">{formatMargin(totals.incomeCents, totals.expenseCents)}</TableCell>
+            <TableCell className="text-right font-mono-figures text-sm font-bold text-ink">{formatZAR(totals.maintenanceCents)}</TableCell>
+            <TableCell className="text-right whitespace-nowrap font-mono-figures text-sm font-bold text-ink">{formatKm(totals.mileageKm)}</TableCell>
           </TableRow>
         </TableFooter>
       </Table>

@@ -37,7 +37,7 @@ export function WeeklyTable({ rows }: WeeklyTableProps) {
             ) : (
               rows.map((row) => (
                 <TableRow key={row.weekKey} className="hover:bg-surface-elevated/50 transition-colors">
-                  <TableCell className="font-bold text-white">
+                  <TableCell className="font-bold text-ink">
                     <div className="flex flex-col">
                       <span>{row.weekLabel}</span>
                       <span className="text-xs text-muted font-normal">
@@ -47,8 +47,8 @@ export function WeeklyTable({ rows }: WeeklyTableProps) {
                   </TableCell>
                   <TableCell className="text-right font-mono-figures text-sm text-status-success">{formatZAR(row.incomeCents)}</TableCell>
                   <TableCell className="text-right font-mono-figures text-sm text-ink-secondary">{formatZAR(row.expenseCents)}</TableCell>
-                  <TableCell className="text-right font-mono-figures text-sm text-error">{formatZAR(row.repairsCents)}</TableCell>
-                  <TableCell className={`text-right font-mono-figures text-sm font-semibold ${row.netProfitCents < 0 ? "text-error" : "text-status-success"}`}>
+                  <TableCell className="text-right font-mono-figures text-sm text-status-error">{formatZAR(row.repairsCents)}</TableCell>
+                  <TableCell className={`text-right font-mono-figures text-sm font-semibold ${row.netProfitCents < 0 ? "text-status-error" : "text-status-success"}`}>
                     {formatZAR(row.netProfitCents)}
                   </TableCell>
                   <TableCell className="text-right font-mono-figures text-sm text-muted">{row.marginLabel}</TableCell>
@@ -59,16 +59,16 @@ export function WeeklyTable({ rows }: WeeklyTableProps) {
             )}
             {rows.length > 0 && (
               <TableRow className="bg-surface-elevated/80 font-bold hover:bg-surface-elevated/80 border-t-2 border-border-subtle">
-                <TableCell className="text-white">Grand Total</TableCell>
+                <TableCell className="text-ink">Grand Total</TableCell>
                 <TableCell className="text-right font-mono-figures text-sm text-status-success">{formatZAR(totalIncome)}</TableCell>
-                <TableCell className="text-right font-mono-figures text-sm text-white">{formatZAR(totalExpenses)}</TableCell>
-                <TableCell className="text-right font-mono-figures text-sm text-error">{formatZAR(totalRepairs)}</TableCell>
-                <TableCell className={`text-right font-mono-figures text-sm ${totalProfit < 0 ? "text-error" : "text-status-success"}`}>
+                <TableCell className="text-right font-mono-figures text-sm text-ink">{formatZAR(totalExpenses)}</TableCell>
+                <TableCell className="text-right font-mono-figures text-sm text-status-error">{formatZAR(totalRepairs)}</TableCell>
+                <TableCell className={`text-right font-mono-figures text-sm ${totalProfit < 0 ? "text-status-error" : "text-status-success"}`}>
                   {formatZAR(totalProfit)}
                 </TableCell>
-                <TableCell className="text-right font-mono-figures text-sm text-white">{overallMargin}</TableCell>
-                <TableCell className="text-right font-mono-figures text-sm text-white">{formatZAR(maintenanceCents)}</TableCell>
-                <TableCell className="text-right whitespace-nowrap font-mono-figures text-sm text-white">{formatKm(mileageKm)}</TableCell>
+                <TableCell className="text-right font-mono-figures text-sm text-ink">{overallMargin}</TableCell>
+                <TableCell className="text-right font-mono-figures text-sm text-ink">{formatZAR(maintenanceCents)}</TableCell>
+                <TableCell className="text-right whitespace-nowrap font-mono-figures text-sm text-ink">{formatKm(mileageKm)}</TableCell>
               </TableRow>
             )}
           </TableBody>

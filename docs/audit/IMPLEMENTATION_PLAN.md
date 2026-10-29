@@ -1,6 +1,6 @@
 # Implementation plan — 28 October 2026
 
-Status: proposed for approval after the pre-edit audit. This is not a completion report. Application changes have not begun. Findings refer to `AUDIT_REPORT.md`; inventory and routes are in `PROJECT_INVENTORY.md`.
+Status: the user authorized non-optional fixes after this plan. Local remediation and verification are recorded in `IMPLEMENTATION_REPORT.md`, together with remaining release checks. This document records the original plan. Findings refer to `AUDIT_REPORT.md`; inventory and routes are in `PROJECT_INVENTORY.md`.
 
 ## Scope and sequence
 

@@ -36,7 +36,7 @@ export function VehicleSummaryTable({ vehicles, fleetTotals, totalLabel = "Grand
     <div className="space-y-3 md:hidden">
       {sorted.map(({ vehicle, incomeCents, expenseCents, netProfitCents, service }) => (
         <article key={vehicle.id} className="rounded-xl border border-border bg-card p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2"><Link href={`/vehicles/${vehicle.id}`} className="inline-flex min-h-11 items-center gap-2 font-semibold text-brand-blue"><Truck className="h-4 w-4" aria-hidden="true" />{vehicle.id}</Link><Badge variant={service ? badgeVariant[service.status] : "warning"}>{service ? badgeLabel[service.status] : "Needs Data"}</Badge></div>
+          <div className="flex flex-wrap items-center justify-between gap-2"><Link href={`/vehicles/${vehicle.id}`} className="inline-flex min-h-11 items-center gap-2 font-semibold text-primary"><Truck className="h-4 w-4" aria-hidden="true" />{vehicle.id}</Link><Badge variant={service ? badgeVariant[service.status] : "warning"}>{service ? badgeLabel[service.status] : "Needs Data"}</Badge></div>
           <p className="text-sm text-muted">{vehicle.registration}</p>
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-muted">Income</dt><dd className="mt-1 font-medium tabular-nums">{formatZAR(incomeCents)}</dd></div><div><dt className="text-muted">Expenses</dt><dd className="mt-1 font-medium tabular-nums">{formatZAR(expenseCents)}</dd></div><div className="col-span-2 flex flex-wrap justify-between gap-2 border-t border-border pt-3"><dt>Net profit</dt><dd className={`font-semibold tabular-nums ${netProfitCents < 0 ? "text-status-error" : "text-ink"}`}>{formatZAR(netProfitCents)}</dd></div></dl>
         </article>
@@ -62,7 +62,7 @@ export function VehicleSummaryTable({ vehicles, fleetTotals, totalLabel = "Grand
         {sorted.map(({ vehicle, incomeCents, expenseCents, repairsCents, netProfitCents, marginLabel, service }) => (
           <TableRow key={vehicle.id}>
             <TableCell>
-              <Link href={`/vehicles/${vehicle.id}`} className="font-medium text-brand-blue hover:underline">
+              <Link href={`/vehicles/${vehicle.id}`} className="font-medium text-primary hover:underline">
                 {vehicle.id}
               </Link>
             </TableCell>
@@ -83,7 +83,7 @@ export function VehicleSummaryTable({ vehicles, fleetTotals, totalLabel = "Grand
               <div className="flex items-center justify-end gap-2">
                 <Link
                   href={`/transactions/new?vehicleId=${vehicle.id}`}
-                  className="rounded p-1.5 text-muted hover:bg-surface-secondary hover:text-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30"
+                  className="rounded p-1.5 text-muted hover:bg-surface-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30"
                   title="Add Transaction"
                 >
                   <PlusCircle className="h-4 w-4" />
@@ -91,7 +91,7 @@ export function VehicleSummaryTable({ vehicles, fleetTotals, totalLabel = "Grand
                 </Link>
                 <Link
                   href={`/mileage/new?vehicleId=${vehicle.id}`}
-                  className="rounded p-1.5 text-muted hover:bg-surface-secondary hover:text-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30"
+                  className="rounded p-1.5 text-muted hover:bg-surface-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30"
                   title="Add Mileage"
                 >
                   <Gauge className="h-4 w-4" />
@@ -99,7 +99,7 @@ export function VehicleSummaryTable({ vehicles, fleetTotals, totalLabel = "Grand
                 </Link>
                 <Link
                   href={`/vehicles/${vehicle.id}/notes/new`}
-                  className="rounded p-1.5 text-muted hover:bg-surface-secondary hover:text-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30"
+                  className="rounded p-1.5 text-muted hover:bg-surface-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30"
                   title="Add Note"
                 >
                   <FileText className="h-4 w-4" />
@@ -107,7 +107,7 @@ export function VehicleSummaryTable({ vehicles, fleetTotals, totalLabel = "Grand
                 </Link>
                 <Link
                   href={`/vehicles/${vehicle.id}/edit`}
-                  className="rounded p-1.5 text-muted hover:bg-surface-secondary hover:text-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30"
+                  className="rounded p-1.5 text-muted hover:bg-surface-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/30"
                   title="Edit Vehicle"
                 >
                   <Pencil className="h-4 w-4" />

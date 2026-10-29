@@ -40,7 +40,7 @@ export async function DashboardHero() {
         </p>
 
         <div className={`${styles.actions} mt-6 flex gap-3`}>
-          <Button asChild className="h-12 rounded-button bg-primary px-5 font-semibold text-white hover:bg-primary hover:brightness-95 focus-visible:ring-brand-blueAccent focus-visible:ring-offset-[#0B1220]">
+          <Button asChild className="h-12 rounded-button bg-blue-700 px-5 font-semibold text-white hover:bg-blue-800 focus-visible:ring-brand-blueAccent focus-visible:ring-offset-[#0B1220]">
             <Link href="/mileage/new">
               <Gauge aria-hidden="true" /> Log Mileage
             </Link>

@@ -1,3 +1,4 @@
+import { parsePageListQuery } from "@/lib/query-filters";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -10,7 +11,6 @@ import { TransactionTable } from "@/components/transactions/transaction-table";
 import { Pagination } from "@/components/shared/pagination";
 import { PageHeader } from "@/components/shared/page-header";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
-import { toStringArray } from "@/lib/utils";
 
 interface TransactionsPageProps {
   searchParams: Promise<{
@@ -28,18 +28,19 @@ interface TransactionsPageProps {
 
 export default async function TransactionsPage(props: TransactionsPageProps) {
   const searchParams = await props.searchParams;
-  const vehicleId = toStringArray(searchParams.vehicleId);
-  const category = toStringArray(searchParams.category);
-  const page = Number(searchParams.page ?? "1") || 1;
+  const { filters, error: filterError } = parsePageListQuery(searchParams);
+  const vehicleId = filters.vehicleId ?? [];
+  const category = filters.category ?? [];
+  const page = filters.page;
 
   const [vehicles, result, specificTx] = await Promise.all([
     prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
     getTransactions({
       vehicleId: vehicleId.length ? vehicleId : undefined,
       category: category.length ? category : undefined,
-      dateFrom: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,
-      dateTo: searchParams.dateTo ? new Date(searchParams.dateTo) : undefined,
-      search: searchParams.search || undefined,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo,
+      search: filters.search,
       page,
       limit: DEFAULT_PAGE_SIZE,
       sortBy: searchParams.sortBy,
@@ -61,6 +62,7 @@ export default async function TransactionsPage(props: TransactionsPageProps) {
 
   return (
     <div className="space-y-6">
+      {filterError && <p role="alert" className="rounded-lg border border-status-error p-4 text-status-error">{filterError}</p>}
       <PageHeader title="Transactions" description={`${result.total} total`}>
         <Button asChild variant="outline">
           <a href={`/api/transactions/export?${exportParams.toString()}`}>

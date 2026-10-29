@@ -20,7 +20,8 @@ if (process.env.APP_ENV === "test") {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    // Route boundaries report sanitized diagnostics; Prisma error text can contain inputs.
+    log: [],
   });
 
 if (process.env.NODE_ENV !== "production") {

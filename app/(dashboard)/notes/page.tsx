@@ -1,3 +1,4 @@
+import { parsePageListQuery } from "@/lib/query-filters";
 export const dynamic = "force-dynamic";
 import Link from "next/link";
 
@@ -10,7 +11,6 @@ import { Pagination } from "@/components/shared/pagination";
 import { vehicleIdOptions } from "@/components/shared/vehicle-options";
 import { PageHeader } from "@/components/shared/page-header";
 import { DEFAULT_PAGE_SIZE, FLEET_WIDE_VEHICLE_ID, NO_VEHICLE_FILTER_VALUE } from "@/lib/constants";
-import { toStringArray } from "@/lib/utils";
 
 interface NotesPageProps {
   searchParams: Promise<{ noteId?: string; vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string }>;
@@ -18,16 +18,17 @@ interface NotesPageProps {
 
 export default async function NotesPage(props: NotesPageProps) {
   const searchParams = await props.searchParams;
-  const vehicleIdFilter = toStringArray(searchParams.vehicleId);
-  const page = Number(searchParams.page ?? "1") || 1;
+  const { filters, error: filterError } = parsePageListQuery(searchParams);
+  const vehicleIdFilter = filters.vehicleId ?? [];
+  const page = filters.page;
 
   const [vehicles, result] = await Promise.all([
     prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
     getNotes({
       noteId: searchParams.noteId,
       vehicleId: vehicleIdFilter.length ? vehicleIdFilter : undefined,
-      dateFrom: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,
-      dateTo: searchParams.dateTo ? new Date(searchParams.dateTo) : undefined,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo,
       page,
       limit: DEFAULT_PAGE_SIZE,
     }),
@@ -41,6 +42,7 @@ export default async function NotesPage(props: NotesPageProps) {
 
   return (
     <div className="space-y-8">
+      {filterError && <p role="alert" className="rounded-lg border border-status-error p-4 text-status-error">{filterError}</p>}
       <PageHeader title="Vehicle Notes" description="Driver changes, accidents, and general fleet news." />
 
       <div className="rounded-xl border border-border-subtle bg-card p-6 shadow-card-elevated">

@@ -4,6 +4,15 @@ import { prisma } from '../lib/db/client';
 import { verifyTestEnvironment } from '../lib/db/safety';
 import { login } from './helpers';
 
+test('authenticated API writes reject a foreign browser origin', async ({ page }) => {
+  await login(page);
+  const response = await page.request.post('/api/transactions', {
+    headers: { Origin: 'https://untrusted.example', 'Sec-Fetch-Site': 'cross-site' },
+    data: {},
+  });
+  expect(response.status()).toBe(403);
+});
+
 test('real login limits reject a correct password while locked and recover after expiry', async ({ page }) => {
   await verifyTestEnvironment(true);
   const username = process.env.TEST_USERNAME!;
@@ -24,9 +33,9 @@ test('real login limits reject a correct password while locked and recover after
     expect((await prisma.rateLimit.findUniqueOrThrow({ where: { key: record.key } })).points).toBe(11);
     await prisma.rateLimit.update({ where: { key: record.key }, data: { expiresAt: new Date(Date.now() - 1000) } });
     await login(page);
-    expect(await prisma.rateLimit.findUnique({ where: { key: record.key } })).toBeNull();
+    expect(await prisma.rateLimit.findUnique({ where: { key: record.key } })).toMatchObject({ points: 0, expiresAt: new Date(0) });
   } finally {
-    await prisma.rateLimit.deleteMany({ where: { key: record.key } });
+    await prisma.rateLimit.updateMany({ where: { key: record.key }, data: { expiresAt: new Date(0) } });
   }
 });
 

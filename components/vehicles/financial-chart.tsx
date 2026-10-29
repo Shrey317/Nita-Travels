@@ -24,7 +24,7 @@ export function FinancialChart({ data }: { data: MonthlyFinancials[] }) {
         </ResponsiveContainer>
       </ClientOnlyChart>
       <details className="mt-3 text-sm">
-        <summary className="cursor-pointer text-brand-blue">View monthly figures</summary>
+        <summary className="cursor-pointer text-primary">View monthly figures</summary>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-sm">
             <caption className="sr-only">Monthly financial figures for the selected records</caption>

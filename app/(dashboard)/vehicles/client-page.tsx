@@ -30,9 +30,15 @@ interface VehicleListClientProps {
 
 export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
   const searchParams = useSearchParams();
+  const status = searchParams.get("status") ?? "all";
+  const service = searchParams.get("service") ?? "all";
+  return <VehicleListFilters key={`${status}:${service}`} initialVehicles={initialVehicles} status={status} service={service} />;
+}
+
+function VehicleListFilters({ initialVehicles, status, service }: VehicleListClientProps & { status: string; service: string }) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "all");
-  const [serviceFilter, setServiceFilter] = useState(searchParams.get("service") ?? "all");
+  const [statusFilter, setStatusFilter] = useState(status);
+  const [serviceFilter, setServiceFilter] = useState(service);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const filteredVehicles = initialVehicles.filter((v) => {
@@ -75,14 +81,14 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
               placeholder="Search vehicles..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-full rounded-lg border border-border-subtle bg-surface-elevated pl-9 pr-4 text-sm text-white placeholder:text-muted outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+              className="h-9 w-full rounded-lg border border-border-subtle bg-surface-elevated pl-9 pr-4 text-sm text-ink placeholder:text-muted outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
             />
           </div>
         </div>
         
         <div className="flex flex-wrap items-center gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger aria-label="Vehicle status" className="w-[130px] h-10 border-border-subtle bg-surface-elevated text-white">
+            <SelectTrigger aria-label="Vehicle status" className="w-[130px] h-10 border-border-subtle bg-surface-elevated text-ink">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
@@ -93,7 +99,7 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
           </Select>
 
           <Select value={serviceFilter} onValueChange={setServiceFilter}>
-            <SelectTrigger aria-label="Service status" className="w-[140px] h-10 border-border-subtle bg-surface-elevated text-white">
+            <SelectTrigger aria-label="Service status" className="w-[140px] h-10 border-border-subtle bg-surface-elevated text-ink">
               <SelectValue placeholder="All Service" />
             </SelectTrigger>
             <SelectContent>
@@ -109,7 +115,7 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
               aria-label="Grid view"
               aria-pressed={viewMode === "grid"}
               onClick={() => setViewMode("grid")}
-              className={`p-1.5 rounded-md transition-colors ${viewMode === "grid" ? "bg-primary/10 text-primary shadow-sm" : "text-muted hover:text-white"}`}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === "grid" ? "bg-primary/10 text-primary shadow-sm" : "text-muted hover:text-ink"}`}
             >
               <LayoutGrid className="h-4 w-4" />
             </button>
@@ -118,7 +124,7 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
               aria-label="List view"
               aria-pressed={viewMode === "list"}
               onClick={() => setViewMode("list")}
-              className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-primary/10 text-primary shadow-sm" : "text-muted hover:text-white"}`}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-primary/10 text-primary shadow-sm" : "text-muted hover:text-ink"}`}
             >
               <List className="h-4 w-4" />
             </button>
@@ -157,7 +163,7 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
                 const isProfit = v.netProfitCents >= 0;
                 return (
                   <tr key={v.vehicle.id} className="hover:bg-surface-elevated/50 transition-colors">
-                    <td className="px-5 py-3.5 font-bold text-white">{v.vehicle.id}</td>
+                    <td className="px-5 py-3.5 font-bold text-ink">{v.vehicle.id}</td>
                     <td className="px-5 py-3.5">
                       <Link href={`/vehicles/${v.vehicle.id}`} className="font-semibold text-primary hover:text-primary-hover hover:underline transition-colors">
                         {v.vehicle.make} {v.vehicle.model}
@@ -177,24 +183,24 @@ export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
                       )}
                     </td>
                     <td className="px-5 py-3.5 font-mono-figures text-ink-secondary">{formatKm(v.vehicle.currentMileageKm)}</td>
-                    <td className={`px-5 py-3.5 text-right font-mono-figures font-semibold ${isProfit ? "text-status-success" : "text-error"}`}>
+                    <td className={`px-5 py-3.5 text-right font-mono-figures font-semibold ${isProfit ? "text-status-success" : "text-status-error"}`}>
                       {formatZAR(v.netProfitCents)}
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="ghost" size="icon" aria-label={`Actions for ${v.vehicle.id}`} className="h-8 w-8 text-muted hover:text-white hover:bg-surface-elevated">
+                          <Button variant="ghost" size="icon" aria-label={`Actions for ${v.vehicle.id}`} className="h-8 w-8 text-muted hover:text-ink hover:bg-surface-elevated">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent align="end" className="w-48 p-1 flex flex-col gap-1 bg-card border-border-subtle">
-                          <Button variant="ghost" asChild className="justify-start font-normal h-9 text-ink-secondary hover:text-white">
+                          <Button variant="ghost" asChild className="justify-start font-normal h-9 text-ink-secondary hover:text-ink">
                             <Link href={`/vehicles/${v.vehicle.id}`}>
                               <Activity className="mr-2 h-4 w-4 text-muted" />
                               View Profile
                             </Link>
                           </Button>
-                          <Button variant="ghost" asChild className="justify-start font-normal h-9 text-ink-secondary hover:text-white">
+                          <Button variant="ghost" asChild className="justify-start font-normal h-9 text-ink-secondary hover:text-ink">
                             <Link href={`/vehicles/${v.vehicle.id}/edit`}>
                               <Edit className="mr-2 h-4 w-4 text-muted" />
                               Edit Details

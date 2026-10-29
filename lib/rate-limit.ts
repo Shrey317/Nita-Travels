@@ -17,22 +17,14 @@ export async function checkLoginRateLimit(key: string): Promise<{ allowed: boole
   try {
     const now = new Date();
     
-    // Clean up expired tokens for this key
-    await prisma.rateLimit.deleteMany({
-      where: { key, expiresAt: { lt: now } }
-    });
-
-    const record = await prisma.rateLimit.upsert({
-      where: { key },
-      update: {
-        points: { increment: 1 }
-      },
-      create: {
-        key,
-        points: 1,
-        expiresAt: new Date(now.getTime() + WINDOW_MS)
-      }
-    });
+    // Reset expired windows atomically without deleting history or racing a second request.
+    const [record] = await prisma.$queryRaw<{ points: number; expiresAt: Date }[]>`
+      INSERT INTO "RateLimit" (key, points, "expiresAt") VALUES (${key}, 1, ${new Date(now.getTime() + WINDOW_MS)})
+      ON CONFLICT (key) DO UPDATE SET
+        points = CASE WHEN "RateLimit"."expiresAt" < ${now} THEN 1 ELSE "RateLimit".points + 1 END,
+        "expiresAt" = CASE WHEN "RateLimit"."expiresAt" < ${now} THEN EXCLUDED."expiresAt" ELSE "RateLimit"."expiresAt" END
+      RETURNING points, "expiresAt"`;
+    if (!record) throw new Error("Attempt counter unavailable");
 
     if (record.points > MAX_ATTEMPTS) {
       const retryAfterSeconds = Math.ceil((record.expiresAt.getTime() - now.getTime()) / 1000);
@@ -49,9 +41,7 @@ export async function checkLoginRateLimit(key: string): Promise<{ allowed: boole
 /** Call after a successful login so a legitimate user's earlier typos don't linger against them. */
 export async function clearLoginRateLimit(key: string): Promise<void> {
   try {
-    await prisma.rateLimit.delete({
-      where: { key }
-    });
+    await prisma.rateLimit.updateMany({ where: { key }, data: { points: 0, expiresAt: new Date(0) } });
   } catch {
     // Ignore if not found
   }

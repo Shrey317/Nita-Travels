@@ -10,7 +10,7 @@ describe("Weekly Breakdown", () => {
   beforeEach(async () => {
     await verifyTestEnvironment(true);
     // Clear transactions
-    await prisma.transaction.deleteMany({ where: { vehicleId } });
+    await prisma.transaction.updateMany({ where: { vehicleId }, data: { deletedAt: new Date() } });
     
     // Ensure test vehicle exists
     const v = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
@@ -32,7 +32,7 @@ describe("Weekly Breakdown", () => {
 
   afterEach(async () => {
     await verifyTestEnvironment(true);
-    await prisma.transaction.deleteMany({ where: { vehicleId } });
+    await prisma.transaction.updateMany({ where: { vehicleId }, data: { deletedAt: new Date() } });
   });
 
   it("should aggregate income and expenses correctly in the correct week", async () => {

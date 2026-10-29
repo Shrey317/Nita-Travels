@@ -13,7 +13,7 @@ const vehicleBaseSchema = z.object({
   model: z.string().trim().min(1, "Model is required"),
   registration: z.string().trim().min(1, "Registration is required"),
   registration2: z.string().trim().min(1).nullable().optional(),
-  transmission: z.enum(["Manual", "Auto"], { errorMap: () => ({ message: "Select Manual or Auto" }) }),
+  transmission: z.enum(["Manual", "Auto"], { error: "Select Manual or Auto" }),
   purchaseDate: calendarDateSchema,
   purchasePriceCents: nonnegativeIntegerSchema,
   mileageAtPurchaseKm: nonnegativeIntegerSchema,
@@ -38,11 +38,22 @@ export const vehicleSchema = vehicleBaseSchema.refine((d) => d.currentMileageKm 
 }).refine((d) => d.emiMonthsPaid <= d.emiMonthsTotal, {
   message: "Months paid can't exceed the total EMI term",
   path: ["emiMonthsPaid"],
+}).refine((d) => Number.isSafeInteger(d.targetEmiCents * d.emiMonthsTotal), {
+  message: "The configured finance total exceeds the supported amount",
+  path: ["emiMonthsTotal"],
 });
 
 /** Shape-only validation for a PATCH body. The API route merges this with the existing row, then
  *  re-validates the full merged object against `vehicleSchema` before writing — see lib/db/vehicles.ts. */
-export const vehicleUpdateSchema = vehicleBaseSchema.omit({ id: true }).partial();
+export const vehicleUpdateSchema = vehicleBaseSchema.omit({ id: true }).partial().extend({
+  serviceIntervalKm: positiveIntegerSchema.optional(),
+  targetEmiCents: nonnegativeIntegerSchema.optional(),
+  emiMonthsTotal: nonnegativeIntegerSchema.optional(),
+  emiMonthsPaid: nonnegativeIntegerSchema.optional(),
+  monthlyPremiumCents: nonnegativeIntegerSchema.optional(),
+  insurancePeriodMonths: nonnegativeIntegerSchema.optional(),
+  active: z.boolean().optional(),
+});
 
 export type VehicleInput = z.infer<typeof vehicleSchema>;
 export type VehicleUpdateInput = z.infer<typeof vehicleUpdateSchema>;

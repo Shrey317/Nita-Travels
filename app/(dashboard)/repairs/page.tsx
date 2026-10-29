@@ -1,3 +1,4 @@
+import { parsePageListQuery } from "@/lib/query-filters";
 export const dynamic = "force-dynamic";
 
 import { getTransactions, getRepairsSummary, getRepairsAnomalies } from "@/lib/db/transactions";
@@ -10,7 +11,6 @@ import { Pagination } from "@/components/shared/pagination";
 import { vehicleIdOptions } from "@/components/shared/vehicle-options";
 import { PageHeader } from "@/components/shared/page-header";
 import { REPAIR_CATEGORIES, DEFAULT_PAGE_SIZE, FLEET_WIDE_VEHICLE_ID } from "@/lib/constants";
-import { toStringArray } from "@/lib/utils";
 
 interface RepairsPageProps {
   searchParams: Promise<{ vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string }>;
@@ -18,8 +18,9 @@ interface RepairsPageProps {
 
 export default async function RepairsPage(props: RepairsPageProps) {
   const searchParams = await props.searchParams;
-  const vehicleId = toStringArray(searchParams.vehicleId);
-  const page = Number(searchParams.page ?? "1") || 1;
+  const { filters, error: filterError } = parsePageListQuery(searchParams);
+  const vehicleId = filters.vehicleId ?? [];
+  const page = filters.page;
 
   const [vehicles, summary, anomalies, result] = await Promise.all([
     prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
@@ -28,8 +29,8 @@ export default async function RepairsPage(props: RepairsPageProps) {
     getTransactions({
       category: [...REPAIR_CATEGORIES],
       vehicleId: vehicleId.length ? vehicleId : undefined,
-      dateFrom: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,
-      dateTo: searchParams.dateTo ? new Date(searchParams.dateTo) : undefined,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo,
       page,
       limit: DEFAULT_PAGE_SIZE,
     }),
@@ -42,8 +43,10 @@ export default async function RepairsPage(props: RepairsPageProps) {
 
   return (
     <div className="space-y-6">
+      {filterError && <p role="alert" className="rounded-lg border border-status-error p-4 text-status-error">{filterError}</p>}
       <PageHeader title="Repairs Log" description="Read-only view of Repairs, Brake Pads, and Tyres transactions." />
 
+      <p className="text-sm text-muted">Summary: all recorded repairs. Alerts: current fleet activity over the last 30 days. Filters below apply to the transaction table.</p>
       <RepairsSummaryCards summary={summary} />
       <RepairsAnomalies anomalies={anomalies} />
       <VehicleDateFilters vehicleOptions={vehicleOptions} idPrefix="repairs" />

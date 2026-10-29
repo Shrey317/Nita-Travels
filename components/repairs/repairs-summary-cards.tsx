@@ -12,13 +12,13 @@ export function RepairsSummaryCards({ summary }: { summary: RepairsSummary }) {
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <Card className="bg-card border-border-subtle shadow-card-elevated">
         <CardHeader className="pb-2 flex flex-row items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-error/10 border border-error/20">
-            <Wrench className="h-4 w-4 text-error" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-status-error/10 border border-status-error/20">
+            <Wrench className="h-4 w-4 text-status-error" />
           </div>
           <CardTitle className="text-sm font-medium text-ink-secondary">Total Repair Cost</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="font-mono-figures text-2xl font-bold text-error">{formatZAR(summary.totalCostCents)}</p>
+          <p className="font-mono-figures text-2xl font-bold text-status-error">{formatZAR(summary.totalCostCents)}</p>
         </CardContent>
       </Card>
       <Card className="bg-card border-border-subtle shadow-card-elevated">
@@ -29,18 +29,18 @@ export function RepairsSummaryCards({ summary }: { summary: RepairsSummary }) {
           <CardTitle className="text-sm font-medium text-ink-secondary">Total Events</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="font-mono-figures text-2xl font-bold text-white">{summary.totalEvents}</p>
+          <p className="font-mono-figures text-2xl font-bold text-ink">{summary.totalEvents}</p>
         </CardContent>
       </Card>
       <Card className="bg-card border-border-subtle shadow-card-elevated">
         <CardHeader className="pb-2 flex flex-row items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-info/10 border border-info/20">
-            <Calendar className="h-4 w-4 text-info" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-status-info/10 border border-status-info/20">
+            <Calendar className="h-4 w-4 text-status-info" />
           </div>
           <CardTitle className="text-sm font-medium text-ink-secondary">Most Recent Repair</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="font-mono-figures text-lg font-bold text-white">{mostRecentLabel}</p>
+          <p className="font-mono-figures text-lg font-bold text-ink">{mostRecentLabel}</p>
         </CardContent>
       </Card>
     </div>

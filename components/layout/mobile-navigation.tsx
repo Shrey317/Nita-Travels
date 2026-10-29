@@ -25,7 +25,7 @@ export function MobileNavigation() {
             aria-current={active ? "page" : undefined} 
             className={cn(
               "flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-[12px] text-xs font-medium transition-colors", 
-              active ? "text-primary" : "text-muted hover:text-white"
+              active ? "text-primary" : "text-muted hover:text-ink"
             )}
           >
             <Icon className="h-[20px] w-[20px]" aria-hidden="true" />

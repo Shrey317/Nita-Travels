@@ -29,10 +29,11 @@ test('dashboard, analytics and every report reconcile to the same selection', as
 
 test('custom period filters apply and comparison controls update their table', async ({ page }) => {
   await page.goto('/analytics?range=12-months');
-  await page.getByLabel('Period', { exact: true }).selectOption('custom');
-  await page.getByLabel('From', { exact: true }).fill('2025-01-15');
-  await page.getByLabel('To', { exact: true }).fill('2025-02-10');
-  await page.getByLabel('Compare with', { exact: true }).selectOption('previous-year');
+  const filters = page.getByRole('form', { name: 'Analytics filters' });
+  await filters.getByLabel('Period', { exact: true }).selectOption('custom');
+  await filters.getByLabel('From', { exact: true }).fill('2025-01-15');
+  await filters.getByLabel('To', { exact: true }).fill('2025-02-10');
+  await filters.getByLabel('Compare with', { exact: true }).selectOption('previous-year');
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
   await expect(page).toHaveURL(/dateFrom=2025-01-15/);
   await expect(page.getByRole('form', { name: 'Analytics filters' })).toContainText('2025-01-15 – 2025-02-10');

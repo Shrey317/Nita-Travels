@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
   const tx = {
+    $queryRaw: vi.fn(),
     vehicle: { findUnique: vi.fn(), updateMany: vi.fn() },
     transaction: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
     vehicleNote: { create: vi.fn() },

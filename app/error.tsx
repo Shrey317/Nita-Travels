@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
  *  global-error.tsx, which only activates for failures in the root layout itself. */
 export default function RootError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    console.error(error);
+    console.error("Page render failed", { digest: error.digest });
   }, [error]);
 
   return (
@@ -23,7 +23,7 @@ export default function RootError({ error, reset }: { error: Error & { digest?: 
           <AlertCircle className="h-8 w-8 animate-pulse text-status-red" aria-hidden="true" />
         </div>
         <div className="space-y-1">
-          <p className="text-lg font-semibold text-ink">Something went wrong</p>
+          <h1 className="text-lg font-semibold text-ink">Something went wrong</h1>
           <p className="text-sm text-muted">Please try again.</p>
         </div>
         <Button onClick={reset}>Try again</Button>

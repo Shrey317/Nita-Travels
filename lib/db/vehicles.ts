@@ -1,3 +1,4 @@
+import { queryVehicleTimeline } from "@/lib/db/timeline";
 /**
  * lib/db/vehicles.ts
  *
@@ -228,63 +229,8 @@ export interface TimelineResult {
   limit: number;
 }
 
-/**
- * Merged Transaction + VehicleNote timeline for a vehicle (SRS 13.8), newest first, paginated
- * 50/page. Notes are included when addressed to this vehicle OR to the whole fleet ("ALLCR").
- *
- * Both source tables are fetched in full for this one vehicle and merged/sorted/paginated in
- * JS rather than via a SQL UNION. For a single vehicle's realistic lifetime volume (a fleet
- * this size logs, at most, low hundreds of rows per vehicle) that's simpler to read and
- * maintain than a raw-SQL union view, at negligible cost — see Section 2.7 of the spec's own
- * assumption policy. If a vehicle's history ever grew into the tens of thousands of rows,
- * this would be the first place to revisit with a real paginated UNION query.
- */
 export async function getVehicleTimeline(vehicleId: string, filters: TimelineFilters = {}): Promise<TimelineResult> {
-  const { page = 1, limit = 50, dateFrom, dateTo, type = "all" } = filters;
-  const dateFilter =
-    dateFrom || dateTo
-      ? { date: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
-      : {};
-
-  const [transactions, notes] = await Promise.all([
-    type === "notes"
-      ? Promise.resolve([])
-      : prisma.transaction.findMany({ where: { vehicleId, deletedAt: null, ...dateFilter }, orderBy: { date: "desc" } }),
-    type === "transactions"
-      ? Promise.resolve([])
-      : prisma.vehicleNote.findMany({
-          where: { vehicleId: { in: [vehicleId, "ALLCR"] }, ...dateFilter },
-          orderBy: { date: "desc" },
-        }),
-  ]);
-
-  const items: TimelineItem[] = [
-    ...transactions.map((t) => ({
-      id: t.id,
-      date: t.date,
-      type: t.category as string,
-      incomeCents: t.incomeZarCents,
-      expenseCents: t.expenseZarCents,
-      details: t.notes ?? "",
-      isNote: false,
-      mileageKm: t.mileageKm,
-      photoUrls: t.photoUrls,
-    })),
-    ...notes.map((n) => ({
-      id: n.id,
-      date: n.date,
-      type: "Note",
-      incomeCents: null,
-      expenseCents: null,
-      details: n.note,
-      isNote: true,
-      mileageKm: null,
-      photoUrls: n.photoUrls,
-    })),
-  ].sort((a, b) => b.date.getTime() - a.date.getTime());
-
-  const start = (page - 1) * limit;
-  return { items: items.slice(start, start + limit), total: items.length, page, limit };
+  return queryVehicleTimeline(vehicleId, filters);
 }
 
 export interface MonthlyFinancials {

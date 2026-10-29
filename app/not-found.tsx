@@ -14,7 +14,7 @@ export default function NotFound() {
           <Compass className="h-8 w-8 text-muted" aria-hidden="true" />
         </div>
         <div className="space-y-1">
-          <p className="text-lg font-semibold text-ink">Page not found</p>
+          <h1 className="text-lg font-semibold text-ink">Page not found</h1>
           <p className="text-sm text-muted">That page doesn&apos;t exist, or the record may have been removed.</p>
         </div>
         <Button asChild>

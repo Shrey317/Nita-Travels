@@ -14,29 +14,29 @@ export function AlertsPanel({ alerts }: { alerts: FleetNotification[] }) {
     <Card className="col-span-1 flex flex-col h-full bg-card border-border-subtle shadow-card-elevated">
       <div className="flex items-center justify-between border-b border-border-subtle p-5 bg-gradient-to-r from-surface-elevated/50 to-transparent">
         <div className="flex items-center gap-2">
-          <Bell className="h-5 w-5 text-error" />
-          <h2 className="text-base font-semibold text-white tracking-tight">Active Alerts</h2>
+          <Bell className="h-5 w-5 text-status-error" />
+          <h2 className="text-base font-semibold text-ink tracking-tight">Active Alerts</h2>
         </div>
-        <Link href="/alerts" className="text-xs font-medium text-muted hover:text-white">View all →</Link>
+        <Link href="/alerts" className="text-xs font-medium text-muted hover:text-ink">View all →</Link>
       </div>
 
       <div className="flex-1 flex flex-col divide-y divide-border-subtle overflow-y-auto max-h-[300px]">
         {sortedAlerts.slice(0, 5).map((a, i) => {
           const isError = a.priority === "critical";
           const isWarning = a.priority === "warning";
-          
+
           return (
             <Link key={i} href={a.href} className="group flex items-start gap-4 px-5 py-4 hover:bg-surface-elevated/50 transition-colors">
-              <div className={cn("mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border", 
-                isError ? "bg-error/10 border-error/20 text-error" : 
-                isWarning ? "bg-warning/10 border-warning/20 text-warning" : 
-                "bg-info/10 border-info/20 text-info"
+              <div className={cn("mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border",
+                isError ? "bg-status-error/10 border-status-error/20 text-status-error" :
+                isWarning ? "bg-status-warning/10 border-status-warning/20 text-status-warning" :
+                "bg-status-info/10 border-status-info/20 text-status-info"
               )}>
                 {isError ? <ShieldAlert className="h-4 w-4" /> : isWarning ? <AlertTriangle className="h-4 w-4" /> : <Info className="h-4 w-4" />}
               </div>
               <div className="flex flex-col flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-white truncate">{a.title}</span>
+                  <span className="text-sm font-bold text-ink truncate">{a.title}</span>
                   {a.vehicleId && (
                     <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-surface border border-border-subtle text-muted">
                       {a.vehicleId}

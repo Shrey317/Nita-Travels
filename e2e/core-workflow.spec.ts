@@ -1,11 +1,26 @@
 import { test, expect } from '@playwright/test';
 import { login } from './helpers';
 
+test('switching transaction categories clears the hidden amount', async ({ page }) => {
+  await page.goto('/transactions/new?vehicleId=CR91');
+  await page.getByLabel('Category', { exact: true }).click();
+  await page.getByRole('option', { name: 'Income', exact: true }).click();
+  await page.getByLabel('Income (R)', { exact: true }).fill('100');
+  await page.getByLabel('Category', { exact: true }).click();
+  await page.getByRole('option', { name: 'Fuel', exact: true }).click();
+  await page.getByLabel('Expense (R)', { exact: true }).fill('50');
+  const saved = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/transactions');
+  await page.getByRole('button', { name: 'Add Transaction', exact: true }).click();
+  const response = await saved;
+  expect(response.status()).toBe(201);
+  expect((await response.json()).transaction).toMatchObject({ incomeZarCents: 0, expenseZarCents: 5000, category: 'Fuel' });
+});
+
 test.beforeEach(async ({ page }) => login(page));
 
 test('vehicles support search, profile, health evidence and timeline', async ({ page }) => {
   await page.goto('/vehicles');
-  await page.getByPlaceholder(/Search/i).fill('TEST 091');
+  await page.getByRole('textbox', { name: 'Search vehicles', exact: true }).fill('TEST 091');
   const vehicle = page.locator('a[href="/vehicles/CR91"]').first();
   await expect(vehicle).toBeVisible();
   await vehicle.click();
@@ -35,7 +50,10 @@ test('transaction creation, filtering, editing, cancellation, soft delete and ex
   await page.getByRole('option', { name: 'Income', exact: true }).click();
   await page.getByLabel('Income (R)', { exact: true }).fill('123.45');
   await page.getByLabel('Notes', { exact: true }).fill(note);
+  await expect(page.getByLabel('Notes', { exact: true })).toHaveValue(note);
+  const created = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/transactions');
   await page.getByRole('button', { name: 'Add Transaction', exact: true }).click();
+  expect((await (await created).json()).transaction.notes).toBe(note);
   await expect(page).toHaveURL(/\/transactions$/);
   await page.goto(`/transactions?search=${encodeURIComponent(note)}`);
   const row = page.getByRole('row').filter({ hasText: note });

@@ -20,7 +20,8 @@ import { VehicleHealthCard } from "@/components/vehicles/health-card";
 import { VehicleReplacementCard } from "@/components/vehicles/replacement-card";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { financialMetrics } from "@/lib/finance";
-import { businessToday, isoWeekStart, parseCalendarDate } from "@/lib/date-ranges";
+import { businessToday, isoWeekStart } from "@/lib/date-ranges";
+import { parsePageListQuery } from "@/lib/query-filters";
 import { getAnalyticsReport } from "@/lib/db/analytics";
 
 interface VehicleProfilePageProps {
@@ -30,6 +31,7 @@ interface VehicleProfilePageProps {
 
 export default async function VehicleProfilePage(props: VehicleProfilePageProps) {
   const searchParams = await props.searchParams;
+  const { filters: timelineFilters, error: timelineFilterError } = parsePageListQuery(searchParams);
   const params = await props.params;
   const detail = await getVehicleDetail(params.id);
   if (!detail) notFound();
@@ -66,9 +68,9 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
 
   const [timeline, monthlyFinancials, operations] = await Promise.all([
     getVehicleTimeline(vehicle.id, {
-      page: Number(searchParams.page ?? "1") || 1,
-      dateFrom: searchParams.dateFrom ? parseCalendarDate(searchParams.dateFrom) : undefined,
-      dateTo: searchParams.dateTo ? parseCalendarDate(searchParams.dateTo) : undefined,
+      page: timelineFilters.page,
+      dateFrom: timelineFilters.dateFrom,
+      dateTo: timelineFilters.dateTo,
       type: searchParams.type === "transactions" || searchParams.type === "notes" ? searchParams.type : "all",
     }),
     getVehicleMonthlyFinancials(vehicle.id),
@@ -88,26 +90,26 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
       ? "Expired"
       : `${insuranceDaysRemaining} day${insuranceDaysRemaining !== 1 ? "s" : ""}`;
   const insuranceColor = insuranceDaysRemaining === null
-    ? "text-white"
+    ? "text-ink"
     : insuranceExpired
-      ? "text-error"
+      ? "text-status-error"
       : insuranceDaysRemaining <= 30
-        ? "text-warning"
+        ? "text-status-warning"
         : "text-status-success";
 
   return (
     <div className="space-y-8">
       {/* ── Vehicle Header ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 xl:flex-row xl:flex-wrap xl:items-start xl:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
               <Car className="h-5 w-5 text-primary" />
             </div>
-            <span className="inline-flex items-center rounded-lg bg-surface-elevated px-3 py-1.5 text-sm font-bold text-white border border-border-subtle">
+            <span className="inline-flex items-center rounded-lg bg-surface-elevated px-3 py-1.5 text-sm font-bold text-ink border border-border-subtle">
               {vehicle.id}
             </span>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
+            <h1 className="text-2xl font-bold tracking-tight text-ink">
               {vehicle.make} {vehicle.model}
             </h1>
             {!vehicle.active && <Badge variant="destructive">Inactive</Badge>}
@@ -116,7 +118,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
           <p className="mt-2 text-sm text-ink-secondary">{registrationLine}</p>
           <p className="mt-1 text-xs text-muted">Vehicle command center · lifetime financial totals</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
+        <div className="flex min-w-0 max-w-full items-center gap-2 flex-wrap">
           <Button asChild variant="outline" size="sm">
             <Link href={`/vehicles/${vehicle.id}/edit`}>
               <Pencil className="h-3.5 w-3.5" />
@@ -158,17 +160,17 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
           <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Status</p>
-          <p className={`mt-1.5 font-bold ${vehicle.active ? "text-status-success" : "text-error"}`}>
+          <p className={`mt-1.5 font-bold ${vehicle.active ? "text-status-success" : "text-status-error"}`}>
             {vehicle.active ? "Active" : "Inactive"}
           </p>
         </div>
         <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
           <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Mileage</p>
-          <p className="mt-1.5 font-bold text-white font-mono-figures">{formatKm(vehicle.currentMileageKm)}</p>
+          <p className="mt-1.5 font-bold text-ink font-mono-figures">{formatKm(vehicle.currentMileageKm)}</p>
         </div>
         <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
           <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Health</p>
-          <p className={`mt-1.5 font-bold ${health.score >= 80 ? 'text-status-success' : health.score >= 50 ? 'text-warning' : 'text-error'}`}>
+          <p className={`mt-1.5 font-bold ${health.score >= 80 ? 'text-status-success' : health.score >= 50 ? 'text-status-warning' : 'text-status-error'}`}>
             {health.score} / 100
           </p>
         </div>
@@ -182,7 +184,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
         </div>
         <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
           <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Lifetime profit</p>
-          <p className={`mt-1.5 font-bold font-mono-figures ${netProfitCents >= 0 ? "text-status-success" : "text-error"}`}>
+          <p className={`mt-1.5 font-bold font-mono-figures ${netProfitCents >= 0 ? "text-status-success" : "text-status-error"}`}>
             {formatZAR(netProfitCents)}
           </p>
         </div>
@@ -215,7 +217,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
             { label: "Average repair amount", value: operations.current.maintenance.averageRepairCents === null ? "—" : formatZAR(operations.current.maintenance.averageRepairCents) },
           ]} />
         </div>
-        {operations.current.repairPatterns.length > 0 && <div className="rounded-xl border border-warning/20 bg-warning/5 p-4 shadow-sm"><h3 className="font-semibold text-warning">Repeat repair patterns detected</h3><ul className="mt-2 space-y-2 text-sm text-ink-secondary">{operations.current.repairPatterns.map(pattern => <li key={pattern.category}><Link href={`/repairs?vehicleId=${vehicle.id}&dateFrom=${operations.selection.range.from.toISOString().slice(0, 10)}&dateTo=${operations.selection.range.to.toISOString().slice(0, 10)}`} className="text-primary hover:underline">{pattern.category}: {pattern.occurrences} records · {formatZAR(pattern.totalCostCents)}</Link><span className="block">Previous {pattern.previousDate}; latest {pattern.latestDate}; {pattern.daysBetween} days apart. Repeated categories are evidence for review, not a confirmed fault.</span></li>)}</ul></div>}
+        {operations.current.repairPatterns.length > 0 && <div className="rounded-xl border border-status-warning/20 bg-status-warning/5 p-4 shadow-sm"><h3 className="font-semibold text-status-warning">Repeat repair patterns detected</h3><ul className="mt-2 space-y-2 text-sm text-ink-secondary">{operations.current.repairPatterns.map(pattern => <li key={pattern.category}><Link href={`/repairs?vehicleId=${vehicle.id}&dateFrom=${operations.selection.range.from.toISOString().slice(0, 10)}&dateTo=${operations.selection.range.to.toISOString().slice(0, 10)}`} className="text-primary hover:underline">{pattern.category}: {pattern.occurrences} records · {formatZAR(pattern.totalCostCents)}</Link><span className="block">Previous {pattern.previousDate}; latest {pattern.latestDate}; {pattern.daysBetween} days apart. Repeated categories are evidence for review, not a confirmed fault.</span></li>)}</ul></div>}
         <p className="text-xs text-muted">Downtime requires repair start and completion dates, which are not recorded. Warranty remains the supplied coverage text; dates and mileage limits are not inferred from it.</p>
       </section>
 
@@ -303,6 +305,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
 
       <section id="vehicle-activity" className="scroll-mt-24 space-y-3">
         <SectionHeading title="Activity Timeline" />
+        {timelineFilterError && <p role="alert" className="mb-3 text-sm text-status-error">{timelineFilterError}</p>}
         <ActivityTimeline timeline={timeline} />
       </section>
     </div>

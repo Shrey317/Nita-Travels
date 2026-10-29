@@ -35,8 +35,8 @@ export function ServiceTable({ rows }: { rows: VehicleServiceRowWithEstimate[] }
   };
 
   const statusColors = {
-    OVERDUE: "text-error",
-    DUE_SOON: "text-warning",
+    OVERDUE: "text-status-error",
+    DUE_SOON: "text-status-warning",
     OK: "text-status-success",
     NEEDS_DATA: "text-muted",
   };
@@ -47,7 +47,7 @@ export function ServiceTable({ rows }: { rows: VehicleServiceRowWithEstimate[] }
       <div className="space-y-3">
         <h2 className={`text-lg font-bold tracking-tight flex items-center gap-2 ${statusColors[status]}`}>
           {statusIcons[status]}
-          {title} <span className="text-sm font-normal opacity-70">({items.length})</span>
+          {title} <span className="text-sm font-normal text-muted">({items.length})</span>
         </h2>
         <div className="rounded-xl border border-border-subtle bg-card overflow-hidden shadow-card-elevated">
           <Table>
@@ -75,8 +75,8 @@ export function ServiceTable({ rows }: { rows: VehicleServiceRowWithEstimate[] }
                   <TableCell className="text-ink-secondary">{row.registration}</TableCell>
                   <TableCell className="text-ink-secondary">{row.lastServiceDate ? formatDate(row.lastServiceDate) : "—"}</TableCell>
                   <TableCell className="text-right font-mono-figures text-sm text-ink-secondary">{formatKm(row.lastServiceMileageKm)}</TableCell>
-                  <TableCell className="text-right font-mono-figures text-sm text-white">{formatKm(row.nextSvcKm)}</TableCell>
-                  <TableCell className="text-right font-mono-figures text-sm text-white">{formatKm(row.currentMileageKm)}</TableCell>
+                  <TableCell className="text-right font-mono-figures text-sm text-ink">{formatKm(row.nextSvcKm)}</TableCell>
+                  <TableCell className="text-right font-mono-figures text-sm text-ink">{formatKm(row.currentMileageKm)}</TableCell>
                   <TableCell className={`text-right font-mono-figures text-sm font-semibold ${statusColors[status]}`}>{formatKm(row.kmRemaining)}</TableCell>
                   <TableCell className="text-right font-mono-figures text-sm text-ink-secondary">{row.daysToNext === null ? "—" : row.daysToNext}</TableCell>
                   <TableCell>

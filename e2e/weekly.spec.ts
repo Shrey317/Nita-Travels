@@ -21,7 +21,7 @@ test('monthly recorded data and an empty historical period render', async ({ pag
   await page.goto('/monthly');
   await expect(page.getByRole('table')).toBeVisible();
   await page.goto('/monthly?year=2001');
-  await expect(page.getByText(/No financial activity|No transactions/i)).toBeVisible();
+  await expect(page.getByRole('main').getByText(/No financial activity|No transactions/i)).toBeVisible();
 });
 
 test('analytics filters and vehicle drill-down are available', async ({ page }) => {
@@ -31,7 +31,7 @@ test('analytics filters and vehicle drill-down are available', async ({ page }) 
   await expect(page.locator('main a[href*="/vehicles/CR91"]').first()).toBeVisible();
   await page.goto('/analytics?range=last-month&vehicleId=CR91');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  await expect(page.getByLabel('Period', { exact: true })).toHaveValue('last-month');
-  await expect(page.getByLabel('Vehicle', { exact: true })).toHaveValue('CR91');
+  await expect(page.getByRole('form', { name: 'Analytics filters' }).getByLabel('Period', { exact: true })).toHaveValue('last-month');
+  await expect(page.getByRole('form', { name: 'Analytics filters' }).getByLabel('Vehicle', { exact: true })).toHaveValue('CR91');
   await expect(page.locator('main')).not.toContainText(/NaN|Infinity|\[object Object\]/);
 });

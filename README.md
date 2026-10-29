@@ -35,7 +35,7 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`npm test` runs pure and mocked tests without a database. Integration and browser tests require explicitly configured disposable PostgreSQL access and `ALLOW_DESTRUCTIVE_TEST_DB=true`; the runner rejects known application database targets and creates a fresh schema per run. See [testing instructions](docs/testing.md).
+`npm test` runs pure and mocked tests without a database. Integration and browser tests require explicitly configured disposable PostgreSQL access and `ALLOW_TEST_MUTATIONS=true`; the runner rejects known application database targets and creates a fresh schema per run. See [testing instructions](docs/testing.md).
 
 The CI workflow runs a production dependency audit, typecheck, lint, unit tests, integration tests, build and production-server E2E with an ephemeral PostgreSQL service. Chromium runs the full suite; Firefox and WebKit cover critical workflows. Test counts come from the actual run output, rather than an outdated count in this README.
 

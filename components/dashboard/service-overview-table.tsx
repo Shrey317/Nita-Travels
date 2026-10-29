@@ -38,7 +38,7 @@ export function ServiceOverviewTable({ rows }: { rows: VehicleServiceRow[] }) {
         {rows.map((row) => (
           <TableRow key={row.vehicleId}>
             <TableCell>
-              <Link href={`/vehicles/${row.vehicleId}`} className="font-medium text-teal hover:underline">
+              <Link href={`/vehicles/${row.vehicleId}`} className="font-medium text-teal-text hover:underline">
                 {row.vehicleId}
               </Link>
             </TableCell>

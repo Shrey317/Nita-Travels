@@ -49,7 +49,7 @@ function FilterForm({ selection, vehicles }: { selection: AnalyticsSelection; ve
         <label className="space-y-1 text-xs font-medium text-muted">To<input name="dateTo" type="date" required min={from} value={to} onChange={event => setTo(event.target.value)} className={control} /></label>
       </>}
       <div className="flex items-end"><Button type="submit" disabled={pending} className="w-full">{pending && <Loader2 aria-hidden="true" className="animate-spin" />}{pending ? "Updating…" : "Apply filters"}</Button></div>
-      <div className="flex flex-wrap items-center justify-between gap-2 sm:col-span-2 xl:col-span-4"><p className="text-xs leading-relaxed text-muted">{selection.label} · {selection.comparisonLabel}. Current periods include their full calendar range.</p><Link href={pathname} scroll={false} className="inline-flex min-h-9 items-center text-xs font-medium text-brand-blue hover:underline">Reset filters</Link></div>
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:col-span-2 xl:col-span-4"><p className="text-xs leading-relaxed text-muted">{selection.label} · {selection.comparisonLabel}. Current periods include their full calendar range.</p><Link href={pathname} scroll={false} className="inline-flex min-h-9 items-center text-xs font-medium text-primary hover:underline">Reset filters</Link></div>
     </form>
   );
 }

@@ -38,7 +38,7 @@ export function ProfileMenu() {
           <legend className="sr-only">Appearance</legend>
           <p className="mb-2 text-xs text-muted">Appearance</p>
           <div className="flex gap-1">
-            {([{ value: "light", label: "Light", Icon: Sun }, { value: "dark", label: "Dark", Icon: Moon }, { value: "system", label: "Auto", Icon: Monitor }] as const).map(({ value, label, Icon }) => <button key={value} type="button" onClick={() => setTheme(value)} aria-pressed={theme === value} className={`flex min-h-10 flex-1 items-center justify-center gap-1 rounded-input px-2 text-xs ${theme === value ? "bg-brand-blue/10 text-brand-blue font-medium" : "text-muted hover:bg-surface-secondary"}`}><Icon className="h-3.5 w-3.5" aria-hidden="true" />{label}</button>)}
+            {([{ value: "light", label: "Light", Icon: Sun }, { value: "dark", label: "Dark", Icon: Moon }, { value: "system", label: "Auto", Icon: Monitor }] as const).map(({ value, label, Icon }) => <button key={value} type="button" onClick={() => setTheme(value)} aria-pressed={theme === value} className={`flex min-h-10 flex-1 items-center justify-center gap-1 rounded-input px-2 text-xs ${theme === value ? "bg-brand-blue/10 text-primary font-medium" : "text-muted hover:bg-surface-secondary"}`}><Icon className="h-3.5 w-3.5" aria-hidden="true" />{label}</button>)}
           </div>
         </fieldset>
         <div className="p-2">

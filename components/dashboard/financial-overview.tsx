@@ -10,7 +10,12 @@ import { ClientOnlyChart } from "@/components/shared/client-only-chart";
 import { ArrowUpRight, ArrowDownRight, Minus, TrendingUp, Wallet, Receipt, Percent } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function FinancialOverview({ report }: { report: AnalyticsReport }) {
+type FinancialOverviewReport = {
+  current: Pick<AnalyticsReport["current"], "totals" | "monthly">;
+  previous: Pick<AnalyticsReport["previous"], "totals">;
+};
+
+export function FinancialOverview({ report }: { report: FinancialOverviewReport }) {
   const { current, previous } = report;
   
   const getChangeNode = (val: number | null, prev: number | null, inverted: boolean = false) => {
@@ -29,7 +34,7 @@ export function FinancialOverview({ report }: { report: AnalyticsReport }) {
     return (
       <div className={cn("flex items-center gap-1 text-[11px] font-semibold", 
         isGood && "text-status-success", 
-        isBad && "text-error",
+        isBad && "text-status-error",
         !isGood && !isBad && "text-muted"
       )}>
         {isPositive ? <ArrowUpRight className="h-3 w-3" /> : isNegative ? <ArrowDownRight className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
@@ -52,8 +57,8 @@ export function FinancialOverview({ report }: { report: AnalyticsReport }) {
       value: current.totals.expenseCents, 
       prev: previous.totals.expenseCents,
       icon: Receipt,
-      color: "text-error",
-      bg: "bg-error/10",
+      color: "text-status-error",
+      bg: "bg-status-error/10",
       inverted: true // Lower is better
     },
     { 
@@ -69,8 +74,8 @@ export function FinancialOverview({ report }: { report: AnalyticsReport }) {
       value: current.totals.margin, 
       prev: previous.totals.margin,
       icon: Percent,
-      color: "text-info",
-      bg: "bg-info/10",
+      color: "text-status-info",
+      bg: "bg-status-info/10",
       isRatio: true
     },
   ];
@@ -80,11 +85,11 @@ export function FinancialOverview({ report }: { report: AnalyticsReport }) {
       <div className="flex items-center justify-between border-b border-border-subtle p-5 bg-gradient-to-r from-surface-elevated/50 to-transparent">
         <div className="flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-primary" />
-          <h2 className="text-base font-semibold text-white tracking-tight">Financial Overview</h2>
+          <h2 className="text-base font-semibold text-ink tracking-tight">Financial Overview</h2>
         </div>
       </div>
       
-      <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 border-b border-border-subtle bg-surface-elevated/30">
+      <div className="p-4 grid grid-cols-1 min-[480px]:grid-cols-2 gap-4 border-b border-border-subtle bg-surface-elevated/30">
         {metrics.map((m) => (
           <div key={m.label} className="flex flex-col gap-2 rounded-xl bg-card p-4 border border-border-subtle/50 shadow-soft">
             <div className="flex items-center gap-2 mb-1">
@@ -94,7 +99,7 @@ export function FinancialOverview({ report }: { report: AnalyticsReport }) {
               <span className="text-xs font-medium text-ink-secondary">{m.label}</span>
             </div>
             
-            <div className="text-2xl font-bold text-white tracking-tight font-mono-figures">
+            <div className="break-words text-xl font-bold text-ink tracking-tight font-mono-figures">
               {m.value === null ? "—" : m.isRatio ? `${(m.value * 100).toFixed(1)}%` : formatZAR(m.value)}
             </div>
             
@@ -105,15 +110,15 @@ export function FinancialOverview({ report }: { report: AnalyticsReport }) {
         ))}
       </div>
 
-      <div className="flex-1 p-5 min-h-[300px]">
-        {current.monthly.length === 0 ? (
+      <div className="p-4 h-[320px]">
+        {current.monthly.length === 0 || current.monthly.every(row => row.incomeCents === 0 && row.expenseCents === 0) ? (
           <div className="h-full flex items-center justify-center text-sm text-muted">
             No financial records in this period.
           </div>
         ) : (
           <ClientOnlyChart className="h-full w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={current.monthly} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <AreaChart accessibilityLayer data={current.monthly} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={chartColors.income} stopOpacity={0.3}/>
@@ -136,6 +141,15 @@ export function FinancialOverview({ report }: { report: AnalyticsReport }) {
           </ClientOnlyChart>
         )}
       </div>
+      <details className="px-4 pb-4 text-sm">
+        <summary className="cursor-pointer text-primary">View monthly figures</summary>
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Monthly financial figures">
+          <table className="w-full mt-3"><caption className="sr-only">Financial overview in ZAR</caption>
+            <thead><tr><th scope="col" className="text-left p-2">Month</th><th scope="col">Revenue</th><th scope="col">Expenses</th></tr></thead>
+            <tbody>{current.monthly.map(row => <tr key={row.month}><th scope="row" className="text-left p-2 font-normal">{row.month}</th><td className="p-2 whitespace-nowrap">{formatZAR(row.incomeCents)}</td><td className="p-2 whitespace-nowrap">{formatZAR(row.expenseCents)}</td></tr>)}</tbody>
+          </table>
+        </div>
+      </details>
     </Card>
   );
 }
