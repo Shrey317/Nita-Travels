@@ -137,3 +137,59 @@ model RateLimit {
 
   @@index([expiresAt])
 }
+
+model StaffAccount {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  status       String   @default("PENDING")
+  sessionVersion Int    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ChangeRequest {
+  id String @id @default(cuid())
+  requestedBy String
+  entity String
+  recordId String
+  operation String
+  before Json
+  proposed Json
+  status String @default("PENDING")
+  reviewedBy String?
+  reviewNote String?
+  createdAt DateTime @default(now())
+  reviewedAt DateTime?
+  @@index([status, createdAt])
+}
+
+model FleetDocument {
+  id String @id @default(cuid())
+  vehicleId String
+  title String
+  documentType String
+  reference String?
+  expiryDate DateTime @db.Date
+  photoUrls String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  archived Boolean @default(false)
+  @@index([vehicleId, expiryDate])
+}
+
+model WorkOrder {
+  id String @id @default(cuid())
+  vehicleId String
+  kind String
+  title String
+  plannedDate DateTime @db.Date
+  startedDate DateTime? @db.Date
+  completedDate DateTime? @db.Date
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  archived Boolean @default(false)
+  @@index([vehicleId, plannedDate])
+}

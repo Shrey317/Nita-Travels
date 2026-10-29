@@ -122,9 +122,9 @@ export async function createTransaction(input: TransactionInput): Promise<Transa
 
 /** Merges the PATCH body onto the existing row, validates the complete result, then writes —
  *  see vehicles.schema's equivalent comment for why this matters for cross-field rules. */
-export async function updateTransaction(id: string, input: TransactionUpdateInput): Promise<Transaction> {
+export async function updateTransaction(id: string, input: TransactionUpdateInput, client?: Prisma.TransactionClient): Promise<Transaction> {
   const partial = transactionUpdateSchema.parse(input);
-  return prisma.$transaction(async (tx) => {
+  const execute = async (tx: Prisma.TransactionClient) => {
     await tx.$queryRaw`SELECT id FROM "Transaction" WHERE id = ${id} FOR UPDATE`;
     const existing = await tx.transaction.findUnique({ where: { id, deletedAt: null } });
     if (!existing) throw new NotFoundError(`Transaction ${id} not found`);
@@ -134,13 +134,18 @@ export async function updateTransaction(id: string, input: TransactionUpdateInpu
     const updated = await tx.transaction.update({ where: { id, deletedAt: null }, data: merged });
     await syncVehicleMileageFromReading(tx, merged.vehicleId, merged.mileageKm);
     return updated;
-  }, TRANSACTION_OPTIONS);
+  };
+  return client ? execute(client) : prisma.$transaction(execute, TRANSACTION_OPTIONS);
 }
 
-export async function deleteTransaction(id: string): Promise<void> {
-  const existing = await prisma.transaction.findUnique({ where: { id, deletedAt: null } });
-  if (!existing) throw new NotFoundError(`Transaction ${id} not found`);
-  await prisma.transaction.update({ where: { id }, data: { deletedAt: new Date() } });
+export async function deleteTransaction(id: string, client?: Prisma.TransactionClient): Promise<void> {
+  const execute = async (tx: Prisma.TransactionClient) => {
+    await tx.$queryRaw`SELECT id FROM "Transaction" WHERE id = ${id} FOR UPDATE`;
+    const existing = await tx.transaction.findUnique({ where: { id, deletedAt: null } });
+    if (!existing) throw new NotFoundError(`Transaction ${id} not found`);
+    await tx.transaction.update({ where: { id }, data: { deletedAt: new Date() } });
+  };
+  return client ? execute(client) : prisma.$transaction(execute, TRANSACTION_OPTIONS);
 }
 
 export interface FleetTotals {

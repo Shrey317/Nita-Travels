@@ -13,7 +13,7 @@ import { NotFoundError, ValidationError } from "@/lib/errors";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { buildMileageEntry, WEEKLY_MILEAGE_LIMIT } from "@/lib/mileage";
 import { deriveMileageChain } from "@/lib/mileage-chain";
-import { positiveIntegerSchema } from "@/lib/schemas/common.schema";
+import { positiveIntegerSchema, calendarDateSchema } from "@/lib/schemas/common.schema";
 import { csvEscape } from "@/lib/csv";
 import { formatDate } from "@/lib/format";
 import { mileageEntrySchema, type MileageEntryInput } from "@/lib/schemas/mileage.schema";
@@ -156,37 +156,43 @@ export async function recalculateMileageChain(tx: Prisma.TransactionClient, vehi
 
 export interface UpdateMileageInput {
   currentMileageKm: number;
+  date?: Date | string;
 }
 
-export async function updateMileageEntry(id: string, input: UpdateMileageInput): Promise<MileageEntry> {
-  const existing = await prisma.mileageEntry.findUnique({ where: { id } });
+export async function updateMileageEntry(id: string, input: UpdateMileageInput, client?: Prisma.TransactionClient): Promise<MileageEntry> {
+  const execute = async (tx: Prisma.TransactionClient) => {
+  const existing = await tx.mileageEntry.findUnique({ where: { id } });
   if (!existing) throw new NotFoundError(`Mileage entry ${id} not found`);
 
   const newCurrentKm = positiveIntegerSchema.parse(input.currentMileageKm);
 
-  return prisma.$transaction(async (tx) => {
     await lockMileageVehicle(tx, existing.vehicleId);
+    const date = input.date === undefined ? existing.date : calendarDateSchema.parse(input.date);
+    const derived = buildMileageEntry(date, newCurrentKm, 0);
     await tx.mileageEntry.update({
       where: { id },
       data: {
         currentMileageKm: newCurrentKm,
+        date, isoWeek: derived.isoWeek, isoYear: derived.isoYear,
       },
     });
 
     await recalculateMileageChain(tx, existing.vehicleId, id);
     return tx.mileageEntry.findUniqueOrThrow({ where: { id } });
-  }, TRANSACTION_OPTIONS);
+  };
+  return client ? execute(client) : prisma.$transaction(execute, TRANSACTION_OPTIONS);
 }
 
-export async function deleteMileageEntry(id: string): Promise<void> {
-  const existing = await prisma.mileageEntry.findUnique({ where: { id } });
+export async function deleteMileageEntry(id: string, client?: Prisma.TransactionClient): Promise<void> {
+  const execute = async (tx: Prisma.TransactionClient) => {
+  const existing = await tx.mileageEntry.findUnique({ where: { id } });
   if (!existing) throw new NotFoundError(`Mileage entry ${id} not found`);
   
-  await prisma.$transaction(async (tx) => {
     await lockMileageVehicle(tx, existing.vehicleId);
     await tx.mileageEntry.delete({ where: { id } });
     await recalculateMileageChain(tx, existing.vehicleId);
-  }, TRANSACTION_OPTIONS);
+  };
+  await (client ? execute(client) : prisma.$transaction(execute, TRANSACTION_OPTIONS));
 }
 
 const CSV_HEADER = ["Date", "Vehicle", "Previous Mileage", "Current Mileage", "Distance Driven", "Over Limit By", "Week", "Year"] as const;

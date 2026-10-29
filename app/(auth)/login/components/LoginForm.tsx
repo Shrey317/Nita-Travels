@@ -105,6 +105,7 @@ export function LoginForm({ action, error }: { action: (formData: FormData) => v
         </div>
         <SubmitButton />
       </form>
+      <a href="/register" className="mt-4 inline-block text-primary underline">Request a manager account</a>
 
       <p className={styles.security}>
         <ShieldCheck aria-hidden="true" />

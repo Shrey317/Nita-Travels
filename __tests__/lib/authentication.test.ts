@@ -2,10 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import bcrypt from 'bcryptjs';
 
 const mocks = vi.hoisted(() => ({
-  check: vi.fn(), clear: vi.fn(),
+  check: vi.fn(), clear: vi.fn(), account: vi.fn(),
   authorize: undefined as undefined | ((credentials: Record<string, unknown>, request: Request) => Promise<unknown>),
 }));
 vi.mock('@/lib/rate-limit', () => ({ checkLoginRateLimit: mocks.check, clearLoginRateLimit: mocks.clear, getClientIp: () => 'fixture-ip' }));
+vi.mock('@/lib/db/client', () => ({ prisma: { staffAccount: { findUnique: mocks.account } } }));
 vi.mock('next-auth/providers/credentials', () => ({ default: (config: { authorize: typeof mocks.authorize }) => config }));
 vi.mock('next-auth', () => ({ default: (config: { providers: { authorize: typeof mocks.authorize }[] }) => {
   mocks.authorize = config.providers[0]!.authorize;
@@ -21,6 +22,7 @@ describe('real credential authorization', () => {
     vi.stubEnv('ADMIN_PASSWORD_HASH', await bcrypt.hash('fixture-password', 4));
     mocks.check.mockResolvedValue({ allowed: true });
     mocks.clear.mockResolvedValue(undefined);
+    mocks.account.mockResolvedValue(null);
   });
   afterEach(() => vi.unstubAllEnvs());
   it('accepts the configured password and clears earlier failed attempts', async () => {
@@ -50,5 +52,17 @@ describe('real credential authorization', () => {
       expect(await mocks.authorize!(credentials, request)).toBeNull();
     }
     expect(mocks.check).not.toHaveBeenCalled();
+  });
+  it('rejects pending and disabled managers even with the correct password', async () => {
+    const passwordHash = await bcrypt.hash('manager-fixture-password', 4);
+    for (const status of ['PENDING', 'DISABLED']) {
+      mocks.account.mockResolvedValue({ id: 'manager', status, passwordHash });
+      expect(await mocks.authorize!({ username: 'manager@example.com', password: 'manager-fixture-password' }, request)).toBeNull();
+    }
+    expect(mocks.clear).not.toHaveBeenCalled();
+  });
+  it('assigns active accounts the manager role regardless of submitted role', async () => {
+    mocks.account.mockResolvedValue({ id: 'manager', name: 'Manager', email: 'manager@example.com', status: 'ACTIVE', sessionVersion: 2, passwordHash: await bcrypt.hash('manager-fixture-password', 4) });
+    expect(await mocks.authorize!({ username: 'manager@example.com', password: 'manager-fixture-password', role: 'ADMIN' }, request)).toMatchObject({ id: 'manager', role: 'MANAGER', sessionVersion: 2 });
   });
 });

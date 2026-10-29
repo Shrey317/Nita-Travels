@@ -7,7 +7,7 @@ import { queryVehicleTimeline } from "@/lib/db/timeline";
  * composed from lib/format.ts and lib/db/service.ts rather than recomputed here.
  */
 
-import type { Vehicle } from "@prisma/client";
+import type { Prisma, Vehicle } from "@prisma/client";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
 import { recalculateMileageChain } from "@/lib/db/mileage";
 import { getServiceStatusAllVehicles, getLatestServiceForVehicle, type VehicleServiceRow } from "@/lib/db/service";
@@ -171,9 +171,9 @@ export async function createVehicle(input: VehicleInput): Promise<Vehicle> {
 /** Merges the PATCH body onto the existing row, then validates the complete result — so a
  *  business rule (like emiMonthsPaid <= emiMonthsTotal) can't be bypassed by editing one field
  *  at a time while leaving the other stale. */
-export async function updateVehicle(id: string, input: VehicleUpdateInput): Promise<Vehicle> {
+export async function updateVehicle(id: string, input: VehicleUpdateInput, client?: Prisma.TransactionClient): Promise<Vehicle> {
   const partial = vehicleUpdateSchema.parse(input);
-  return prisma.$transaction(async tx => {
+  const execute = async (tx: Prisma.TransactionClient) => {
     // Share the mileage mutation lock so profile edits cannot corrupt a concurrent reading.
     await tx.$queryRaw`SELECT "id" FROM "Vehicle" WHERE "id" = ${id} FOR UPDATE`;
     const existing = await tx.vehicle.findUnique({ where: { id, deletedAt: null } });
@@ -191,15 +191,20 @@ export async function updateVehicle(id: string, input: VehicleUpdateInput): Prom
     await tx.vehicle.update({ where: { id }, data: merged });
     if (baselineChanged) await recalculateMileageChain(tx, id, undefined, merged.currentMileageKm);
     return tx.vehicle.findUniqueOrThrow({ where: { id } });
-  }, TRANSACTION_OPTIONS);
+  };
+  return client ? execute(client) : prisma.$transaction(execute, TRANSACTION_OPTIONS);
 }
 
 /** DELETE /api/vehicles/[id] is a soft-deactivate (SRS 16, 26) — vehicles are never hard-deleted
  *  so historical transactions/mileage/notes referencing them stay intact and queryable. */
-export async function deactivateVehicle(id: string): Promise<Vehicle> {
-  const existing = await prisma.vehicle.findUnique({ where: { id, deletedAt: null } });
-  if (!existing) throw new NotFoundError(`Vehicle ${id} not found`);
-  return prisma.vehicle.update({ where: { id }, data: { active: false } });
+export async function deactivateVehicle(id: string, client?: Prisma.TransactionClient): Promise<Vehicle> {
+  const execute = async (tx: Prisma.TransactionClient) => {
+    await tx.$queryRaw`SELECT "id" FROM "Vehicle" WHERE "id" = ${id} FOR UPDATE`;
+    const existing = await tx.vehicle.findUnique({ where: { id, deletedAt: null } });
+    if (!existing) throw new NotFoundError(`Vehicle ${id} not found`);
+    return tx.vehicle.update({ where: { id }, data: { active: false } });
+  };
+  return client ? execute(client) : prisma.$transaction(execute, TRANSACTION_OPTIONS);
 }
 
 export interface TimelineItem {

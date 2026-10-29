@@ -17,9 +17,20 @@ export const authConfig: NextAuthConfig = {
     maxAge: 15 * 60, // 15 minutes
   },
   callbacks: {
+    jwt({ token, user }) {
+      if (user) { token.staffRole = user.role; token.sessionVersion = user.sessionVersion; }
+      return token;
+    },
+    session({ session, token }) {
+      session.staffId = token.sub;
+      session.staffRole = token.sub === 'admin' ? 'ADMIN' : token.staffRole;
+      session.sessionVersion = token.sessionVersion;
+      return session;
+    },
     authorized({ auth, request: { nextUrl, headers, method } }) {
       const isLoggedIn = !!auth?.user;
       const isOnLogin = nextUrl.pathname === "/login";
+      if (nextUrl.pathname === '/register') return isLoggedIn ? Response.redirect(new URL('/', nextUrl)) : true;
 
       if (isOnLogin) {
         // Already signed in and browsing to /login -> bounce to the dashboard instead.
@@ -35,7 +46,11 @@ export const authConfig: NextAuthConfig = {
         return Response.json({ error: "Cross-origin requests are not allowed" }, { status: 403 });
       }
       if (!isLoggedIn && nextUrl.pathname.startsWith("/api/")) {
+        if (nextUrl.pathname === '/api/staff/register' && method === 'POST') return true;
         return Response.json({ error: "Authentication required" }, { status: 401 });
+      }
+      if (auth?.staffRole === 'MANAGER' && ['PATCH', 'PUT', 'DELETE'].includes(method)) {
+        return Response.json({ error: 'Administrator approval is required to change existing records.' }, { status: 403 });
       }
       return isLoggedIn;
     },
