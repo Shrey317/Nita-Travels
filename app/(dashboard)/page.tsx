@@ -1,13 +1,14 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
+import { Gauge, Plus } from "lucide-react";
 import { getAnalyticsReport } from "@/lib/db/analytics";
 import { getServiceStatusAllVehicles } from "@/lib/db/service";
 import { getFleetNotifications } from "@/lib/db/notifications";
 import { getTransactions } from "@/lib/db/transactions";
-import type { AnalyticsSearchParams } from "@/lib/date-ranges";
-
-// New Phase 4 Components
-import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { businessToday, type AnalyticsSearchParams } from "@/lib/date-ranges";
+import { PageHeader } from "@/components/shared/page-header";
+import { Button } from "@/components/ui/button";
 import { FleetKPIs } from "@/components/dashboard/fleet-kpis";
 import { FinancialOverview } from "@/components/dashboard/financial-overview";
 import { FleetStatus } from "@/components/dashboard/fleet-status";
@@ -31,10 +32,31 @@ export default async function DashboardPage(props: { searchParams: Promise<Analy
   const attentionCount = new Set(notifications.filter((item) => item.vehicleId && item.priority !== "info").map((item) => item.vehicleId)).size;
   const inactiveCount = report.vehicles.length - activeCount;
 
+  const todayFormatted = businessToday().toLocaleDateString("en-ZA", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+
   return (
     <div className="space-y-6 flex flex-col w-full animate-fade-in">
-      {/* SECTION 1: Welcome / context header */}
-      <DashboardHero />
+      {/* SECTION 1: Compact page header */}
+      <PageHeader title="Dashboard" description={todayFormatted}>
+        <Button asChild variant="outline">
+          <Link href="/mileage/new">
+            <Gauge className="h-4 w-4" aria-hidden="true" />
+            Log Mileage
+          </Link>
+        </Button>
+        <Button asChild>
+          <Link href="/transactions/new">
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Log Transaction
+          </Link>
+        </Button>
+      </PageHeader>
 
       {/* SECTION 2: Fleet KPI cards */}
       <FleetKPIs 
@@ -52,7 +74,7 @@ export default async function DashboardPage(props: { searchParams: Promise<Analy
           active={activeCount}
           attention={attentionCount}
           inactive={inactiveCount}
-          recentVehicles={report.vehicles.slice(0, 4).map(({ id, make, model, active, currentMileageKm }) => ({ id, make, model, active, currentMileageKm }))}
+          recentVehicles={report.vehicles.map(({ id, make, model, active, currentMileageKm }) => ({ id, make, model, active, currentMileageKm }))}
         />
       </div>
 

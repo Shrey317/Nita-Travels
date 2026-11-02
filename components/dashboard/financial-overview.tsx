@@ -37,8 +37,8 @@ export function FinancialOverview({ report }: { report: FinancialOverviewReport 
         isBad && "text-status-error",
         !isGood && !isBad && "text-muted"
       )}>
-        {isPositive ? <ArrowUpRight className="h-3 w-3" /> : isNegative ? <ArrowDownRight className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-        {Math.abs(change.percent).toFixed(1)}% <span className="text-muted font-medium ml-1">from previous</span>
+        {isPositive ? <ArrowUpRight className="h-3 w-3 shrink-0" /> : isNegative ? <ArrowDownRight className="h-3 w-3 shrink-0" /> : <Minus className="h-3 w-3 shrink-0" />}
+        <span>{Math.abs(change.percent).toFixed(1)}%</span> <span className="text-muted font-medium truncate">from previous</span>
       </div>
     );
   };
@@ -89,28 +89,28 @@ export function FinancialOverview({ report }: { report: FinancialOverviewReport 
         </div>
       </div>
       
-      <div className="p-4 grid grid-cols-1 min-[480px]:grid-cols-2 gap-4 border-b border-border-subtle bg-surface-elevated/30">
+      <div className="p-4 grid grid-cols-1 min-[440px]:grid-cols-2 md:grid-cols-4 gap-3 border-b border-border-subtle bg-surface-elevated/30">
         {metrics.map((m) => (
-          <div key={m.label} className="flex flex-col gap-2 rounded-xl bg-card p-4 border border-border-subtle/50 shadow-soft">
-            <div className="flex items-center gap-2 mb-1">
-              <div className={cn("flex h-6 w-6 items-center justify-center rounded-md", m.bg)}>
+          <div key={m.label} className="flex flex-col gap-1.5 rounded-xl bg-card p-3.5 border border-border-subtle/50 shadow-soft min-w-0">
+            <div className="flex items-center gap-2">
+              <div className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-md", m.bg)}>
                 <m.icon className={cn("h-3.5 w-3.5", m.color)} />
               </div>
-              <span className="text-xs font-medium text-ink-secondary">{m.label}</span>
+              <span className="text-xs font-medium text-ink-secondary truncate">{m.label}</span>
             </div>
             
-            <div className="break-words text-xl font-bold text-ink tracking-tight font-mono-figures">
+            <div className="text-base sm:text-lg 2xl:text-xl font-bold text-ink tracking-tight font-mono-figures whitespace-nowrap truncate">
               {m.value === null ? "—" : m.isRatio ? `${(m.value * 100).toFixed(1)}%` : formatZAR(m.value)}
             </div>
             
-            <div className="mt-auto pt-2">
+            <div className="mt-auto pt-1">
               {getChangeNode(m.value, m.prev, m.inverted)}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="p-4 h-[320px]">
+      <div className="flex-1 p-4 min-h-[280px]">
         {current.monthly.length === 0 || current.monthly.every(row => row.incomeCents === 0 && row.expenseCents === 0) ? (
           <div className="h-full flex items-center justify-center text-sm text-muted">
             No financial records in this period.
@@ -141,15 +141,6 @@ export function FinancialOverview({ report }: { report: FinancialOverviewReport 
           </ClientOnlyChart>
         )}
       </div>
-      <details className="px-4 pb-4 text-sm">
-        <summary className="cursor-pointer text-primary">View monthly figures</summary>
-        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Monthly financial figures">
-          <table className="w-full mt-3"><caption className="sr-only">Financial overview in ZAR</caption>
-            <thead><tr><th scope="col" className="text-left p-2">Month</th><th scope="col">Revenue</th><th scope="col">Expenses</th></tr></thead>
-            <tbody>{current.monthly.map(row => <tr key={row.month}><th scope="row" className="text-left p-2 font-normal">{row.month}</th><td className="p-2 whitespace-nowrap">{formatZAR(row.incomeCents)}</td><td className="p-2 whitespace-nowrap">{formatZAR(row.expenseCents)}</td></tr>)}</tbody>
-          </table>
-        </div>
-      </details>
     </Card>
   );
 }

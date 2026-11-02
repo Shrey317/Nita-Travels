@@ -5,10 +5,6 @@ test.beforeEach(async ({ page }) => login(page));
 
 test('dashboard exposes financial figures and working transaction drill-down', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Financial Overview', exact: true })).toBeVisible();
-  const figures = page.locator('summary').filter({ hasText: 'View monthly figures' });
-  await figures.focus();
-  await page.keyboard.press('Enter');
-  await expect(page.getByRole('region', { name: 'Monthly financial figures' })).toBeVisible();
   const transaction = page.locator('a[href^="/transactions?txId="]').first();
   await transaction.click();
   await expect(page.getByRole('dialog')).toBeVisible();

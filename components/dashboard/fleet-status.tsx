@@ -89,8 +89,8 @@ export function FleetStatus({
         <div className="px-5 py-3 border-b border-border-subtle bg-surface-elevated/30">
           <h3 className="text-sm font-semibold text-ink">Fleet Vehicles</h3>
         </div>
-        <div className="flex-1 flex flex-col divide-y divide-border-subtle overflow-y-auto max-h-[220px]">
-          {recentVehicles.slice(0, 4).map(v => (
+        <div className="flex-1 flex flex-col divide-y divide-border-subtle overflow-y-auto max-h-[280px]">
+          {recentVehicles.map(v => (
             <Link key={v.id} href={`/vehicles/${v.id}`} className="group flex items-center justify-between px-5 py-3 hover:bg-surface-elevated/50 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface border border-border-subtle group-hover:border-primary/30 transition-colors">
