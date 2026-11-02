@@ -78,7 +78,7 @@ export function FleetStatus({
               </div>
               <div className="flex items-center gap-4">
                 <span className="font-bold text-ink">{d.value}</span>
-                <span className="text-muted text-xs w-8 text-right">{((d.value / total) * 100).toFixed(0)}%</span>
+                <span className="text-muted text-xs w-8 text-right">{total > 0 ? ((d.value / total) * 100).toFixed(0) : 0}%</span>
               </div>
             </div>
           ))}

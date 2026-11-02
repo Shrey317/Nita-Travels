@@ -1,11 +1,16 @@
+"use client";
+
 import { Card } from "@/components/ui/card";
 import { Bell, ChevronRight, ShieldAlert, Info, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import type { FleetNotification } from "@/lib/db/notifications";
+import { useFleetNotifications } from "@/lib/hooks/use-fleet-notifications";
 import { cn } from "@/lib/utils";
 
 export function AlertsPanel({ alerts }: { alerts: FleetNotification[] }) {
-  const sortedAlerts = [...alerts].sort((a, b) => {
+  const { readIds, markRead } = useFleetNotifications();
+  const unreadAlerts = alerts.filter((a) => !readIds.has(a.id));
+  const sortedAlerts = [...unreadAlerts].sort((a, b) => {
     const priorityWeight = { critical: 3, warning: 2, info: 1 };
     return priorityWeight[b.priority] - priorityWeight[a.priority];
   });
@@ -21,12 +26,17 @@ export function AlertsPanel({ alerts }: { alerts: FleetNotification[] }) {
       </div>
 
       <div className="flex-1 flex flex-col divide-y divide-border-subtle overflow-y-auto max-h-[300px]">
-        {sortedAlerts.slice(0, 5).map((a, i) => {
+        {sortedAlerts.slice(0, 5).map((a) => {
           const isError = a.priority === "critical";
           const isWarning = a.priority === "warning";
 
           return (
-            <Link key={i} href={a.href} className="group flex items-start gap-4 px-5 py-4 hover:bg-surface-elevated/50 transition-colors">
+            <Link
+              key={a.id}
+              href={a.href}
+              onClick={() => markRead([a.id])}
+              className="group flex items-start gap-4 px-5 py-4 hover:bg-surface-elevated/50 transition-colors"
+            >
               <div className={cn("mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border",
                 isError ? "bg-status-error/10 border-status-error/20 text-status-error" :
                 isWarning ? "bg-status-warning/10 border-status-warning/20 text-status-warning" :

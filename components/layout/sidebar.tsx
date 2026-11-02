@@ -12,9 +12,9 @@ import { signOutAction } from "@/app/(dashboard)/actions";
 
 function NavLinks({ onNavigate, isCollapsed = false }: { onNavigate?: () => void; isCollapsed?: boolean }) {
   const pathname = usePathname();
-  const { data: notifications = [] } = useFleetNotifications();
+  const { unreadData: notifications = [] } = useFleetNotifications();
   const count = (category: string) => new Set(notifications.filter(item => item.category === category && item.priority !== "info").map(item => item.vehicleId)).size;
-  const badges = { serviceCount: count("service"), mileageCount: count("mileage"), alertCount: count("system") };
+  const badges = { serviceCount: count("service"), mileageCount: count("mileage"), alertCount: count("insurance") + count("repairs") };
   
   return (
     <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-6 custom-scrollbar" aria-label="Main navigation">
