@@ -190,7 +190,7 @@ export async function deleteMileageEntry(id: string, client?: Prisma.Transaction
   
     await lockMileageVehicle(tx, existing.vehicleId);
     await tx.mileageEntry.delete({ where: { id } });
-    await recalculateMileageChain(tx, existing.vehicleId);
+    await recalculateMileageChain(tx, existing.vehicleId, id);
   };
   await (client ? execute(client) : prisma.$transaction(execute, TRANSACTION_OPTIONS));
 }

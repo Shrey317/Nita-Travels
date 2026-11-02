@@ -46,4 +46,18 @@ describe("historical mileage chain", () => {
     expect(deriveMileageChain([reading("first", "2026-01-07", 12_500)], 10_000)[0]).toMatchObject({ distanceDrivenKm: 2_500, overLimitByKm: 500 });
     expect(deriveMileageChain([], 10_000)).toEqual([]);
   });
+  it("does not block a new valid reading when an older untouched historical entry has a duplicate or baseline-equal reading", () => {
+    const chain = deriveMileageChain([
+      reading("legacy-1", "2026-04-21", 80_000, "2026-04-21T08:00:00Z"),
+      reading("legacy-2", "2026-04-21", 80_000, "2026-04-21T09:00:00Z"),
+      reading("recent", "2026-10-26", 105_459, "2026-10-26T08:00:00Z"),
+      reading("new-entry", "2026-11-02", 106_000, "2026-11-02T08:00:00Z"),
+    ], 80_000, "new-entry");
+    expect(chain.at(-1)).toMatchObject({
+      id: "new-entry",
+      previousMileageKm: 105_459,
+      currentMileageKm: 106_000,
+      distanceDrivenKm: 541,
+    });
+  });
 });
