@@ -67,7 +67,7 @@ async function runSuite(testFile?: string, project?: string) {
     if (result[0]?.db !== decodeURIComponent(testUrl.pathname.slice(1))) throw new Error('Connected database differs from requested test identity.');
     // Only the identifier generated above is interpolated. Existing schemas are never reset.
     await client.$executeRawUnsafe(`CREATE SCHEMA "${schema}"`);
-    console.info(`Isolated test schema: ${schema}`);
+    console.warn(`Isolated test schema: ${schema}`);
     run('prisma/build/index.js', ['migrate', 'deploy'], env);
     if (mode === 'integration') run(join(dirname(require.resolve('vitest/package.json')), 'vitest.mjs'), ['run', '--config', 'vitest.integration.config.mts', ...(testFile ? [testFile] : []), ...process.argv.slice(3)], env);
     else run('@playwright/test/cli', ['test', ...(project ? [`--project=${project}`] : []), ...process.argv.slice(3)], env);
@@ -85,7 +85,7 @@ async function main() {
   else for (const project of ['chromium', 'firefox', 'webkit']) await runSuite(undefined, project);
 }
 
-main().catch(error => {
+main().catch(() => {
   // Prisma errors can contain connection details. Keep diagnostics safe for CI logs.
   console.error('Isolated test run failed. Review sanitized test results; verify the dedicated test environment.');
   process.exitCode = 1;

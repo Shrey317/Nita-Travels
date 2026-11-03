@@ -167,7 +167,7 @@ export function buildPeriodAnalysis(input: {
   const dataIssues: DataIssue[] = [];
   for (const vehicle of vehicles) {
     const href = `/vehicles/${vehicle.id}/edit`;
-    if (!vehicle.insurer || !vehicle.policyNumber || !vehicle.insuranceEndDate) dataIssues.push({ id: `insurance-${vehicle.id}`, vehicleId: vehicle.id, title: "Incomplete insurance information", evidence: "Insurer, policy number and expiry date are required for a complete insurance record.", href });
+    if (!vehicle.insurer || !vehicle.policyNumber) dataIssues.push({ id: `insurance-${vehicle.id}`, vehicleId: vehicle.id, title: "Incomplete insurance information", evidence: "Insurer and policy number are required for a complete insurance record.", href });
     if (!vehicle.warranty?.trim()) dataIssues.push({ id: `warranty-${vehicle.id}`, vehicleId: vehicle.id, title: "Warranty information not recorded", evidence: "Coverage is unknown. Confirm whether a warranty applies.", href });
     if (vehicle.currentMileageKm < vehicle.mileageAtPurchaseKm) dataIssues.push({ id: `odometer-${vehicle.id}`, vehicleId: vehicle.id, title: "Odometer below purchase reading", evidence: `${vehicle.currentMileageKm} km current; ${vehicle.mileageAtPurchaseKm} km at purchase.`, href });
     if (vehicle.active && !loggedVehicles.has(vehicle.id)) dataIssues.push({ id: `mileage-${vehicle.id}`, vehicleId: vehicle.id, title: "No mileage recorded in selected period", evidence: `${dateKey(range.from)} to ${dateKey(range.to)}; per-km metrics unavailable.`, href: `/mileage/new?vehicleId=${vehicle.id}` });

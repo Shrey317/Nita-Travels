@@ -12,5 +12,5 @@ for (const count of [1000, 100000]) {
     if (report.totals.transactionCount !== count || report.totals.incomeCents !== count / 2 * 10001 || report.totals.expenseCents !== count / 2 * 501) throw new Error('Synthetic reconciliation failed');
     timings.push(performance.now() - start);
   }
-  console.log(JSON.stringify({ records: count, vehicles: vehicles.length, runs: timings.length, minMs: Math.round(Math.min(...timings)), maxMs: Math.round(Math.max(...timings)), meanMs: Math.round(timings.reduce((a, b) => a + b) / timings.length) }));
+  console.warn(JSON.stringify({ records: count, vehicles: vehicles.length, runs: timings.length, minMs: Math.round(Math.min(...timings)), maxMs: Math.round(Math.max(...timings)), meanMs: Math.round(timings.reduce((a, b) => a + b) / timings.length) }));
 }

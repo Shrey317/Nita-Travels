@@ -15,11 +15,10 @@ import { badgeLabel, badgeVariant } from "@/lib/service";
 import { calculateVehicleHealthScore, checkVehicleReplacementCriteria } from "@/lib/health";
 import { FinancialChart } from "@/components/vehicles/financial-chart";
 import { prisma } from "@/lib/db/client";
-import { differenceInCalendarDays } from "date-fns";
 import { VehicleHealthCard } from "@/components/vehicles/health-card";
 import { VehicleReplacementCard } from "@/components/vehicles/replacement-card";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { financialMetrics } from "@/lib/finance";
+import { calculateFinanceCountdown, financialMetrics, getVehicleFinanceInfo } from "@/lib/finance";
 import { businessToday, isoWeekStart } from "@/lib/date-ranges";
 import { parsePageListQuery } from "@/lib/query-filters";
 import { getAnalyticsReport } from "@/lib/db/analytics";
@@ -48,7 +47,8 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
   const health = calculateVehicleHealthScore({
     active: vehicle.active,
     serviceStatus: service?.status,
-    insuranceEndDate: vehicle.insuranceEndDate,
+    insuranceEndDate: null,
+    hasInsuranceInfo: Boolean(vehicle.insurer && vehicle.policyNumber),
     hasRecentMileage,
     highRepairFrequency: recentRepairs.length > 2,
     highRepairCost,
@@ -79,23 +79,14 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
 
   const registrationLine = vehicle.registration2 ? `${vehicle.registration} / ${vehicle.registration2}` : vehicle.registration;
 
-  // Compute insurance display
-  const insuranceDaysRemaining = vehicle.insuranceEndDate
-    ? differenceInCalendarDays(vehicle.insuranceEndDate, businessToday())
+  const insuranceDisplay = vehicle.insurer ?? (vehicle.policyNumber ? "Covered" : "—");
+  const insuranceColor = vehicle.insurer || vehicle.policyNumber ? "text-status-success" : "text-ink";
+
+  const financeInfo = getVehicleFinanceInfo(vehicle);
+  const financed = financeInfo.financed;
+  const financeCountdown = financed
+    ? calculateFinanceCountdown(vehicle.purchaseDate, vehicle.emiMonthsTotal, vehicle.targetEmiCents, businessToday())
     : null;
-  const insuranceExpired = insuranceDaysRemaining !== null && insuranceDaysRemaining < 0;
-  const insuranceDisplay = insuranceDaysRemaining === null
-    ? "—"
-    : insuranceExpired
-      ? "Expired"
-      : `${insuranceDaysRemaining} day${insuranceDaysRemaining !== 1 ? "s" : ""}`;
-  const insuranceColor = insuranceDaysRemaining === null
-    ? "text-ink"
-    : insuranceExpired
-      ? "text-status-error"
-      : insuranceDaysRemaining <= 30
-        ? "text-status-warning"
-        : "text-status-success";
 
   return (
     <div className="space-y-8">
@@ -176,7 +167,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
         </div>
         <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
           <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Insurance</p>
-          <p className={`mt-1.5 font-bold ${insuranceColor}`}>{insuranceDisplay}</p>
+          <p className={`mt-1.5 truncate font-bold ${insuranceColor}`}>{insuranceDisplay}</p>
         </div>
         <div className="rounded-xl border border-border-subtle bg-card p-4 shadow-card-elevated">
           <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Lifetime revenue</p>
@@ -246,13 +237,29 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
           ]}
         />
         <InfoCard
-          title="EMI / Financing"
-          fields={[
-            { label: "Monthly EMI", value: formatZAR(vehicle.targetEmiCents) },
-            { label: "Term", value: `${vehicle.emiMonthsTotal} months` },
-            { label: "Months Paid", value: String(vehicle.emiMonthsPaid) },
-            { label: "EMI Balance", value: formatZAR(emiBalanceCents) },
-          ]}
+          title="Financing"
+          fields={
+            financed && financeCountdown
+              ? [
+                  { label: "Ownership", value: "Financed with Bank" },
+                  { label: "Bank", value: financeInfo.financeBank ?? "—" },
+                  { label: "Policy Number", value: financeInfo.financePolicyNumber ?? "—" },
+                  { label: "Monthly Amount", value: formatZAR(vehicle.targetEmiCents) },
+                  { label: "Finance Period", value: `${vehicle.emiMonthsTotal} months` },
+                  {
+                    label: "Months Left",
+                    value:
+                      financeCountdown.monthsLeft === 0
+                        ? "Owned by company (0 months left)"
+                        : `${financeCountdown.monthsLeft} month${financeCountdown.monthsLeft === 1 ? "" : "s"} left (${financeCountdown.monthsElapsed} / ${vehicle.emiMonthsTotal} elapsed)`,
+                  },
+                  { label: "Remaining Balance", value: formatZAR(emiBalanceCents) },
+                ]
+              : [
+                  { label: "Ownership", value: "Bought Privately (Cash)" },
+                  { label: "Status", value: "Owned by company" },
+                ]
+          }
         />
         <InfoCard
           title="Insurance"
@@ -260,7 +267,6 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
             { label: "Insurer", value: vehicle.insurer ?? "—" },
             { label: "Policy Number", value: vehicle.policyNumber ?? "—" },
             { label: "Monthly Premium", value: formatZAR(vehicle.monthlyPremiumCents) },
-            { label: "Insurance End Date", value: vehicle.insuranceEndDate ? formatDate(vehicle.insuranceEndDate) : "—" },
           ]}
         />
         <InfoCard

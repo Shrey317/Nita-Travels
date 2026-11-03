@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { ReadyFieldset } from "@/components/shared/ready-fieldset";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { FieldError } from "@/components/shared/field-error";
 import { useToast } from "@/components/ui/use-toast";
-import { vehicleSchema } from "@/lib/schemas/vehicle.schema";
-import { randToCents, centsToRand } from "@/lib/format";
+import { vehicleSchema, type PurchaseType } from "@/lib/schemas/vehicle.schema";
+import { randToCents, centsToRand, formatZAR } from "@/lib/format";
+import { calculateFinanceCountdown, getVehicleFinanceInfo } from "@/lib/finance";
 import type { Vehicle } from "@prisma/client";
 
 interface VehicleFormProps {
@@ -30,14 +31,14 @@ interface FormState {
   currentMileageKm: string;
   warranty: string;
   serviceIntervalKm: string;
+  purchaseType: PurchaseType;
+  financeBank: string;
+  financePolicyNumber: string;
   targetEmiRand: string;
   emiMonthsTotal: string;
-  emiMonthsPaid: string;
   insurer: string;
   policyNumber: string;
   monthlyPremiumRand: string;
-  insurancePeriodMonths: string;
-  insuranceEndDate: string;
 }
 
 function toDateInputValue(date: Date | string | null | undefined): string {
@@ -49,14 +50,29 @@ function toDateInputValue(date: Date | string | null | undefined): string {
 function buildInitialState(vehicle?: Vehicle): FormState {
   if (!vehicle) {
     return {
-      id: "", make: "", model: "", registration: "", registration2: "",
-      transmission: "Manual", purchaseDate: toDateInputValue(new Date()),
-      purchasePriceRand: "", mileageAtPurchaseKm: "", currentMileageKm: "0",
-      warranty: "", serviceIntervalKm: "20000", targetEmiRand: "0",
-      emiMonthsTotal: "0", emiMonthsPaid: "0", insurer: "", policyNumber: "",
-      monthlyPremiumRand: "0", insurancePeriodMonths: "0", insuranceEndDate: "",
+      id: "",
+      make: "",
+      model: "",
+      registration: "",
+      registration2: "",
+      transmission: "Manual",
+      purchaseDate: toDateInputValue(new Date()),
+      purchasePriceRand: "",
+      mileageAtPurchaseKm: "",
+      currentMileageKm: "0",
+      warranty: "",
+      serviceIntervalKm: "20000",
+      purchaseType: "Cash",
+      financeBank: "",
+      financePolicyNumber: "",
+      targetEmiRand: "0",
+      emiMonthsTotal: "0",
+      insurer: "",
+      policyNumber: "",
+      monthlyPremiumRand: "0",
     };
   }
+  const financeInfo = getVehicleFinanceInfo(vehicle);
   return {
     id: vehicle.id,
     make: vehicle.make,
@@ -70,14 +86,14 @@ function buildInitialState(vehicle?: Vehicle): FormState {
     currentMileageKm: String(vehicle.currentMileageKm),
     warranty: vehicle.warranty ?? "",
     serviceIntervalKm: String(vehicle.serviceIntervalKm),
+    purchaseType: financeInfo.purchaseType,
+    financeBank: financeInfo.financeBank ?? "",
+    financePolicyNumber: financeInfo.financePolicyNumber ?? "",
     targetEmiRand: String(centsToRand(vehicle.targetEmiCents)),
     emiMonthsTotal: String(vehicle.emiMonthsTotal),
-    emiMonthsPaid: String(vehicle.emiMonthsPaid),
     insurer: vehicle.insurer ?? "",
     policyNumber: vehicle.policyNumber ?? "",
     monthlyPremiumRand: String(centsToRand(vehicle.monthlyPremiumCents)),
-    insurancePeriodMonths: String(vehicle.insurancePeriodMonths),
-    insuranceEndDate: toDateInputValue(vehicle.insuranceEndDate),
   };
 }
 
@@ -93,7 +109,23 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  const parsedTotalMonths = Math.max(0, Number(form.emiMonthsTotal || 0));
+  const parsedMonthlyCents = Math.max(0, randToCents(Number(form.targetEmiRand || 0)));
+  const parsedPurchaseDate = useMemo(() => {
+    const d = new Date(`${form.purchaseDate}T00:00:00.000Z`);
+    return Number.isNaN(d.getTime()) ? new Date() : d;
+  }, [form.purchaseDate]);
+
+  const financeCountdown = useMemo(
+    () =>
+      form.purchaseType === "Financed"
+        ? calculateFinanceCountdown(parsedPurchaseDate, parsedTotalMonths, parsedMonthlyCents)
+        : { totalMonths: 0, monthsElapsed: 0, monthsLeft: 0, balanceCents: 0, isOwned: true },
+    [form.purchaseType, parsedPurchaseDate, parsedTotalMonths, parsedMonthlyCents]
+  );
+
   function buildPayload() {
+    const isFinanced = form.purchaseType === "Financed";
     return {
       id: form.id.trim().toUpperCase(),
       make: form.make,
@@ -107,14 +139,18 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
       currentMileageKm: Number(form.currentMileageKm || 0),
       warranty: form.warranty.trim() || null,
       serviceIntervalKm: Number(form.serviceIntervalKm || 20000),
-      targetEmiCents: randToCents(Number(form.targetEmiRand || 0)),
-      emiMonthsTotal: Number(form.emiMonthsTotal || 0),
-      emiMonthsPaid: Number(form.emiMonthsPaid || 0),
+      purchaseType: form.purchaseType,
+      financeBank: isFinanced && form.financeBank.trim() ? form.financeBank.trim() : null,
+      financePolicyNumber:
+        isFinanced && form.financePolicyNumber.trim() ? form.financePolicyNumber.trim() : null,
+      targetEmiCents: isFinanced ? parsedMonthlyCents : 0,
+      emiMonthsTotal: isFinanced ? parsedTotalMonths : 0,
+      emiMonthsPaid: isFinanced ? financeCountdown.monthsElapsed : 0,
       insurer: form.insurer.trim() || null,
       policyNumber: form.policyNumber.trim() || null,
       monthlyPremiumCents: randToCents(Number(form.monthlyPremiumRand || 0)),
-      insurancePeriodMonths: Number(form.insurancePeriodMonths || 0),
-      insuranceEndDate: form.insuranceEndDate || null,
+      insurancePeriodMonths: vehicle?.insurancePeriodMonths ?? 0,
+      insuranceEndDate: vehicle?.insuranceEndDate ? toDateInputValue(vehicle.insuranceEndDate) : null,
       active: vehicle?.active ?? true,
     };
   }
@@ -137,291 +173,313 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     setErrors({});
 
     setPending(true);
-      try {
-        const res = await fetch(isEdit ? `/api/vehicles/${vehicle.id}` : "/api/vehicles", {
-          method: isEdit ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          if (data.field) setErrors((prev) => ({ ...prev, [data.field]: data.error }));
-          toast({ title: data.error ?? "Something went wrong", variant: "destructive" });
-          return;
-        }
-        toast({ title: isEdit ? "Vehicle updated" : "Vehicle added" });
-        window.dispatchEvent(new Event("fleet-data-changed"));
-        router.push(`/vehicles/${data.vehicle.id}`);
-        router.refresh();
-      } catch {
-        toast({ title: "Network error — please try again", variant: "destructive" });
-      } finally {
-        setPending(false);
+    try {
+      const res = await fetch(isEdit ? `/api/vehicles/${vehicle.id}` : "/api/vehicles", {
+        method: isEdit ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data.field) setErrors((prev) => ({ ...prev, [data.field]: data.error }));
+        toast({ title: data.error ?? "Something went wrong", variant: "destructive" });
+        return;
       }
+      toast({ title: isEdit ? "Vehicle updated" : "Vehicle added" });
+      window.dispatchEvent(new Event("fleet-data-changed"));
+      router.push(`/vehicles/${data.vehicle.id}`);
+      router.refresh();
+    } catch {
+      toast({ title: "Network error — please try again", variant: "destructive" });
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-8">
       <ReadyFieldset label="Vehicle details" className="space-y-8">
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Identity & Specs</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="id">Vehicle ID</Label>
-            <Input
-              id="id"
-              value={form.id}
-              onChange={(e) => update("id", e.target.value.toUpperCase())}
-              placeholder="CR10"
-              disabled={isEdit}
-              aria-invalid={!!errors.id}
-              aria-describedby="id-error"
-              required
-            />
-            <FieldError id="id-error" message={errors.id} />
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Identity & Specs</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="id">Vehicle ID</Label>
+              <Input
+                id="id"
+                value={form.id}
+                onChange={(e) => update("id", e.target.value.toUpperCase())}
+                placeholder="CR10"
+                disabled={isEdit}
+                aria-invalid={!!errors.id}
+                aria-describedby="id-error"
+                required
+              />
+              <FieldError id="id-error" message={errors.id} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="make">Make</Label>
+              <Input
+                id="make"
+                value={form.make}
+                onChange={(e) => update("make", e.target.value)}
+                aria-invalid={!!errors.make}
+                aria-describedby="make-error"
+                required
+              />
+              <FieldError id="make-error" message={errors.make} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="model">Model</Label>
+              <Input
+                id="model"
+                value={form.model}
+                onChange={(e) => update("model", e.target.value)}
+                aria-invalid={!!errors.model}
+                aria-describedby="model-error"
+                required
+              />
+              <FieldError id="model-error" message={errors.model} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="registration">Registration</Label>
+              <Input
+                id="registration"
+                value={form.registration}
+                onChange={(e) => update("registration", e.target.value)}
+                aria-invalid={!!errors.registration}
+                aria-describedby="registration-error"
+                required
+              />
+              <FieldError id="registration-error" message={errors.registration} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="registration2">Registration 2 (optional)</Label>
+              <Input id="registration2" value={form.registration2} onChange={(e) => update("registration2", e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="transmission">Transmission</Label>
+              <Select value={form.transmission} onValueChange={(v) => update("transmission", v === "Auto" ? "Auto" : "Manual")}>
+                <SelectTrigger id="transmission">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Manual">Manual</SelectItem>
+                  <SelectItem value="Auto">Auto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="warranty">Warranty</Label>
+              <Input id="warranty" value={form.warranty} onChange={(e) => update("warranty", e.target.value)} placeholder="Valid till 2029" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="serviceIntervalKm">Service Interval (km)</Label>
+              <Input
+                id="serviceIntervalKm"
+                type="number"
+                min={1}
+                value={form.serviceIntervalKm}
+                onChange={(e) => update("serviceIntervalKm", e.target.value)}
+                aria-invalid={!!errors.serviceIntervalKm}
+                aria-describedby="serviceIntervalKm-error"
+              />
+              <FieldError id="serviceIntervalKm-error" message={errors.serviceIntervalKm} />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="make">Make</Label>
-            <Input
-              id="make"
-              value={form.make}
-              onChange={(e) => update("make", e.target.value)}
-              aria-invalid={!!errors.make}
-              aria-describedby="make-error"
-              required
-            />
-            <FieldError id="make-error" message={errors.make} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="model">Model</Label>
-            <Input
-              id="model"
-              value={form.model}
-              onChange={(e) => update("model", e.target.value)}
-              aria-invalid={!!errors.model}
-              aria-describedby="model-error"
-              required
-            />
-            <FieldError id="model-error" message={errors.model} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="registration">Registration</Label>
-            <Input
-              id="registration"
-              value={form.registration}
-              onChange={(e) => update("registration", e.target.value)}
-              aria-invalid={!!errors.registration}
-              aria-describedby="registration-error"
-              required
-            />
-            <FieldError id="registration-error" message={errors.registration} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="registration2">Registration 2 (optional)</Label>
-            <Input id="registration2" value={form.registration2} onChange={(e) => update("registration2", e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="transmission">Transmission</Label>
-            <Select value={form.transmission} onValueChange={(v) => update("transmission", v === "Auto" ? "Auto" : "Manual")}>
-              <SelectTrigger id="transmission">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Manual">Manual</SelectItem>
-                <SelectItem value="Auto">Auto</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="warranty">Warranty</Label>
-            <Input id="warranty" value={form.warranty} onChange={(e) => update("warranty", e.target.value)} placeholder="Valid till 2029" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="serviceIntervalKm">Service Interval (km)</Label>
-            <Input
-              id="serviceIntervalKm"
-              type="number"
-              min={1}
-              value={form.serviceIntervalKm}
-              onChange={(e) => update("serviceIntervalKm", e.target.value)}
-              aria-invalid={!!errors.serviceIntervalKm}
-              aria-describedby="serviceIntervalKm-error"
-            />
-            <FieldError id="serviceIntervalKm-error" message={errors.serviceIntervalKm} />
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Purchase & Mileage</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="purchaseDate">Purchase Date</Label>
-            <Input
-              id="purchaseDate"
-              type="date"
-              value={form.purchaseDate}
-              onChange={(e) => update("purchaseDate", e.target.value)}
-              aria-invalid={!!errors.purchaseDate}
-              aria-describedby="purchaseDate-error"
-              required
-            />
-            <FieldError id="purchaseDate-error" message={errors.purchaseDate} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="purchasePriceRand">Purchase Price (R)</Label>
-            <Input
-              id="purchasePriceRand"
-              type="number"
-              min={0}
-              step="0.01"
-              value={form.purchasePriceRand}
-              onChange={(e) => update("purchasePriceRand", e.target.value)}
-              aria-invalid={!!errors.purchasePriceCents}
-              aria-describedby="purchasePrice-error"
-              required
-            />
-            <FieldError id="purchasePrice-error" message={errors.purchasePriceCents} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="mileageAtPurchaseKm">Mileage at Purchase (km)</Label>
-            <Input
-              id="mileageAtPurchaseKm"
-              type="number"
-              min={0}
-              value={form.mileageAtPurchaseKm}
-              onChange={(e) => update("mileageAtPurchaseKm", e.target.value)}
-              aria-invalid={!!errors.mileageAtPurchaseKm}
-              aria-describedby="mileageAtPurchaseKm-error"
-              required
-            />
-            <FieldError id="mileageAtPurchaseKm-error" message={errors.mileageAtPurchaseKm} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="currentMileageKm">Current Mileage (km)</Label>
-            <Input
-              id="currentMileageKm"
-              type="number"
-              min={0}
-              value={form.currentMileageKm}
-              onChange={(e) => update("currentMileageKm", e.target.value)}
-              aria-invalid={!!errors.currentMileageKm}
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Purchase & Mileage</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="purchaseDate">Purchase Date</Label>
+              <Input
+                id="purchaseDate"
+                type="date"
+                value={form.purchaseDate}
+                onChange={(e) => update("purchaseDate", e.target.value)}
+                aria-invalid={!!errors.purchaseDate}
+                aria-describedby="purchaseDate-error"
+                required
+              />
+              <FieldError id="purchaseDate-error" message={errors.purchaseDate} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="purchasePriceRand">Purchase Price (R)</Label>
+              <Input
+                id="purchasePriceRand"
+                type="number"
+                min={0}
+                step="0.01"
+                value={form.purchasePriceRand}
+                onChange={(e) => update("purchasePriceRand", e.target.value)}
+                aria-invalid={!!errors.purchasePriceCents}
+                aria-describedby="purchasePrice-error"
+                required
+              />
+              <FieldError id="purchasePrice-error" message={errors.purchasePriceCents} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mileageAtPurchaseKm">Mileage at Purchase (km)</Label>
+              <Input
+                id="mileageAtPurchaseKm"
+                type="number"
+                min={0}
+                value={form.mileageAtPurchaseKm}
+                onChange={(e) => update("mileageAtPurchaseKm", e.target.value)}
+                aria-invalid={!!errors.mileageAtPurchaseKm}
+                aria-describedby="mileageAtPurchaseKm-error"
+                required
+              />
+              <FieldError id="mileageAtPurchaseKm-error" message={errors.mileageAtPurchaseKm} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="currentMileageKm">Current Mileage (km)</Label>
+              <Input
+                id="currentMileageKm"
+                type="number"
+                min={0}
+                value={form.currentMileageKm}
+                onChange={(e) => update("currentMileageKm", e.target.value)}
+                aria-invalid={!!errors.currentMileageKm}
                 aria-describedby="currentMileageKm-help currentMileageKm-error"
-              required
-            />
-            <FieldError id="currentMileageKm-error" message={errors.currentMileageKm} />
+                required
+              />
+              <FieldError id="currentMileageKm-error" message={errors.currentMileageKm} />
               <p id="currentMileageKm-help" className="text-xs text-muted">New readings can increase this value. Correcting an older reading does not automatically lower it; verify the actual odometer before adjusting it here.</p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">EMI / Financing</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="targetEmiRand">Monthly EMI (R)</Label>
-            <Input
-              id="targetEmiRand"
-              type="number"
-              min={0}
-              step="0.01"
-              value={form.targetEmiRand}
-              onChange={(e) => update("targetEmiRand", e.target.value)}
-              aria-invalid={!!errors.targetEmiCents}
-              aria-describedby="targetEmi-error"
-            />
-            <FieldError id="targetEmi-error" message={errors.targetEmiCents} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="emiMonthsTotal">Term (months)</Label>
-            <Input
-              id="emiMonthsTotal"
-              type="number"
-              min={0}
-              value={form.emiMonthsTotal}
-              onChange={(e) => update("emiMonthsTotal", e.target.value)}
-              aria-invalid={!!errors.emiMonthsTotal}
-              aria-describedby="emiMonthsTotal-error"
-            />
-            <FieldError id="emiMonthsTotal-error" message={errors.emiMonthsTotal} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="emiMonthsPaid">Months Paid</Label>
-            <Input
-              id="emiMonthsPaid"
-              type="number"
-              min={0}
-              value={form.emiMonthsPaid}
-              onChange={(e) => update("emiMonthsPaid", e.target.value)}
-              aria-invalid={!!errors.emiMonthsPaid}
-              aria-describedby="emiMonthsPaid-error"
-            />
-            <FieldError id="emiMonthsPaid-error" message={errors.emiMonthsPaid} />
-          </div>
-        </div>
-      </section>
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Financing</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="purchaseType">Ownership / Purchase Type</Label>
+              <Select
+                value={form.purchaseType}
+                onValueChange={(v) => update("purchaseType", v === "Financed" ? "Financed" : "Cash")}
+              >
+                <SelectTrigger id="purchaseType">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cash">Bought Privately (Cash)</SelectItem>
+                  <SelectItem value="Financed">Financed with a Bank</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Insurance</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="insurer">Insurer</Label>
-            <Input id="insurer" value={form.insurer} onChange={(e) => update("insurer", e.target.value)} />
+            {form.purchaseType === "Financed" ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="financeBank">Bank Name</Label>
+                  <Input
+                    id="financeBank"
+                    placeholder="e.g. WesBank / MFC / Absa"
+                    value={form.financeBank}
+                    onChange={(e) => update("financeBank", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="financePolicyNumber">Policy / Account Number</Label>
+                  <Input
+                    id="financePolicyNumber"
+                    placeholder="Bank policy or account number"
+                    value={form.financePolicyNumber}
+                    onChange={(e) => update("financePolicyNumber", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="targetEmiRand">Monthly Amount (R)</Label>
+                  <Input
+                    id="targetEmiRand"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={form.targetEmiRand}
+                    onChange={(e) => update("targetEmiRand", e.target.value)}
+                    aria-invalid={!!errors.targetEmiCents}
+                    aria-describedby="targetEmi-error"
+                  />
+                  <FieldError id="targetEmi-error" message={errors.targetEmiCents} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="emiMonthsTotal">Finance Period (months)</Label>
+                  <Input
+                    id="emiMonthsTotal"
+                    type="number"
+                    min={0}
+                    value={form.emiMonthsTotal}
+                    onChange={(e) => update("emiMonthsTotal", e.target.value)}
+                    aria-invalid={!!errors.emiMonthsTotal}
+                    aria-describedby="emiMonthsTotal-error"
+                  />
+                  <FieldError id="emiMonthsTotal-error" message={errors.emiMonthsTotal} />
+                </div>
+                <div className="flex flex-col justify-center rounded-xl border border-border-subtle bg-surface-elevated px-4 py-3">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                    Countdown to Ownership
+                  </span>
+                  <span className="mt-1 font-mono-figures text-sm font-bold text-ink">
+                    {parsedTotalMonths === 0
+                      ? "Enter finance period"
+                      : financeCountdown.monthsLeft === 0
+                        ? "Owned by company (0 months left)"
+                        : `${financeCountdown.monthsLeft} month${financeCountdown.monthsLeft === 1 ? "" : "s"} left`}
+                  </span>
+                  {parsedTotalMonths > 0 && (
+                    <span className="mt-0.5 text-xs text-muted">
+                      {financeCountdown.monthsElapsed} of {parsedTotalMonths} months elapsed · Balance{" "}
+                      {formatZAR(financeCountdown.balanceCents)}
+                    </span>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center rounded-xl border border-border-subtle bg-surface-elevated px-4 py-3 text-xs text-muted sm:col-span-2">
+                Bought privately with cash — owned outright by the company with no bank financing.
+              </div>
+            )}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="policyNumber">Policy Number</Label>
-            <Input id="policyNumber" value={form.policyNumber} onChange={(e) => update("policyNumber", e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="monthlyPremiumRand">Monthly Premium (R)</Label>
-            <Input
-              id="monthlyPremiumRand"
-              type="number"
-              min={0}
-              step="0.01"
-              value={form.monthlyPremiumRand}
-              onChange={(e) => update("monthlyPremiumRand", e.target.value)}
-              aria-invalid={!!errors.monthlyPremiumCents}
-              aria-describedby="monthlyPremium-error"
-            />
-            <FieldError id="monthlyPremium-error" message={errors.monthlyPremiumCents} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="insurancePeriodMonths">Insurance Period (months)</Label>
-            <Input
-              id="insurancePeriodMonths"
-              type="number"
-              min={0}
-              value={form.insurancePeriodMonths}
-              onChange={(e) => update("insurancePeriodMonths", e.target.value)}
-              aria-invalid={!!errors.insurancePeriodMonths}
-              aria-describedby="insurancePeriodMonths-error"
-            />
-            <FieldError id="insurancePeriodMonths-error" message={errors.insurancePeriodMonths} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="insuranceEndDate">Insurance End Date</Label>
-            <Input
-              id="insuranceEndDate"
-              type="date"
-              value={form.insuranceEndDate}
-              onChange={(e) => update("insuranceEndDate", e.target.value)}
-              aria-invalid={!!errors.insuranceEndDate}
-              aria-describedby="insuranceEndDate-error"
-            />
-            <FieldError id="insuranceEndDate-error" message={errors.insuranceEndDate} />
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving..." : isEdit ? "Save Changes" : "Add Vehicle"}
-        </Button>
-      </div>
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Insurance</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="insurer">Insurer</Label>
+              <Input id="insurer" value={form.insurer} onChange={(e) => update("insurer", e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="policyNumber">Policy Number</Label>
+              <Input id="policyNumber" value={form.policyNumber} onChange={(e) => update("policyNumber", e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="monthlyPremiumRand">Monthly Premium (R)</Label>
+              <Input
+                id="monthlyPremiumRand"
+                type="number"
+                min={0}
+                step="0.01"
+                value={form.monthlyPremiumRand}
+                onChange={(e) => update("monthlyPremiumRand", e.target.value)}
+                aria-invalid={!!errors.monthlyPremiumCents}
+                aria-describedby="monthlyPremium-error"
+              />
+              <FieldError id="monthlyPremium-error" message={errors.monthlyPremiumCents} />
+            </div>
+          </div>
+        </section>
+
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="outline" onClick={() => router.back()}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Saving..." : isEdit ? "Save Changes" : "Add Vehicle"}
+          </Button>
+        </div>
       </ReadyFieldset>
     </form>
   );

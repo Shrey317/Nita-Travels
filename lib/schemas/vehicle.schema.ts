@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { calendarDateSchema, nonnegativeIntegerSchema, positiveIntegerSchema } from "./common.schema";
 
+export const PURCHASE_TYPES = ["Cash", "Financed"] as const;
+export type PurchaseType = (typeof PURCHASE_TYPES)[number];
+
 /** CR01, CR02, ... CR10, CR11 — two letters then two-or-more digits, so the fleet can grow. */
 export const vehicleIdSchema = z
   .string()
@@ -20,6 +23,9 @@ const vehicleBaseSchema = z.object({
   currentMileageKm: nonnegativeIntegerSchema,
   warranty: z.string().trim().nullable().optional(),
   serviceIntervalKm: positiveIntegerSchema.default(20000),
+  purchaseType: z.enum(PURCHASE_TYPES).default("Cash"),
+  financeBank: z.string().trim().nullable().optional(),
+  financePolicyNumber: z.string().trim().nullable().optional(),
   targetEmiCents: nonnegativeIntegerSchema.default(0),
   emiMonthsTotal: nonnegativeIntegerSchema.default(0),
   emiMonthsPaid: nonnegativeIntegerSchema.default(0),
@@ -47,6 +53,7 @@ export const vehicleSchema = vehicleBaseSchema.refine((d) => d.currentMileageKm 
  *  re-validates the full merged object against `vehicleSchema` before writing — see lib/db/vehicles.ts. */
 export const vehicleUpdateSchema = vehicleBaseSchema.omit({ id: true }).partial().extend({
   serviceIntervalKm: positiveIntegerSchema.optional(),
+  purchaseType: z.enum(PURCHASE_TYPES).optional(),
   targetEmiCents: nonnegativeIntegerSchema.optional(),
   emiMonthsTotal: nonnegativeIntegerSchema.optional(),
   emiMonthsPaid: nonnegativeIntegerSchema.optional(),

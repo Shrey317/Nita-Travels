@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { vehicleSchema } from "@/lib/schemas/vehicle.schema";
+import { calculateFinanceCountdown, isVehicleFinanced } from "@/lib/finance";
 import { transactionSchema } from "@/lib/schemas/transaction.schema";
 import { mileageEntrySchema } from "@/lib/schemas/mileage.schema";
 import { vehicleNoteSchema } from "@/lib/schemas/note.schema";
@@ -59,6 +60,45 @@ describe("vehicleSchema", () => {
   it("rejects a negative purchase price", () => {
     const result = vehicleSchema.safeParse({ ...baseVehicle, purchasePriceCents: -1 });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts Cash and Financed purchaseType with bank and policy number", () => {
+    const financed = vehicleSchema.safeParse({
+      ...baseVehicle,
+      purchaseType: "Financed",
+      financeBank: "WesBank",
+      financePolicyNumber: "FIN-123456",
+    });
+    expect(financed.success).toBe(true);
+
+    const cash = vehicleSchema.safeParse({
+      ...baseVehicle,
+      purchaseType: "Cash",
+      financeBank: null,
+      financePolicyNumber: null,
+      targetEmiCents: 0,
+      emiMonthsTotal: 0,
+      emiMonthsPaid: 0,
+    });
+    expect(cash.success).toBe(true);
+  });
+
+  it("calculates automatic finance countdown from purchaseDate and total months", () => {
+    const purchaseDate = new Date("2025-05-01T00:00:00.000Z");
+    const refDate = new Date("2026-11-03T00:00:00.000Z");
+    const countdown = calculateFinanceCountdown(purchaseDate, 60, 350000, refDate);
+    expect(countdown.monthsElapsed).toBe(18);
+    expect(countdown.monthsLeft).toBe(42);
+    expect(countdown.balanceCents).toBe(42 * 350000);
+    expect(countdown.isOwned).toBe(false);
+    expect(
+      isVehicleFinanced({
+        purchaseType: "Financed",
+        emiMonthsTotal: 60,
+        targetEmiCents: 350000,
+        financeBank: "WesBank",
+      })
+    ).toBe(true);
   });
 });
 

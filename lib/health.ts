@@ -22,6 +22,7 @@ export interface HealthInput {
   active: boolean;
   serviceStatus?: "OK" | "DUE_SOON" | "OVERDUE" | "NEEDS_DATA";
   insuranceEndDate?: Date | null;
+  hasInsuranceInfo?: boolean;
   hasRecentMileage?: boolean;
   highRepairFrequency?: boolean;
   highRepairCost?: boolean;
@@ -77,7 +78,7 @@ export function calculateVehicleHealthScore(v: HealthInput): HealthScoreResult {
       result.categories.insurance.score = 5;
       result.reasons.push("Insurance expires soon (-10 pts)");
     }
-  } else {
+  } else if (!v.hasInsuranceInfo) {
     result.categories.insurance.score = 0;
     result.reasons.push("No insurance data (-15 pts)");
   }

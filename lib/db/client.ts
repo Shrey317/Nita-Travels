@@ -6,7 +6,10 @@ import { PrismaClient } from "@prisma/client";
  * connection limit is exhausted. In production each serverless invocation gets its own module
  * scope, so the global is a no-op there — it only matters for `next dev`.
  */
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+const globalForPrisma = globalThis as unknown as {
+  prismaV3?: PrismaClient;
+  vehicleFinanceColumnsEnsured?: Promise<void>;
+};
 
 if (process.env.APP_ENV === "test") {
   if (!process.env.TEST_DATABASE_URL) {
@@ -17,15 +20,51 @@ if (process.env.APP_ENV === "test") {
   process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 }
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    // Route boundaries report sanitized diagnostics; Prisma error text can contain inputs.
-    log: [],
-  });
+const basePrisma = new PrismaClient({
+  // Route boundaries report sanitized diagnostics; Prisma error text can contain inputs.
+  log: [],
+});
+
+/**
+ * Ensures the additive financing columns exist on the Vehicle table before querying.
+ */
+export async function ensureVehicleFinanceColumns(client: PrismaClient = basePrisma): Promise<void> {
+  if (typeof client.$executeRawUnsafe !== "function") return;
+  if (!globalForPrisma.vehicleFinanceColumnsEnsured) {
+    globalForPrisma.vehicleFinanceColumnsEnsured = client
+      .$executeRawUnsafe(
+        `ALTER TABLE "Vehicle" ADD COLUMN IF NOT EXISTS "purchaseType" TEXT NOT NULL DEFAULT 'Cash', ADD COLUMN IF NOT EXISTS "financeBank" TEXT, ADD COLUMN IF NOT EXISTS "financePolicyNumber" TEXT;`
+      )
+      .then(() =>
+        client.$executeRawUnsafe(
+          `UPDATE "Vehicle" SET "purchaseType" = 'Financed' WHERE "purchaseType" = 'Cash' AND ("emiMonthsTotal" > 0 OR "targetEmiCents" > 0);`
+        )
+      )
+      .then(() => undefined)
+      .catch(() => {
+        globalForPrisma.vehicleFinanceColumnsEnsured = undefined;
+      });
+  }
+  await globalForPrisma.vehicleFinanceColumnsEnsured;
+}
+
+function createPrismaClient(): PrismaClient {
+  return basePrisma.$extends({
+    query: {
+      vehicle: {
+        async $allOperations({ args, query }) {
+          await ensureVehicleFinanceColumns(basePrisma);
+          return query(args);
+        },
+      },
+    },
+  }) as unknown as PrismaClient;
+}
+
+export const prisma = globalForPrisma.prismaV3 ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  globalForPrisma.prismaV3 = prisma;
 }
 
 /**

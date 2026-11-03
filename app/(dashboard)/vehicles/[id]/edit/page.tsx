@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db/client";
+import { ensureVehicleFinanceColumns, prisma } from "@/lib/db/client";
 import { VehicleForm } from "@/components/vehicles/vehicle-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditVehiclePage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
+  await ensureVehicleFinanceColumns();
   const vehicle = await prisma.vehicle.findUnique({ where: { id: params.id } });
   if (!vehicle) notFound();
 

@@ -1,10 +1,9 @@
 /** Shared operational alerts. Every item links to recorded evidence. */
 import { prisma } from "@/lib/db/client";
 import { getServiceStatusAllVehicles } from "@/lib/db/service";
-import { computeInsuranceExpiryStatus } from "@/lib/alerts";
 import { analyzeMileage } from "@/lib/analytics";
 import { WEEKLY_MILEAGE_LIMIT } from "@/lib/mileage";
-import { addDays, businessToday, calendarDays, dateKey, isoWeekStart } from "@/lib/date-ranges";
+import { addDays, businessToday, dateKey, isoWeekStart } from "@/lib/date-ranges";
 
 export type NotificationPriority = "critical" | "warning" | "info";
 export interface FleetNotification {
@@ -25,7 +24,7 @@ export async function getFleetNotifications(serviceRead?: ReturnType<typeof getS
   const [vehicles, serviceRows, mileageEntries] = await Promise.all([
     prisma.vehicle.findMany({
       where: { active: true, deletedAt: null },
-      select: { id: true, registration: true, make: true, model: true, insuranceEndDate: true },
+      select: { id: true, registration: true, make: true, model: true },
       orderBy: { id: "asc" },
     }),
     serviceRead ?? getServiceStatusAllVehicles(),
@@ -50,17 +49,6 @@ export async function getFleetNotifications(serviceRead?: ReturnType<typeof getS
         description: "No service transaction with a mileage reading is available. Record or verify the latest service before interpreting service status.",
         vehicleId: row.vehicleId, href: `/transactions/new?vehicleId=${row.vehicleId}`, category: "service" });
     }
-  }
-  for (const vehicle of vehicles) {
-    const status = computeInsuranceExpiryStatus(vehicle.insuranceEndDate, today);
-    if ((status !== "EXPIRED" && status !== "EXPIRING_SOON") || !vehicle.insuranceEndDate) continue;
-    const days = status === "EXPIRED"
-      ? calendarDays({ from: vehicle.insuranceEndDate, to: today }) - 1
-      : calendarDays({ from: today, to: vehicle.insuranceEndDate }) - 1;
-    notifications.push({ ...base, id: `${status === "EXPIRED" ? "ins-expired" : "ins-expiring"}-${vehicle.id}`,
-      priority: status === "EXPIRED" ? "critical" : "warning", title: `${vehicle.id} · Insurance ${status === "EXPIRED" ? "expired" : "expiring"}`,
-      description: `Recorded expiry ${dateKey(vehicle.insuranceEndDate)} (${days} days ${status === "EXPIRED" ? "ago" : "remaining"}). Confirm coverage and update the renewal record.`,
-      vehicleId: vehicle.id, href: `/vehicles/${vehicle.id}`, category: "insurance" });
   }
   const mileage = analyzeMileage(mileageEntries, { from: weekStart, to: addDays(weekStart, 6) });
   const recordedIds = new Set(mileageEntries.map(entry => entry.vehicleId));

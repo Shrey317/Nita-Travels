@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { verifyTestEnvironment } from "@/lib/db/safety";
 import { prisma } from "@/lib/db/client";
 import { createMileageEntry, updateMileageEntry } from "@/lib/db/mileage";
-import { startOfWeek } from "date-fns";
+
 
 describe("Mileage Integration Tests", () => {
   beforeAll(async () => {

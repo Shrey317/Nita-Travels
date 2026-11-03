@@ -6,7 +6,7 @@
  * already exists in lib/db/vehicles.ts and shouldn't be duplicated (SRS Section 5).
  */
 
-import { prisma } from "@/lib/db/client";
+import { ensureVehicleFinanceColumns, prisma } from "@/lib/db/client";
 import { getVehiclesWithFinancials } from "@/lib/db/vehicles";
 import { calculateRoiPercent, calculateRevenuePerKm, calculateCostPerKm, calculateProfitPerKm } from "@/lib/finance";
 import { buildPeriodAnalysis, explainProfitChange } from "@/lib/analytics";
@@ -96,6 +96,7 @@ export async function getVehiclePerformanceRanking(): Promise<VehicleRankingRow[
 
 /** One bounded projection per source, independent of vehicle count. No production mock data or stale global cache. */
 export async function getAnalyticsReport(params: AnalyticsSearchParams = {}) {
+  await ensureVehicleFinanceColumns();
   let historyRange;
   if (params.range === "all") {
     const where = params.vehicleId ? { vehicleId: params.vehicleId } : {};

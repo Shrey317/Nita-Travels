@@ -44,6 +44,9 @@ model Vehicle {
   currentMileageKm      Int            @default(0)
   warranty              String?
   serviceIntervalKm     Int            @default(20000)
+  purchaseType          String         @default("Cash") // "Cash" | "Financed"
+  financeBank           String?
+  financePolicyNumber   String?
   targetEmiCents        Int            @default(0)
   emiMonthsTotal        Int            @default(0)
   emiMonthsPaid         Int            @default(0)

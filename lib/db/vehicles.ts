@@ -8,12 +8,12 @@ import { queryVehicleTimeline } from "@/lib/db/timeline";
  */
 
 import type { Prisma, Vehicle } from "@prisma/client";
-import { prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
+import { ensureVehicleFinanceColumns, prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
 import { recalculateMileageChain } from "@/lib/db/mileage";
 import { getServiceStatusAllVehicles, getLatestServiceForVehicle, type VehicleServiceRow } from "@/lib/db/service";
 import { deriveServiceStatus } from "@/lib/service";
 import { formatMargin } from "@/lib/format";
-import { calculateRoiPercent } from "@/lib/finance";
+import { calculateFinanceCountdown, calculateRoiPercent, isVehicleFinanced } from "@/lib/finance";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { REPAIR_CATEGORIES } from "@/lib/constants";
 import {
@@ -41,6 +41,7 @@ export interface VehicleSummary {
  * vehicle.
  */
 export async function getVehiclesWithFinancials(dateFrom?: Date, dateTo?: Date, includeInactive?: boolean): Promise<VehicleSummary[]> {
+  await ensureVehicleFinanceColumns();
   const vehicles = await prisma.vehicle.findMany({ where: { deletedAt: null, ...(includeInactive ? {} : { active: true }) }, orderBy: { id: "asc" } });
   const vehicleIds = vehicles.map((v) => v.id);
 
@@ -92,6 +93,7 @@ export interface VehicleDetail extends VehicleSummary {
 /** Full detail for the Vehicle Profile page (SRS 15.3). Not filtered by `active` — a
  *  deactivated vehicle's profile must stay viewable even though it drops off the main list. */
 export async function getVehicleDetail(id: string): Promise<VehicleDetail | null> {
+  await ensureVehicleFinanceColumns();
   const vehicle = await prisma.vehicle.findUnique({ where: { id, deletedAt: null } });
   if (!vehicle) return null;
 
@@ -138,6 +140,11 @@ export async function getVehicleDetail(id: string): Promise<VehicleDetail | null
     vehicle.currentMileageKm
   );
 
+  const financed = isVehicleFinanced(vehicle);
+  const financeCountdown = financed
+    ? calculateFinanceCountdown(vehicle.purchaseDate, vehicle.emiMonthsTotal, vehicle.targetEmiCents)
+    : { balanceCents: 0 };
+
   return {
     vehicle,
     incomeCents,
@@ -145,7 +152,7 @@ export async function getVehicleDetail(id: string): Promise<VehicleDetail | null
     repairsCents: repairs._sum.expenseZarCents ?? 0,
     netProfitCents,
     marginLabel: formatMargin(incomeCents, expenseCents),
-    emiBalanceCents: vehicle.targetEmiCents * (vehicle.emiMonthsTotal - vehicle.emiMonthsPaid),
+    emiBalanceCents: financeCountdown.balanceCents,
     roiPercent: calculateRoiPercent(netProfitCents, vehicle.purchasePriceCents),
     kmSincePurchase: vehicle.currentMileageKm - vehicle.mileageAtPurchaseKm,
     service: {
@@ -164,6 +171,7 @@ export async function getVehicleDetail(id: string): Promise<VehicleDetail | null
 }
 
 export async function createVehicle(input: VehicleInput): Promise<Vehicle> {
+  await ensureVehicleFinanceColumns();
   const data = vehicleSchema.parse(input);
   return prisma.vehicle.create({ data });
 }
@@ -172,13 +180,24 @@ export async function createVehicle(input: VehicleInput): Promise<Vehicle> {
  *  business rule (like emiMonthsPaid <= emiMonthsTotal) can't be bypassed by editing one field
  *  at a time while leaving the other stale. */
 export async function updateVehicle(id: string, input: VehicleUpdateInput, client?: Prisma.TransactionClient): Promise<Vehicle> {
+  if (!client) await ensureVehicleFinanceColumns();
   const partial = vehicleUpdateSchema.parse(input);
   const execute = async (tx: Prisma.TransactionClient) => {
     // Share the mileage mutation lock so profile edits cannot corrupt a concurrent reading.
     await tx.$queryRaw`SELECT "id" FROM "Vehicle" WHERE "id" = ${id} FOR UPDATE`;
     const existing = await tx.vehicle.findUnique({ where: { id, deletedAt: null } });
     if (!existing) throw new NotFoundError(`Vehicle ${id} not found`);
-    const merged = vehicleSchema.parse({ ...existing, ...partial, id: existing.id });
+    const nextTotalMonths = partial.emiMonthsTotal ?? existing.emiMonthsTotal;
+    const clampedMonthsPaid =
+      partial.emiMonthsPaid !== undefined
+        ? partial.emiMonthsPaid
+        : Math.min(existing.emiMonthsPaid, nextTotalMonths);
+    const merged = vehicleSchema.parse({
+      ...existing,
+      ...partial,
+      emiMonthsPaid: clampedMonthsPaid,
+      id: existing.id,
+    });
     const baselineChanged = merged.mileageAtPurchaseKm !== existing.mileageAtPurchaseKm;
     if (baselineChanged || merged.currentMileageKm !== existing.currentMileageKm) {
       const [logs, transactions] = await Promise.all([
@@ -198,6 +217,7 @@ export async function updateVehicle(id: string, input: VehicleUpdateInput, clien
 /** DELETE /api/vehicles/[id] is a soft-deactivate (SRS 16, 26) — vehicles are never hard-deleted
  *  so historical transactions/mileage/notes referencing them stay intact and queryable. */
 export async function deactivateVehicle(id: string, client?: Prisma.TransactionClient): Promise<Vehicle> {
+  if (!client) await ensureVehicleFinanceColumns();
   const execute = async (tx: Prisma.TransactionClient) => {
     await tx.$queryRaw`SELECT "id" FROM "Vehicle" WHERE "id" = ${id} FOR UPDATE`;
     const existing = await tx.vehicle.findUnique({ where: { id, deletedAt: null } });
@@ -269,4 +289,3 @@ export async function getVehicleMonthlyFinancials(id: string): Promise<MonthlyFi
 
   return Array.from(grouped.values());
 }
-
