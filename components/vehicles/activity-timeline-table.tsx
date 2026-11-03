@@ -67,8 +67,8 @@ export function ActivityTimelineTable({ items }: { items: TimelineItem[] }) {
             </TableCell>
             <TableCell className="max-w-md">
               <p className="whitespace-pre-wrap">{item.details || "—"}</p>
-              {!item.isNote && item.type === "Service" && item.mileageKm !== null && (
-                <p className="mt-1 text-xs text-muted">Mileage at service: {formatKm(item.mileageKm)}</p>
+              {!item.isNote && item.mileageKm !== null && (
+                <p className="mt-1 text-xs text-muted">Mileage: {formatKm(item.mileageKm)}</p>
               )}
               <PhotoThumbnails
                 urls={item.photoUrls}

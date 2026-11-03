@@ -58,7 +58,7 @@ export function TransactionTable({ transactions, vehicles, initialEditingId }: T
             </span>
           </p>
           <p className={`mt-2 break-words text-xl font-bold font-mono-figures ${t.incomeZarCents ? "text-status-success" : "text-ink"}`}>{t.incomeZarCents ? "+ " : "− "}{formatZAR(t.incomeZarCents || t.expenseZarCents)}</p>
-          <p className="mt-1 text-xs text-muted">{t.incomeZarCents ? "Income" : "Expense"}{t.category === "Service" ? ` · ${formatKm(t.mileageKm)}` : ""}</p>
+          <p className="mt-1 text-xs text-muted">{t.incomeZarCents ? "Income" : "Expense"}{t.mileageKm != null ? ` · ${formatKm(t.mileageKm)}` : ""}</p>
           {t.notes && <p className="mt-3 break-words text-sm text-ink-secondary">{t.notes}</p>}
           <div className="mt-3 flex items-center justify-end gap-2 border-t border-border-subtle pt-2"><Button variant="ghost" aria-label="Edit transaction" onClick={() => setEditingId(t.id)}><Pencil aria-hidden="true" />Edit</Button><DeleteConfirmDialog title="Delete this transaction?" description={`Remove the ${CATEGORY_LABELS[t.category] ?? t.category} entry from ${formatDate(t.date)} from your active ledger and reports.`} onDelete={() => handleDelete(t.id)} successMessage="Transaction deleted" triggerLabel="Delete transaction" /></div>
         </article>)}
@@ -102,7 +102,7 @@ export function TransactionTable({ transactions, vehicles, initialEditingId }: T
                 {t.expenseZarCents ? <span className="text-status-error font-semibold">{formatZAR(t.expenseZarCents)}</span> : <span className="text-muted">—</span>}
               </TableCell>
               <TableCell className="whitespace-nowrap text-right font-mono-figures text-sm text-ink-secondary">
-                {t.category === "Service" ? formatKm(t.mileageKm) : "—"}
+                {formatKm(t.mileageKm)}
               </TableCell>
               <TableCell className="max-w-xs truncate text-ink-secondary" title={t.notes ?? undefined}>
                 {t.notes ?? "—"}
