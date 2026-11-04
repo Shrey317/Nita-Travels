@@ -1,44 +1,40 @@
 /**
  * lib/api-response.ts
  *
- * Shared response + error-mapping helpers for every /app/api/* route handler.
- * Keeps status codes and JSON envelopes consistent across the API surface.
+ * Every API route funnels its errors through handleApiError so the mapping from failure to
+ * HTTP status is defined in exactly one place (SRS Section 5, 16, 19, 21):
+ *   - Zod validation failures  -> 400, with the offending field named
+ *   - NotFoundError            -> 404
+ *   - ConflictError            -> 409
+ *   - UnauthorizedError        -> 401
+ *   - ForbiddenError           -> 403
+ *   - anything else            -> 500, generic message, allowlisted diagnostic code only
+ *
+ * Nothing here ever puts a Prisma error message, a stack trace, or an env var value in the
+ * response body — only the safe, pre-written messages reach the client.
  */
 
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import {
-  ConflictError,
-  ForbiddenError,
   NotFoundError,
-  UnauthorizedError,
   ValidationError,
-} from "./errors";
-import { reportOperationalError } from "./monitoring";
+  ConflictError,
+  UnauthorizedError,
+  ForbiddenError,
+} from "@/lib/errors";
 
-export function jsonError(message: string, status: number, field?: string) {
-  const body: { error: string; field?: string } = { error: message };
-  if (field) body.field = field;
-  return NextResponse.json(body, { status });
-}
-
-/**
- * Throws UnauthorizedError if there is no active session. Route handlers call this as their
- * first line as a defence-in-depth check behind middleware.ts (SRS 19).
- */
+/** Defense-in-depth session check inside route handlers, on top of middleware's route gating —
+ *  so a write route is never one refactor away from accidentally becoming unauthenticated. */
 export async function requireSession() {
   const session = await auth();
-  if (!session?.user) {
-    throw new UnauthorizedError();
-  }
+  if (!session?.user) throw new UnauthorizedError();
   return session;
 }
 
-/**
- * Throws ForbiddenError (403) if the authenticated user is not the Administrator.
- * Used on all edit, delete, and user-management routes.
- */
+/** Defense-in-depth admin check for edit, delete, and user-management endpoints. */
 export async function requireAdmin() {
   const session = await requireSession();
   if (session.staffRole !== "ADMIN") {
@@ -47,39 +43,34 @@ export async function requireAdmin() {
   return session;
 }
 
-/**
- * Server-component helper returning true only when the current session belongs to the Admin.
- */
+/** Server-component helper returning true only when the current session belongs to the Admin. */
 export async function isAdminSession(): Promise<boolean> {
   const session = await auth();
   return session?.staffRole === "ADMIN";
 }
 
+export function jsonError(message: string, status: number, field?: string) {
+  return NextResponse.json(field ? { error: message, field } : { error: message }, { status });
+}
+
 export function handleApiError(error: unknown): NextResponse {
-  if (error instanceof UnauthorizedError) {
-    return jsonError(error.message, 401);
-  }
-  if (error instanceof ForbiddenError) {
-    return jsonError(error.message, 403);
-  }
-  if (error instanceof ValidationError) {
-    return jsonError(error.message, 400, error.field);
-  }
+  if (error instanceof SyntaxError) return jsonError("Invalid JSON request body", 400);
   if (error instanceof ZodError) {
-    const first = error.errors[0];
-    const field = first?.path?.join(".") || undefined;
-    return jsonError(first?.message ?? "Invalid input", 400, field);
+    const first = error.issues[0];
+    return jsonError(first?.message ?? "Invalid input", 400, first?.path?.join(".") || undefined);
   }
-  if (error instanceof NotFoundError) {
-    return jsonError(error.message, 404);
-  }
-  if (error instanceof ConflictError) {
-    return jsonError(error.message, 409);
-  }
-  if (error instanceof SyntaxError) {
-    return jsonError("Malformed JSON in request body", 400);
+  if (error instanceof ValidationError) return jsonError(error.message, 400, error.field);
+  if (error instanceof NotFoundError) return jsonError(error.message, 404);
+  if (error instanceof ConflictError) return jsonError(error.message, 409);
+  if (error instanceof UnauthorizedError) return jsonError(error.message, 401);
+  if (error instanceof ForbiddenError) return jsonError(error.message, 403);
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2025") return jsonError("This record no longer exists. Refresh and try again.", 404);
+    if (error.code === "P2002") return jsonError("A record with this identifier already exists.", 409);
+    if (error.code === "P2003") return jsonError("Select a valid related record.", 400);
   }
 
-  reportOperationalError("api_route", error);
-  return jsonError("An unexpected error occurred. Please try again.", 500);
+  // Error objects may contain connection details or submitted data; log only an allowlisted code.
+  console.error("Unhandled API error", { kind: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : "UNEXPECTED" });
+  return jsonError("Something went wrong. Please try again.", 500);
 }

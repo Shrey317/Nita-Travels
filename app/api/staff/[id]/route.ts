@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db/client";
+import { ensureStaffAccountTable, prisma } from "@/lib/db/client";
 import { requireAdmin, handleApiError } from "@/lib/api-response";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { adminUpdateStaffSchema } from "@/lib/staff-registration";
@@ -20,6 +20,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
   const params = await props.params;
   try {
     await requireAdmin();
+    await ensureStaffAccountTable();
     const input = adminUpdateStaffSchema.parse(await request.json());
 
     if (!input.name && !input.status && !input.password) {
@@ -70,6 +71,7 @@ export async function DELETE(_request: NextRequest, props: { params: Promise<{ i
   const params = await props.params;
   try {
     await requireAdmin();
+    await ensureStaffAccountTable();
     const existing = await prisma.staffAccount.findUnique({
       where: { id: params.id },
       select: { id: true },
@@ -87,4 +89,3 @@ export async function DELETE(_request: NextRequest, props: { params: Promise<{ i
     return handleApiError(error);
   }
 }
-

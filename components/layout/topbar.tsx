@@ -19,7 +19,6 @@ export function Topbar({
 
   return (
     <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-border-subtle bg-background/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
-      {/* Left/Center: Global Search */}
       <div className="flex flex-1 items-center">
         <button
           type="button"
@@ -36,15 +35,9 @@ export function Topbar({
         </button>
       </div>
 
-      {/* Right: Actions */}
       <div className="flex items-center gap-3 ml-4">
-        {/* Notifications */}
         <NotificationCenter />
-
-        {/* Divider */}
         <div className="h-8 w-px bg-border-subtle mx-1 hidden sm:block" />
-
-        {/* Profile Menu */}
         <ProfileMenu isAdmin={isAdmin} userName={userName} userEmail={userEmail} />
       </div>
 

@@ -2,27 +2,28 @@ import { parsePageListQuery } from "@/lib/query-filters";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { Plus } from "lucide-react";
-import { getTransactions } from "@/lib/db/transactions";
+import { Plus, Download } from "lucide-react";
+import { getTransactions, getTransactionById } from "@/lib/db/transactions";
 import { prisma } from "@/lib/db/client";
 import { isAdminSession } from "@/lib/api-response";
 import { Button } from "@/components/ui/button";
 import { TransactionFilters } from "@/components/transactions/transaction-filters";
 import { TransactionTable } from "@/components/transactions/transaction-table";
 import { Pagination } from "@/components/shared/pagination";
-import { vehicleIdOptions } from "@/components/shared/vehicle-options";
 import { PageHeader } from "@/components/shared/page-header";
-import { DEFAULT_PAGE_SIZE, FLEET_WIDE_VEHICLE_ID } from "@/lib/constants";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
 interface TransactionsPageProps {
   searchParams: Promise<{
     vehicleId?: string | string[];
     category?: string | string[];
-    type?: "income" | "expense" | "all";
     dateFrom?: string;
     dateTo?: string;
+    search?: string;
     page?: string;
-    edit?: string;
+    sortBy?: string;
+    sortDir?: string;
+    txId?: string;
   }>;
 }
 
@@ -31,32 +32,46 @@ export default async function TransactionsPage(props: TransactionsPageProps) {
   const { filters, error: filterError } = parsePageListQuery(searchParams);
   const vehicleId = filters.vehicleId ?? [];
   const category = filters.category ?? [];
-  const type = filters.type ?? "all";
   const page = filters.page;
 
-  const [isAdmin, vehicles, result] = await Promise.all([
+  const [isAdmin, vehicles, result, specificTx] = await Promise.all([
     isAdminSession(),
     prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
     getTransactions({
       vehicleId: vehicleId.length ? vehicleId : undefined,
       category: category.length ? category : undefined,
-      type,
       dateFrom: filters.dateFrom,
       dateTo: filters.dateTo,
+      search: filters.search,
       page,
       limit: DEFAULT_PAGE_SIZE,
+      sortBy: searchParams.sortBy,
+      sortDir: searchParams.sortDir === "asc" ? "asc" : "desc",
     }),
+    searchParams.txId ? getTransactionById(searchParams.txId) : Promise.resolve(null),
   ]);
 
-  const vehicleOptions = [
-    ...vehicleIdOptions(vehicles),
-    { value: FLEET_WIDE_VEHICLE_ID, label: "All Vehicles / Fleet-Wide" },
-  ];
+  if (specificTx && !result.items.some((t) => t.id === specificTx.id)) {
+    result.items.unshift(specificTx);
+  }
+
+  const exportParams = new URLSearchParams();
+  for (const v of vehicleId) exportParams.append("vehicleId", v);
+  for (const c of category) exportParams.append("category", c);
+  if (searchParams.dateFrom) exportParams.set("dateFrom", searchParams.dateFrom);
+  if (searchParams.dateTo) exportParams.set("dateTo", searchParams.dateTo);
+  if (searchParams.search) exportParams.set("search", searchParams.search);
 
   return (
     <div className="space-y-6">
       {filterError && <p role="alert" className="rounded-lg border border-status-error p-4 text-status-error">{filterError}</p>}
-      <PageHeader title="Transactions" description={`${result.total} records matching filters`}>
+      <PageHeader title="Transactions" description={`${result.total} total`}>
+        <Button asChild variant="outline">
+          <a href={`/api/transactions/export?${exportParams.toString()}`}>
+            <Download className="h-4 w-4" />
+            Export CSV
+          </a>
+        </Button>
         <Button asChild>
           <Link href="/transactions/new">
             <Plus className="h-4 w-4" />
@@ -65,11 +80,11 @@ export default async function TransactionsPage(props: TransactionsPageProps) {
         </Button>
       </PageHeader>
 
-      <TransactionFilters vehicleOptions={vehicleOptions} />
+      <TransactionFilters vehicles={vehicles} />
       <TransactionTable
         transactions={result.items}
         vehicles={vehicles}
-        initialEditingId={isAdmin ? searchParams.edit : undefined}
+        initialEditingId={isAdmin ? searchParams.txId : undefined}
         isAdmin={isAdmin}
       />
       <Pagination page={result.page} limit={result.limit} total={result.total} />

@@ -63,7 +63,6 @@ function NavLinks({
                   isCollapsed && "justify-center px-0"
                 )}
               >
-                {/* Active indicator bar */}
                 {active && (
                   <span className="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full bg-primary shadow-[0_0_10px_rgba(47,107,255,0.5)]" />
                 )}
@@ -79,7 +78,6 @@ function NavLinks({
 
                 {!isCollapsed && <span className="truncate flex-1">{item.label}</span>}
 
-                {/* Badges */}
                 {!isCollapsed && item.href === "/service" && badges?.serviceCount > 0 && (
                   <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-700 px-1.5 text-[11px] font-bold text-white shadow-sm">
                     {badges.serviceCount}
@@ -96,7 +94,6 @@ function NavLinks({
                   </span>
                 )}
 
-                {/* Collapsed dot indicators */}
                 {isCollapsed && item.href === "/service" && badges?.serviceCount > 0 && (
                   <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-status-error" />
                 )}
@@ -169,7 +166,6 @@ export function Sidebar({
   return (
     <>
       <DialogPrimitive.Root open={mobileOpen} onOpenChange={setMobileOpen}>
-        {/* Mobile top bar */}
         <div className="flex h-[72px] items-center justify-between border-b border-border-subtle bg-surface-sidebar px-4 md:hidden">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-brand-blueAccent shadow-soft">
@@ -191,7 +187,6 @@ export function Sidebar({
           </DialogPrimitive.Trigger>
         </div>
 
-        {/* Mobile drawer */}
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden" />
           <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-surface-sidebar shadow-2xl outline-none data-[state=open]:animate-slide-in-left md:hidden">
@@ -222,7 +217,6 @@ export function Sidebar({
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
 
-      {/* Desktop sidebar */}
       <aside
         className={cn(
           "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border-subtle bg-surface-sidebar transition-all duration-300 md:flex",

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db/client";
+import { ensureStaffAccountTable, prisma } from "@/lib/db/client";
 import { requireAdmin, handleApiError } from "@/lib/api-response";
 import { ConflictError } from "@/lib/errors";
 import { adminCreateStaffSchema, ownerEmail } from "@/lib/staff-registration";
@@ -19,6 +19,7 @@ const SAFE_STAFF_SELECT = {
 export async function GET() {
   try {
     await requireAdmin();
+    await ensureStaffAccountTable();
     const accounts = await prisma.staffAccount.findMany({
       orderBy: { createdAt: "desc" },
       select: SAFE_STAFF_SELECT,
@@ -32,6 +33,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
+    await ensureStaffAccountTable();
     const input = adminCreateStaffSchema.parse(await request.json());
 
     const reservedAdminUsername = (process.env.ADMIN_USERNAME ?? "admin").trim().toLowerCase();
@@ -63,4 +65,3 @@ export async function POST(request: NextRequest) {
     return handleApiError(error);
   }
 }
-

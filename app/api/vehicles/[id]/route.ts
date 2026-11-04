@@ -1,41 +1,46 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getVehicleDetail, updateVehicle, softDeleteVehicle } from "@/lib/db/vehicles";
+import { getVehicleDetail, updateVehicle, deactivateVehicle } from "@/lib/db/vehicles";
 import { requireSession, requireAdmin, handleApiError, jsonError } from "@/lib/api-response";
 import { invalidateFleetData } from "@/lib/invalidate-fleet";
 
-export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
+export async function GET(_request: NextRequest, props: RouteParams) {
   const params = await props.params;
   try {
     await requireSession();
     const detail = await getVehicleDetail(params.id);
-    if (!detail) return jsonError(`Vehicle ${params.id} not found`, 404);
+    if (!detail) return jsonError("Vehicle not found", 404);
     return NextResponse.json(detail);
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function PATCH(request: NextRequest, props: RouteParams) {
   const params = await props.params;
   try {
     await requireAdmin();
     const body = await request.json();
     const vehicle = await updateVehicle(params.id, body);
-    invalidateFleetData(vehicle.id);
+    invalidateFleetData();
     return NextResponse.json({ vehicle });
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-export async function DELETE(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+/** Soft-deactivate only — see lib/db/vehicles.ts. */
+export async function DELETE(_request: NextRequest, props: RouteParams) {
   const params = await props.params;
   try {
     await requireAdmin();
-    const vehicle = await softDeleteVehicle(params.id);
-    invalidateFleetData(vehicle.id);
+    const vehicle = await deactivateVehicle(params.id);
+    invalidateFleetData();
     return NextResponse.json({ vehicle });
   } catch (error) {
     return handleApiError(error);

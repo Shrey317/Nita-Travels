@@ -1,29 +1,19 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getMileageEntryById, updateMileageEntry, softDeleteMileageEntry } from "@/lib/db/mileage";
-import { requireSession, requireAdmin, handleApiError, jsonError } from "@/lib/api-response";
+import { deleteMileageEntry, updateMileageEntry } from "@/lib/db/mileage";
+import { requireAdmin, handleApiError } from "@/lib/api-response";
 import { invalidateFleetData } from "@/lib/invalidate-fleet";
-
-export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
-  try {
-    await requireSession();
-    const entry = await getMileageEntryById(params.id);
-    if (!entry) return jsonError("Mileage entry not found", 404);
-    return NextResponse.json({ entry });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+import { z } from "zod";
+import { positiveIntegerSchema } from "@/lib/schemas/common.schema";
 
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
     await requireAdmin();
-    const body = await request.json();
+    const body = z.object({ currentMileageKm: positiveIntegerSchema }).parse(await request.json());
     const entry = await updateMileageEntry(params.id, body);
-    invalidateFleetData(entry.vehicleId);
+    invalidateFleetData();
     return NextResponse.json({ entry });
   } catch (error) {
     return handleApiError(error);
@@ -34,9 +24,9 @@ export async function DELETE(_request: NextRequest, props: { params: Promise<{ i
   const params = await props.params;
   try {
     await requireAdmin();
-    const entry = await softDeleteMileageEntry(params.id);
-    invalidateFleetData(entry.vehicleId);
-    return NextResponse.json({ ok: true });
+    await deleteMileageEntry(params.id);
+    invalidateFleetData();
+    return NextResponse.json({ success: true });
   } catch (error) {
     return handleApiError(error);
   }

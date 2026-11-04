@@ -2,26 +2,35 @@ export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/db/client";
+import { ensureStaffAccountTable, prisma } from "@/lib/db/client";
 import { PageHeader } from "@/components/shared/page-header";
-import { StaffManagement } from "@/components/staff/staff-management";
+import { StaffManagement, type StaffAccountItem } from "@/components/staff/staff-management";
 
 export default async function StaffAccountsPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.staffRole !== "ADMIN") redirect("/");
 
-  const accounts = await prisma.staffAccount.findMany({
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      status: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  let accounts: StaffAccountItem[] = [];
+  try {
+    await ensureStaffAccountTable();
+    accounts = await prisma.staffAccount.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to load staff accounts:", {
+      kind: error instanceof Error ? error.name : "UNKNOWN",
+    });
+    accounts = [];
+  }
 
   const adminUsername = process.env.ADMIN_USERNAME?.trim() || "admin";
 

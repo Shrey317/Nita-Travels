@@ -1,68 +1,65 @@
+import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
-  Bell,
   Car,
-  Gauge,
-  Wrench,
-  Hammer,
-  StickyNote,
   Receipt,
-  Calendar,
+  Wrench,
+  Gauge,
+  ClipboardCheck,
+  StickyNote,
+  CalendarRange,
   CalendarDays,
   BarChart3,
-  ShieldAlert,
+  Bell,
   FileBarChart,
-  RefreshCcw,
+  ListChecks,
+  RefreshCw,
   Users,
-  type LucideIcon,
 } from "lucide-react";
 
-export interface NavItem {
-  href: string;
+export type NavGroup = {
   label: string;
-  icon: LucideIcon;
-  badge?: "alerts";
-  adminOnly?: boolean;
-}
-
-export interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
+  items: { href: string; label: string; icon: LucideIcon; adminOnly?: boolean }[];
+};
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: "Command",
+    label: "OVERVIEW",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/alerts", label: "Alert Center", icon: Bell, badge: "alerts" },
+      { href: "/alerts", label: "Alert Center", icon: Bell },
     ],
   },
   {
-    label: "Fleet",
+    label: "FLEET",
     items: [
       { href: "/vehicles", label: "Vehicles", icon: Car },
       { href: "/mileage", label: "Mileage Log", icon: Gauge },
-      { href: "/service", label: "Service Status", icon: Wrench },
-      { href: "/repairs", label: "Repairs Log", icon: Hammer },
+      { href: "/service", label: "Service Status", icon: ClipboardCheck },
+      { href: "/repairs", label: "Repairs Log", icon: Wrench },
       { href: "/notes", label: "Vehicle Notes", icon: StickyNote },
     ],
   },
   {
-    label: "Finance",
+    label: "FINANCE",
     items: [
       { href: "/transactions", label: "Transactions", icon: Receipt },
-      { href: "/monthly", label: "Monthly Breakdown", icon: Calendar },
+      { href: "/monthly", label: "Monthly Breakdown", icon: CalendarRange },
       { href: "/weekly", label: "Weekly Breakdown", icon: CalendarDays },
     ],
   },
   {
-    label: "Intelligence",
+    label: "REPORTING",
     items: [
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
       { href: "/reports", label: "Reports", icon: FileBarChart },
-      { href: "/replacement", label: "Replacement Review", icon: RefreshCcw },
-      { href: "/data-quality", label: "Data Quality", icon: ShieldAlert },
+    ],
+  },
+  {
+    label: "MANAGEMENT",
+    items: [
+      { href: "/replacement", label: "Replacement Review", icon: RefreshCw },
+      { href: "/data-quality", label: "Data Quality", icon: ListChecks },
       { href: "/staff", label: "Users & Access", icon: Users, adminOnly: true },
     ],
   },

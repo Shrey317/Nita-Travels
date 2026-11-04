@@ -1,58 +1,142 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { User, LogOut, Shield, Users } from "lucide-react";
+import { User, LogOut, Moon, Sun, Keyboard, Monitor, Users } from "lucide-react";
+import { signOutAction } from "@/app/(dashboard)/actions";
+import { useTheme } from "@/components/layout/theme-provider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { signOutAction } from "./actions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
-interface ProfileMenuProps {
+const shortcuts = [
+  { keys: "Ctrl / ⌘ + K", action: "Open search" },
+  { keys: "?", action: "Keyboard shortcuts" },
+  { keys: "Esc", action: "Close dialogs" },
+];
+
+export function ProfileMenu({
+  isAdmin = true,
+  userName = "Nita Travels",
+  userEmail,
+}: {
   isAdmin?: boolean;
   userName?: string;
   userEmail?: string;
-}
+} = {}) {
+  const [open, setOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const roleSubtitle = isAdmin ? "Administrator" : "Staff User (Add & View Only)";
 
-export function ProfileMenu({ isAdmin = true, userName = "admin", userEmail }: ProfileMenuProps) {
-  const roleLabel = isAdmin ? "Administrator" : "Staff User";
+  useEffect(() => {
+    function handleKey(event: KeyboardEvent) {
+      if (event.key !== "?" || event.ctrlKey || event.metaKey) return;
+      if (event.target instanceof HTMLElement && (event.target.matches("input, textarea, select") || event.target.isContentEditable)) return;
+      event.preventDefault();
+      setShortcutsOpen((value) => !value);
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, []);
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Account menu" className="rounded-full bg-surface-secondary">
-          <User className="h-5 w-5 text-ink" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-60 p-2">
-        <div className="px-2 py-1.5 text-sm font-semibold text-ink truncate">
-          {userName}
-        </div>
-        {userEmail && (
-          <div className="px-2 pb-1 text-xs text-muted truncate">
-            {userEmail}
-          </div>
-        )}
-        <div className="px-2 pb-2 text-xs text-muted flex items-center gap-1 border-b border-border mb-1">
-          <Shield className="h-3 w-3 text-teal" /> {roleLabel}
-        </div>
-        {isAdmin && (
-          <Link
-            href="/staff"
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-ink hover:bg-surface-secondary transition-colors mb-1"
-          >
-            <Users className="h-4 w-4 text-primary" />
-            Users & Access
-          </Link>
-        )}
-        <form action={signOutAction}>
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
           <button
-            type="submit"
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-danger hover:bg-danger/10 transition-colors"
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-button border border-border bg-card text-ink"
+            aria-label="User menu"
           >
-            <LogOut className="h-4 w-4" />
-            Sign Out
+            <User className="h-4 w-4" aria-hidden="true" />
           </button>
-        </form>
-      </PopoverContent>
-    </Popover>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-64 p-0" aria-label="Account and appearance">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-sm font-medium truncate">{userName}</p>
+            {userEmail && <p className="text-xs text-muted truncate">{userEmail}</p>}
+            <p className="text-xs text-muted">{roleSubtitle}</p>
+          </div>
+          <fieldset className="border-b border-border p-3">
+            <legend className="sr-only">Appearance</legend>
+            <p className="mb-2 text-xs text-muted">Appearance</p>
+            <div className="flex gap-1">
+              {(
+                [
+                  { value: "light", label: "Light", Icon: Sun },
+                  { value: "dark", label: "Dark", Icon: Moon },
+                  { value: "system", label: "Auto", Icon: Monitor },
+                ] as const
+              ).map(({ value, label, Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTheme(value)}
+                  aria-pressed={theme === value}
+                  className={`flex min-h-10 flex-1 items-center justify-center gap-1 rounded-input px-2 text-xs ${
+                    theme === value ? "bg-brand-blue/10 text-primary font-medium" : "text-muted hover:bg-surface-secondary"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <div className="p-2">
+            {isAdmin && (
+              <Link
+                href="/staff"
+                onClick={() => setOpen(false)}
+                className="flex min-h-10 w-full items-center gap-2 rounded-input px-2 text-sm hover:bg-surface-secondary"
+              >
+                <Users className="h-4 w-4" aria-hidden="true" />
+                Users & Access
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setShortcutsOpen(true);
+              }}
+              className="flex min-h-10 w-full items-center gap-2 rounded-input px-2 text-sm hover:bg-surface-secondary"
+            >
+              <Keyboard className="h-4 w-4" aria-hidden="true" />
+              Keyboard Shortcuts
+            </button>
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                className="flex min-h-10 w-full items-center gap-2 rounded-input px-2 text-sm text-status-error hover:bg-status-error/10"
+              >
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                Sign Out
+              </button>
+            </form>
+          </div>
+        </PopoverContent>
+      </Popover>
+      <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Keyboard Shortcuts</DialogTitle>
+            <DialogDescription>Navigate fleet records with your keyboard.</DialogDescription>
+          </DialogHeader>
+          <dl className="space-y-3">
+            {shortcuts.map((shortcut) => (
+              <div key={shortcut.keys} className="flex items-center justify-between gap-3">
+                <dt className="text-sm">{shortcut.action}</dt>
+                <dd>
+                  <kbd className="rounded border border-border bg-surface px-2 py-1 font-mono text-xs text-muted">
+                    {shortcut.keys}
+                  </kbd>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

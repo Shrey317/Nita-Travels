@@ -2,18 +2,22 @@ import { parsePageListQuery } from "@/lib/query-filters";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { Plus } from "lucide-react";
-import { getMileageEntries, getMileageViolations } from "@/lib/db/mileage";
+import { Plus, Download } from "lucide-react";
+import { getMileageEntries } from "@/lib/db/mileage";
 import { prisma } from "@/lib/db/client";
 import { isAdminSession } from "@/lib/api-response";
 import { Button } from "@/components/ui/button";
-import { VehicleDateFilters } from "@/components/shared/vehicle-date-filters";
 import { MileageTable } from "@/components/mileage/mileage-table";
-import { OverLimitSummary } from "@/components/mileage/over-limit-summary";
+import { LatestMileageTable } from "@/components/mileage/latest-mileage-table";
+import { VehicleDateFilters } from "@/components/shared/vehicle-date-filters";
 import { Pagination } from "@/components/shared/pagination";
 import { vehicleIdOptions } from "@/components/shared/vehicle-options";
-import { PageHeader } from "@/components/shared/page-header";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { MileageAlerts } from "@/components/mileage/mileage-alerts";
+import { PageHeader } from "@/components/shared/page-header";
+import { addDays, businessToday, isoWeekStart } from "@/lib/date-ranges";
+import { analyzeMileage } from "@/lib/analytics";
+import { WEEKLY_MILEAGE_LIMIT } from "@/lib/mileage";
 
 interface MileagePageProps {
   searchParams: Promise<{ vehicleId?: string | string[]; dateFrom?: string; dateTo?: string; page?: string }>;
@@ -25,9 +29,18 @@ export default async function MileagePage(props: MileagePageProps) {
   const vehicleId = filters.vehicleId ?? [];
   const page = filters.page;
 
-  const [isAdmin, vehicles, result, violations] = await Promise.all([
+  const [isAdmin, vehicles, result] = await Promise.all([
     isAdminSession(),
-    prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
+    prisma.vehicle.findMany({
+      where: { active: true, deletedAt: null },
+      select: {
+        id: true,
+        registration: true,
+        currentMileageKm: true,
+        mileageEntries: { orderBy: { date: "desc" }, take: 1, select: { date: true } },
+      },
+      orderBy: { id: "asc" },
+    }),
     getMileageEntries({
       vehicleId: vehicleId.length ? vehicleId : undefined,
       dateFrom: filters.dateFrom,
@@ -35,13 +48,38 @@ export default async function MileagePage(props: MileagePageProps) {
       page,
       limit: DEFAULT_PAGE_SIZE,
     }),
-    getMileageViolations(vehicleId.length ? vehicleId : undefined, filters.dateFrom, filters.dateTo),
   ]);
+
+  const today = businessToday();
+  const startOfCurrentWeek = isoWeekStart(today);
+  const recentEntries = await prisma.mileageEntry.findMany({
+    where: { date: { gte: startOfCurrentWeek, lt: addDays(today, 1) }, vehicle: { active: true, deletedAt: null } },
+    orderBy: { date: "desc" },
+  });
+
+  const vehiclesWithRecentMileage = new Set(recentEntries.map((e) => e.vehicleId));
+  const missingMileageVehicles = vehicles.filter((v) => !vehiclesWithRecentMileage.has(v.id));
+
+  const overLimitVehicles = analyzeMileage(recentEntries, { from: startOfCurrentWeek, to: addDays(startOfCurrentWeek, 6) }).violations.flatMap((week) => {
+    const vehicle = vehicles.find((row) => row.id === week.vehicleId);
+    return vehicle ? [{ vehicle, overBy: week.km - WEEKLY_MILEAGE_LIMIT }] : [];
+  });
+
+  const exportParams = new URLSearchParams();
+  for (const v of vehicleId) exportParams.append("vehicleId", v);
+  if (searchParams.dateFrom) exportParams.set("dateFrom", searchParams.dateFrom);
+  if (searchParams.dateTo) exportParams.set("dateTo", searchParams.dateTo);
 
   return (
     <div className="space-y-6">
       {filterError && <p role="alert" className="rounded-lg border border-status-error p-4 text-status-error">{filterError}</p>}
-      <PageHeader title="Mileage Log" description={`${result.total} entries · limit 2,250 km/week`}>
+      <PageHeader title="Mileage Log" description={`${result.total} entries logged`}>
+        <Button asChild variant="outline">
+          <a href={`/api/mileage/export?${exportParams.toString()}`}>
+            <Download className="h-4 w-4" />
+            Export CSV
+          </a>
+        </Button>
         <Button asChild>
           <Link href="/mileage/new">
             <Plus className="h-4 w-4" />
@@ -50,8 +88,11 @@ export default async function MileagePage(props: MileagePageProps) {
         </Button>
       </PageHeader>
 
+      <MileageAlerts missingMileageVehicles={missingMileageVehicles} overLimitVehicles={overLimitVehicles} />
+
+      <LatestMileageTable vehicles={vehicles} />
+
       <VehicleDateFilters vehicleOptions={vehicleIdOptions(vehicles)} idPrefix="mileage" />
-      <OverLimitSummary violations={violations} />
       <MileageTable entries={result.items} isAdmin={isAdmin} />
       <Pagination page={result.page} limit={result.limit} total={result.total} />
     </div>
