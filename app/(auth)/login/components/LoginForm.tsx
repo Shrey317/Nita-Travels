@@ -105,11 +105,11 @@ export function LoginForm({ action, error }: { action: (formData: FormData) => v
         </div>
         <SubmitButton />
       </form>
-      <a href="/register" className={styles.registerLink}>Request a manager account</a>
+      <a href="/register" className={styles.registerLink}>Request an account</a>
 
       <p className={styles.security}>
         <ShieldCheck aria-hidden="true" />
-        <span>Secure access to the Nita Travels Fleet Management System</span>
+        <span>Access to the Nita Travels Fleet Management System</span>
       </p>
     </section>
   );
