@@ -26,16 +26,30 @@ import { PageHeader } from "@/components/shared/page-header";
 
 interface VehicleListClientProps {
   initialVehicles: VehicleSummary[];
+  isAdmin?: boolean;
 }
 
-export function VehicleListClient({ initialVehicles }: VehicleListClientProps) {
+export function VehicleListClient({ initialVehicles, isAdmin = true }: VehicleListClientProps) {
   const searchParams = useSearchParams();
   const status = searchParams.get("status") ?? "all";
   const service = searchParams.get("service") ?? "all";
-  return <VehicleListFilters key={`${status}:${service}`} initialVehicles={initialVehicles} status={status} service={service} />;
+  return (
+    <VehicleListFilters
+      key={`${status}:${service}`}
+      initialVehicles={initialVehicles}
+      status={status}
+      service={service}
+      isAdmin={isAdmin}
+    />
+  );
 }
 
-function VehicleListFilters({ initialVehicles, status, service }: VehicleListClientProps & { status: string; service: string }) {
+function VehicleListFilters({
+  initialVehicles,
+  status,
+  service,
+  isAdmin = true,
+}: VehicleListClientProps & { status: string; service: string }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState(status);
   const [serviceFilter, setServiceFilter] = useState(service);
@@ -200,12 +214,14 @@ function VehicleListFilters({ initialVehicles, status, service }: VehicleListCli
                               View Profile
                             </Link>
                           </Button>
-                          <Button variant="ghost" asChild className="justify-start font-normal h-9 text-ink-secondary hover:text-ink">
-                            <Link href={`/vehicles/${v.vehicle.id}/edit`}>
-                              <Edit className="mr-2 h-4 w-4 text-muted" />
-                              Edit Details
-                            </Link>
-                          </Button>
+                          {isAdmin && (
+                            <Button variant="ghost" asChild className="justify-start font-normal h-9 text-ink-secondary hover:text-ink">
+                              <Link href={`/vehicles/${v.vehicle.id}/edit`}>
+                                <Edit className="mr-2 h-4 w-4 text-muted" />
+                                Edit Details
+                              </Link>
+                            </Button>
+                          )}
                         </PopoverContent>
                       </Popover>
                     </td>

@@ -1,46 +1,41 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getVehicleDetail, updateVehicle, deactivateVehicle } from "@/lib/db/vehicles";
-import { requireSession, handleApiError, jsonError } from "@/lib/api-response";
+import { getVehicleDetail, updateVehicle, softDeleteVehicle } from "@/lib/db/vehicles";
+import { requireSession, requireAdmin, handleApiError, jsonError } from "@/lib/api-response";
 import { invalidateFleetData } from "@/lib/invalidate-fleet";
 
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
-
-export async function GET(_request: NextRequest, props: RouteParams) {
+export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
     await requireSession();
     const detail = await getVehicleDetail(params.id);
-    if (!detail) return jsonError("Vehicle not found", 404);
+    if (!detail) return jsonError(`Vehicle ${params.id} not found`, 404);
     return NextResponse.json(detail);
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-export async function PATCH(request: NextRequest, props: RouteParams) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
-    await requireSession();
+    await requireAdmin();
     const body = await request.json();
     const vehicle = await updateVehicle(params.id, body);
-    invalidateFleetData();
+    invalidateFleetData(vehicle.id);
     return NextResponse.json({ vehicle });
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-/** Soft-deactivate only — see lib/db/vehicles.ts. */
-export async function DELETE(_request: NextRequest, props: RouteParams) {
+export async function DELETE(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
-    await requireSession();
-    const vehicle = await deactivateVehicle(params.id);
-    invalidateFleetData();
+    await requireAdmin();
+    const vehicle = await softDeleteVehicle(params.id);
+    invalidateFleetData(vehicle.id);
     return NextResponse.json({ vehicle });
   } catch (error) {
     return handleApiError(error);

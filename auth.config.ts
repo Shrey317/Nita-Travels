@@ -37,7 +37,7 @@ export const authConfig: NextAuthConfig = {
         return isLoggedIn ? Response.redirect(new URL("/", nextUrl)) : true;
       }
       // This header only permits the callback to reach the handler. The Blob SDK verifies
-      // its HMAC there, and issuing an upload token still requires an authenticated admin.
+      // its HMAC there, and issuing an upload token still requires an authenticated session.
       if (nextUrl.pathname === "/api/upload" && headers.has("x-vercel-signature")) return true;
       // Next's internal middleware origin may use localhost behind a proxy. Compare
       // browser writes with the same configured public origin used by authentication.
@@ -49,8 +49,20 @@ export const authConfig: NextAuthConfig = {
         if (nextUrl.pathname === '/api/staff/register' && method === 'POST') return true;
         return Response.json({ error: "Authentication required" }, { status: 401 });
       }
-      if (auth?.staffRole === 'MANAGER' && ['PATCH', 'PUT', 'DELETE'].includes(method)) {
-        return Response.json({ error: 'Administrator approval is required to change existing records.' }, { status: 403 });
+      if (auth?.staffRole === 'MANAGER') {
+        if (['PATCH', 'PUT', 'DELETE'].includes(method)) {
+          return Response.json({ error: 'Administrator approval is required to change existing records.' }, { status: 403 });
+        }
+        if (nextUrl.pathname.startsWith('/api/staff') && nextUrl.pathname !== '/api/staff/register') {
+          return Response.json({ error: 'Administrator access required.' }, { status: 403 });
+        }
+        if (nextUrl.pathname === '/staff' || nextUrl.pathname.startsWith('/staff/')) {
+          return Response.redirect(new URL('/', nextUrl));
+        }
+        if (/^\/vehicles\/[^/]+\/edit(?:\/|$)/.test(nextUrl.pathname)) {
+          const vehicleId = nextUrl.pathname.split('/')[2];
+          return Response.redirect(new URL(`/vehicles/${vehicleId}`, nextUrl));
+        }
       }
       return isLoggedIn;
     },

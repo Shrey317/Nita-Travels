@@ -9,6 +9,7 @@ import { PrismaClient } from "@prisma/client";
 const globalForPrisma = globalThis as unknown as {
   prismaV3?: PrismaClient;
   vehicleFinanceColumnsEnsured?: Promise<void>;
+  staffAccountTableEnsured?: Promise<void>;
 };
 
 if (process.env.APP_ENV === "test") {
@@ -48,12 +49,52 @@ export async function ensureVehicleFinanceColumns(client: PrismaClient = basePri
   await globalForPrisma.vehicleFinanceColumnsEnsured;
 }
 
+/**
+ * Ensures the StaffAccount table exists before querying or mutating user accounts.
+ */
+export async function ensureStaffAccountTable(client: PrismaClient = basePrisma): Promise<void> {
+  if (typeof client.$executeRawUnsafe !== "function") return;
+  if (!globalForPrisma.staffAccountTableEnsured) {
+    globalForPrisma.staffAccountTableEnsured = client
+      .$executeRawUnsafe(
+        `CREATE TABLE IF NOT EXISTS "StaffAccount" (
+          "id" TEXT NOT NULL,
+          "email" TEXT NOT NULL,
+          "name" TEXT NOT NULL,
+          "passwordHash" TEXT NOT NULL,
+          "status" TEXT NOT NULL DEFAULT 'PENDING',
+          "sessionVersion" INTEGER NOT NULL DEFAULT 0,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "StaffAccount_pkey" PRIMARY KEY ("id"),
+          CONSTRAINT "StaffAccount_status_check" CHECK ("status" IN ('PENDING', 'ACTIVE', 'DISABLED'))
+        );`
+      )
+      .then(() =>
+        client.$executeRawUnsafe(
+          `CREATE UNIQUE INDEX IF NOT EXISTS "StaffAccount_email_key" ON "StaffAccount"("email");`
+        )
+      )
+      .then(() => undefined)
+      .catch(() => {
+        globalForPrisma.staffAccountTableEnsured = undefined;
+      });
+  }
+  await globalForPrisma.staffAccountTableEnsured;
+}
+
 function createPrismaClient(): PrismaClient {
   return basePrisma.$extends({
     query: {
       vehicle: {
         async $allOperations({ args, query }) {
           await ensureVehicleFinanceColumns(basePrisma);
+          return query(args);
+        },
+      },
+      staffAccount: {
+        async $allOperations({ args, query }) {
+          await ensureStaffAccountTable(basePrisma);
           return query(args);
         },
       },

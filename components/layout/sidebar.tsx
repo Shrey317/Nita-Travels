@@ -10,15 +10,33 @@ import { cn } from "@/lib/utils";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { signOutAction } from "@/app/(dashboard)/actions";
 
-function NavLinks({ onNavigate, isCollapsed = false }: { onNavigate?: () => void; isCollapsed?: boolean }) {
+function NavLinks({
+  onNavigate,
+  isCollapsed = false,
+  isAdmin = true,
+}: {
+  onNavigate?: () => void;
+  isCollapsed?: boolean;
+  isAdmin?: boolean;
+}) {
   const pathname = usePathname();
   const { unreadData: notifications = [] } = useFleetNotifications();
-  const count = (category: string) => new Set(notifications.filter(item => item.category === category && item.priority !== "info").map(item => item.vehicleId)).size;
-  const badges = { serviceCount: count("service"), mileageCount: count("mileage"), alertCount: count("insurance") + count("repairs") };
-  
+  const count = (category: string) =>
+    new Set(notifications.filter((item) => item.category === category && item.priority !== "info").map((item) => item.vehicleId)).size;
+  const badges = {
+    serviceCount: count("service"),
+    mileageCount: count("mileage"),
+    alertCount: count("insurance") + count("repairs"),
+  };
+
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.adminOnly || isAdmin),
+  })).filter((group) => group.items.length > 0);
+
   return (
     <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-6 custom-scrollbar" aria-label="Main navigation">
-      {NAV_GROUPS.map((group) => (
+      {visibleGroups.map((group) => (
         <div key={group.label} className="space-y-1">
           {!isCollapsed && (
             <div className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-muted">
@@ -28,7 +46,7 @@ function NavLinks({ onNavigate, isCollapsed = false }: { onNavigate?: () => void
           {group.items.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             const Icon = item.icon;
-            
+
             return (
               <Link
                 key={item.href}
@@ -49,11 +67,18 @@ function NavLinks({ onNavigate, isCollapsed = false }: { onNavigate?: () => void
                 {active && (
                   <span className="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full bg-primary shadow-[0_0_10px_rgba(47,107,255,0.5)]" />
                 )}
-                
-                <Icon className={cn("shrink-0 transition-colors", active ? "text-primary" : "text-muted group-hover:text-ink", isCollapsed ? "h-5 w-5" : "h-[18px] w-[18px]")} aria-hidden="true" />
-                
+
+                <Icon
+                  className={cn(
+                    "shrink-0 transition-colors",
+                    active ? "text-primary" : "text-muted group-hover:text-ink",
+                    isCollapsed ? "h-5 w-5" : "h-[18px] w-[18px]"
+                  )}
+                  aria-hidden="true"
+                />
+
                 {!isCollapsed && <span className="truncate flex-1">{item.label}</span>}
-                
+
                 {/* Badges */}
                 {!isCollapsed && item.href === "/service" && badges?.serviceCount > 0 && (
                   <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-700 px-1.5 text-[11px] font-bold text-white shadow-sm">
@@ -70,7 +95,7 @@ function NavLinks({ onNavigate, isCollapsed = false }: { onNavigate?: () => void
                     {badges.alertCount}
                   </span>
                 )}
-                
+
                 {/* Collapsed dot indicators */}
                 {isCollapsed && item.href === "/service" && badges?.serviceCount > 0 && (
                   <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-status-error" />
@@ -87,7 +112,18 @@ function NavLinks({ onNavigate, isCollapsed = false }: { onNavigate?: () => void
   );
 }
 
-function UserBlock({ isCollapsed = false }: { isCollapsed?: boolean }) {
+function UserBlock({
+  isCollapsed = false,
+  isAdmin = true,
+  userName = "admin",
+  userEmail,
+}: {
+  isCollapsed?: boolean;
+  isAdmin?: boolean;
+  userName?: string;
+  userEmail?: string;
+}) {
+  const roleLabel = isAdmin ? "Administrator" : "Staff User";
   return (
     <div className="border-t border-border-subtle p-4">
       <div className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
@@ -96,8 +132,8 @@ function UserBlock({ isCollapsed = false }: { isCollapsed?: boolean }) {
         </div>
         {!isCollapsed && (
           <div className="flex flex-1 flex-col overflow-hidden">
-            <span className="truncate text-sm font-semibold text-ink">admin</span>
-            <span className="truncate text-xs text-muted">Administrator</span>
+            <span className="truncate text-sm font-semibold text-ink">{userName}</span>
+            <span className="truncate text-xs text-muted">{userEmail ? `${roleLabel} · ${userEmail}` : roleLabel}</span>
           </div>
         )}
       </div>
@@ -118,7 +154,15 @@ function UserBlock({ isCollapsed = false }: { isCollapsed?: boolean }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({
+  isAdmin = true,
+  userName = "admin",
+  userEmail,
+}: {
+  isAdmin?: boolean;
+  userName?: string;
+  userEmail?: string;
+} = {}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed] = useState(false);
 
@@ -172,14 +216,14 @@ export function Sidebar() {
                 </button>
               </DialogPrimitive.Close>
             </div>
-            <NavLinks onNavigate={() => setMobileOpen(false)} />
-            <UserBlock />
+            <NavLinks onNavigate={() => setMobileOpen(false)} isAdmin={isAdmin} />
+            <UserBlock isAdmin={isAdmin} userName={userName} userEmail={userEmail} />
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
 
       {/* Desktop sidebar */}
-      <aside 
+      <aside
         className={cn(
           "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border-subtle bg-surface-sidebar transition-all duration-300 md:flex",
           isCollapsed ? "w-[80px]" : "w-[260px]"
@@ -198,11 +242,9 @@ export function Sidebar() {
             )}
           </div>
         </div>
-        
-        <NavLinks isCollapsed={isCollapsed} />
-        <UserBlock isCollapsed={isCollapsed} />
-        
-        {/* Toggle Collapse Button (Optional, can be added if requested) */}
+
+        <NavLinks isCollapsed={isCollapsed} isAdmin={isAdmin} />
+        <UserBlock isCollapsed={isCollapsed} isAdmin={isAdmin} userName={userName} userEmail={userEmail} />
       </aside>
     </>
   );

@@ -20,10 +20,11 @@ function registrationLabel(vehicleId: string | null, vehicles: { id: string; reg
 interface NotesTableProps {
   notes: VehicleNote[];
   vehicles: { id: string; registration: string }[];
+  isAdmin?: boolean;
 }
 
 /** Delete only — no edit path exists for notes (SRS 11, 26). */
-export function NotesTable({ notes, vehicles }: NotesTableProps) {
+export function NotesTable({ notes, vehicles, isAdmin = true }: NotesTableProps) {
   const router = useRouter();
 
   async function handleDelete(id: string) {
@@ -55,7 +56,9 @@ export function NotesTable({ notes, vehicles }: NotesTableProps) {
             <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Vehicle</TableHead>
             <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Registration</TableHead>
             <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Note</TableHead>
-            <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Actions</TableHead>
+            {isAdmin && (
+              <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Actions</TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody className="divide-y divide-border-subtle">
@@ -68,17 +71,19 @@ export function NotesTable({ notes, vehicles }: NotesTableProps) {
                 <p className="whitespace-pre-wrap text-ink-secondary leading-relaxed">{n.note}</p>
                 <PhotoThumbnails urls={n.photoUrls} label={`Note file for ${registrationLabel(n.vehicleId, vehicles)} on ${formatDate(n.date)}`} />
               </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end">
-                  <DeleteConfirmDialog
-                    title="Delete this note?"
-                    description="This permanently removes the note. This can't be undone."
-                    onDelete={() => handleDelete(n.id)}
-                    successMessage="Note deleted"
-                    triggerLabel="Delete note"
-                  />
-                </div>
-              </TableCell>
+              {isAdmin && (
+                <TableCell className="text-right">
+                  <div className="flex justify-end">
+                    <DeleteConfirmDialog
+                      title="Delete this note?"
+                      description="This permanently removes the note. This can't be undone."
+                      onDelete={() => handleDelete(n.id)}
+                      successMessage="Note deleted"
+                      triggerLabel="Delete note"
+                    />
+                  </div>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>

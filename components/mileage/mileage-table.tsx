@@ -11,7 +11,13 @@ import type { MileageEntry } from "@prisma/client";
 type MileageRow = MileageEntry & { vehicle: { registration: string } };
 
 /** SRS 15.8: Within reading allowance (green) or ⚠ OVER LIMIT BY X km (red, bold). */
-export function MileageTable({ entries }: { entries: MileageRow[] }) {
+export function MileageTable({
+  entries,
+  isAdmin = true,
+}: {
+  entries: MileageRow[];
+  isAdmin?: boolean;
+}) {
   const router = useRouter();
 
   async function handleDelete(id: string) {
@@ -49,7 +55,9 @@ export function MileageTable({ entries }: { entries: MileageRow[] }) {
             <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Rem</TableHead>
             <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Allowance used</TableHead>
             <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Reading status</TableHead>
-            <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Actions</TableHead>
+            {isAdmin && (
+              <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Actions</TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody className="divide-y divide-border-subtle">
@@ -66,10 +74,11 @@ export function MileageTable({ entries }: { entries: MileageRow[] }) {
               </TableCell>
               <TableCell className="text-right font-mono-figures text-sm text-ink-secondary">{formatKm(e.weeklyLimitKm)}</TableCell>
               <TableCell className="text-right font-mono-figures text-sm">
-                {e.overLimitByKm !== null ?
-                  <span className="text-status-error font-semibold">- {formatKm(e.overLimitByKm)}</span> :
+                {e.overLimitByKm !== null ? (
+                  <span className="text-status-error font-semibold">- {formatKm(e.overLimitByKm)}</span>
+                ) : (
                   <span className="text-status-success">{formatKm(e.weeklyLimitKm - e.distanceDrivenKm)}</span>
-                }
+                )}
               </TableCell>
               <TableCell className="text-right font-mono-figures text-sm">
                 <span className={e.distanceDrivenKm > e.weeklyLimitKm ? "text-status-error font-semibold" : "text-ink-secondary"}>
@@ -84,24 +93,26 @@ export function MileageTable({ entries }: { entries: MileageRow[] }) {
                 )}
                 <PhotoThumbnails urls={e.photoUrls} label={`Odometer photo for ${e.vehicle.registration} on ${formatDate(e.date)}`} />
               </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-1">
-                  <EditMileageDialog
-                    entryId={e.id}
-                    vehicleId={e.vehicleId}
-                    currentMileageKm={e.currentMileageKm}
-                    previousMileageKm={e.previousMileageKm}
-                    onSaved={() => router.refresh()}
-                  />
-                  <DeleteConfirmDialog
-                    title="Delete this mileage entry?"
-                    description={`This permanently removes the ${formatDate(e.date)} entry for ${e.vehicleId}. This can't be undone.`}
-                    onDelete={() => handleDelete(e.id)}
-                    successMessage="Mileage entry deleted"
-                    triggerLabel="Delete mileage entry"
-                  />
-                </div>
-              </TableCell>
+              {isAdmin && (
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <EditMileageDialog
+                      entryId={e.id}
+                      vehicleId={e.vehicleId}
+                      currentMileageKm={e.currentMileageKm}
+                      previousMileageKm={e.previousMileageKm}
+                      onSaved={() => router.refresh()}
+                    />
+                    <DeleteConfirmDialog
+                      title="Delete this mileage entry?"
+                      description={`This permanently removes the ${formatDate(e.date)} entry for ${e.vehicleId}. This can't be undone.`}
+                      onDelete={() => handleDelete(e.id)}
+                      successMessage="Mileage entry deleted"
+                      triggerLabel="Delete mileage entry"
+                    />
+                  </div>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>
@@ -109,4 +120,3 @@ export function MileageTable({ entries }: { entries: MileageRow[] }) {
     </div>
   );
 }
-

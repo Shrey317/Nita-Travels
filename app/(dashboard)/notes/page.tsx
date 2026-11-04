@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { getNotes } from "@/lib/db/notes";
 import { prisma } from "@/lib/db/client";
+import { isAdminSession } from "@/lib/api-response";
 import { NoteForm } from "@/components/notes/note-form";
 import { NotesTable } from "@/components/notes/notes-table";
 import { VehicleDateFilters } from "@/components/shared/vehicle-date-filters";
@@ -22,7 +23,8 @@ export default async function NotesPage(props: NotesPageProps) {
   const vehicleIdFilter = filters.vehicleId ?? [];
   const page = filters.page;
 
-  const [vehicles, result] = await Promise.all([
+  const [isAdmin, vehicles, result] = await Promise.all([
+    isAdminSession(),
     prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
     getNotes({
       noteId: searchParams.noteId,
@@ -52,7 +54,7 @@ export default async function NotesPage(props: NotesPageProps) {
       <section className="space-y-4">
         {searchParams.noteId && <p className="rounded-xl border border-border-subtle bg-card p-3 text-sm text-ink-secondary">Showing the selected note. <Link href="/notes" className="text-primary hover:underline">View all notes</Link></p>}
         <VehicleDateFilters vehicleOptions={filterVehicleOptions} idPrefix="notes" />
-        <NotesTable notes={result.items} vehicles={vehicles} />
+        <NotesTable notes={result.items} vehicles={vehicles} isAdmin={isAdmin} />
         <Pagination page={result.page} limit={result.limit} total={result.total} />
       </section>
     </div>

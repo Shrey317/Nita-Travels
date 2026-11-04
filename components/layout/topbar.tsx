@@ -6,7 +6,15 @@ import { CommandPalette } from "./command-palette";
 import { NotificationCenter } from "./notification-center";
 import { ProfileMenu } from "./profile-menu";
 
-export function Topbar() {
+export function Topbar({
+  isAdmin = true,
+  userName = "admin",
+  userEmail,
+}: {
+  isAdmin?: boolean;
+  userName?: string;
+  userEmail?: string;
+} = {}) {
   const [commandOpen, setCommandOpen] = useState(false);
 
   return (
@@ -32,12 +40,12 @@ export function Topbar() {
       <div className="flex items-center gap-3 ml-4">
         {/* Notifications */}
         <NotificationCenter />
-        
+
         {/* Divider */}
         <div className="h-8 w-px bg-border-subtle mx-1 hidden sm:block" />
 
         {/* Profile Menu */}
-        <ProfileMenu />
+        <ProfileMenu isAdmin={isAdmin} userName={userName} userEmail={userEmail} />
       </div>
 
       <CommandPalette open={commandOpen} setOpen={setCommandOpen} />

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pencil, Plus, StickyNote, Gauge, Car } from "lucide-react";
 import { getVehicleDetail } from "@/lib/db/vehicles";
+import { isAdminSession } from "@/lib/api-response";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InfoCard } from "@/components/vehicles/info-card";
@@ -32,7 +33,10 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
   const searchParams = await props.searchParams;
   const { filters: timelineFilters, error: timelineFilterError } = parsePageListQuery(searchParams);
   const params = await props.params;
-  const detail = await getVehicleDetail(params.id);
+  const [detail, isAdmin] = await Promise.all([
+    getVehicleDetail(params.id),
+    isAdminSession(),
+  ]);
   if (!detail) notFound();
 
   const { vehicle, incomeCents, expenseCents, repairsCents, netProfitCents, emiBalanceCents, roiPercent, kmSincePurchase, service, recentRepairs, highRepairCost } =
@@ -110,12 +114,14 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
           <p className="mt-1 text-xs text-muted">Vehicle command center · lifetime financial totals</p>
         </div>
         <div className="flex min-w-0 max-w-full items-center gap-2 flex-wrap">
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/vehicles/${vehicle.id}/edit`}>
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </Link>
-          </Button>
+          {isAdmin && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/vehicles/${vehicle.id}/edit`}>
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Link>
+            </Button>
+          )}
           <Button asChild size="sm">
             <Link href={`/transactions/new?vehicleId=${vehicle.id}`}>
               <Plus className="h-3.5 w-3.5" />
@@ -134,7 +140,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
               Note
             </Link>
           </Button>
-          {vehicle.active && <DeactivateVehicleButton vehicleId={vehicle.id} />}
+          {isAdmin && vehicle.active && <DeactivateVehicleButton vehicleId={vehicle.id} />}
         </div>
       </div>
 
