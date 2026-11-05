@@ -14,7 +14,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate",
     "test:integration": "tsx scripts/safe-exec.ts integration",
-    "test:e2e": "tsx scripts/safe-exec.ts e2e"
+    "test:e2e": "tsx scripts/safe-exec.ts e2e",
+    "release:check": "node scripts/release-check.cjs"
   },
   "engines": {
     "node": ">=22.12.0 <23"

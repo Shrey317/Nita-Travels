@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { STAFF_PASSWORD_MIN_LENGTH, STAFF_PASSWORD_MAX_LENGTH } from "@/lib/staff-registration";
 import { formatDate } from "@/lib/format";
 
 export interface StaffAccountItem {
@@ -225,7 +226,7 @@ export function StaffManagement({ initialAccounts, adminUsername }: StaffManagem
             <Label htmlFor="new-user-name">Full Name *</Label>
             <Input
               id="new-user-name"
-              placeholder="e.g. Sipho Dlamini"
+              placeholder="e.g. Joe Doe"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -238,7 +239,7 @@ export function StaffManagement({ initialAccounts, adminUsername }: StaffManagem
             <Label htmlFor="new-user-email">Username or Email *</Label>
             <Input
               id="new-user-email"
-              placeholder="e.g. sipho@nitatravels.co.za or sipho"
+              placeholder="e.g. johndoe@gmail.com or john"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -251,7 +252,7 @@ export function StaffManagement({ initialAccounts, adminUsername }: StaffManagem
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="new-user-password">Password (min 8 chars) *</Label>
+            <Label htmlFor="new-user-password">Password (min 12 chars) *</Label>
             <div className="relative">
               <Input
                 id="new-user-password"
@@ -260,8 +261,8 @@ export function StaffManagement({ initialAccounts, adminUsername }: StaffManagem
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={8}
-                maxLength={72}
+                minLength={STAFF_PASSWORD_MIN_LENGTH}
+                maxLength={STAFF_PASSWORD_MAX_LENGTH}
                 className="pr-10"
               />
               <button
@@ -403,12 +404,12 @@ export function StaffManagement({ initialAccounts, adminUsername }: StaffManagem
                           <div className="relative">
                             <Input
                               type={showResetPassword ? "text" : "password"}
-                              placeholder="New password (min 8 chars)"
+                              placeholder="New password (min 12 chars)"
                               value={resetPasswordValue}
                               onChange={(e) => setResetPasswordValue(e.target.value)}
                               required
-                              minLength={8}
-                              maxLength={72}
+                              minLength={STAFF_PASSWORD_MIN_LENGTH}
+                              maxLength={STAFF_PASSWORD_MAX_LENGTH}
                               className="h-8 w-56 pr-8 text-xs"
                             />
                             <button

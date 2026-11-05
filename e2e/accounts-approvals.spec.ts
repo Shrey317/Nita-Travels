@@ -22,6 +22,12 @@ test('manager registration, approval, correction reviews and session revocation'
     await manager.getByLabel('Full name').fill('Approval Fixture Manager');
     await manager.getByLabel('Email address').fill(email);
     await manager.getByLabel('Password', { exact: true }).fill(password);
+    await expect(manager.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'password');
+    await manager.getByRole('button', { name: 'Show password', exact: true }).click();
+    await expect(manager.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'text');
+    await expect(manager.getByLabel('Password', { exact: true })).toHaveValue(password);
+    await manager.getByRole('button', { name: 'Hide password', exact: true }).click();
+    await expect(manager.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'password');
     await manager.getByRole('button', { name: 'Request access' }).click();
     await expect(manager.getByRole('status')).toContainText(/approve access/i);
     const account = await prisma.staffAccount.findUniqueOrThrow({ where: { email } });
@@ -89,9 +95,9 @@ test('manager registration, approval, correction reviews and session revocation'
     expect(await prisma.vehicleNote.findUnique({ where: { id: note.id } })).not.toBeNull();
     await page.goto('/staff');
     await row.getByRole('button', { name: 'Reset Password', exact: true }).click();
-    await row.getByPlaceholder('New password (min 8 chars)').fill(replacement);
+    await row.getByPlaceholder('New password (min 12 chars)').fill(replacement);
     await row.getByRole('button', { name: 'Save Password' }).click();
-    await expect(row.getByPlaceholder('New password (min 8 chars)')).toHaveCount(0);
+    await expect(row.getByPlaceholder('New password (min 12 chars)')).toHaveCount(0);
     await manager.goto('/transactions');
     await expect(manager).toHaveURL(/\/login/);
     expect((await manager.request.get('/api/vehicles')).status()).toBe(401);

@@ -8,6 +8,15 @@ import { authConfig } from '@/auth.config';
 import { NextRequest } from 'next/server';
 
 describe('staff registration & admin user management schemas', () => {
+  it('uses identical password boundaries for registration, admin creation and resets', () => {
+    for (const password of ['x'.repeat(8), 'x'.repeat(11), 'x'.repeat(12), 'x'.repeat(72), 'x'.repeat(73), 'é'.repeat(36), 'é'.repeat(37)]) {
+      const expected = password.length >= 12 && new TextEncoder().encode(password).length <= 72;
+      const input = { name: 'Manager', email: 'manager@example.com', password };
+      expect(staffRegistrationSchema.safeParse(input).success).toBe(expected);
+      expect(adminCreateStaffSchema.safeParse(input).success).toBe(expected);
+      expect(adminUpdateStaffSchema.safeParse({ password }).success).toBe(expected);
+    }
+  });
   it('normalizes email identity and rejects submitted permissions', () => {
     const input = { name: ' Test Manager ', email: ' MANAGER@example.com ', password: 'a sufficiently long password' };
     expect(staffRegistrationSchema.parse(input)).toMatchObject({ name: 'Test Manager', email: 'manager@example.com' });
@@ -21,18 +30,18 @@ describe('staff registration & admin user management schemas', () => {
     expect(staffRegistrationSchema.safeParse({ ...input, password: 'é'.repeat(40) }).success).toBe(false);
   });
 
-  it('validates admin user creation with username or email and 8-72 char password', () => {
+  it('validates admin user creation with username or email and 12-72 char password', () => {
     const created = adminCreateStaffSchema.parse({
       name: ' Sipho Dlamini ',
       email: ' SIPHO ',
-      password: 'password123',
+      password: 'password1234',
     });
     expect(created).toEqual({
       name: 'Sipho Dlamini',
       email: 'sipho',
-      password: 'password123',
+      password: 'password1234',
     });
-    expect(adminCreateStaffSchema.safeParse({ name: 'Sipho', email: 'ab', password: 'password123' }).success).toBe(false);
+    expect(adminCreateStaffSchema.safeParse({ name: 'Sipho', email: 'ab', password: 'password1234' }).success).toBe(false);
     expect(adminCreateStaffSchema.safeParse({ name: 'Sipho', email: 'sipho', password: 'short' }).success).toBe(false);
   });
 
