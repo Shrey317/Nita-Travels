@@ -30,6 +30,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <ConnectionStatus />
         <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[1440px] px-4 pt-6 pb-28 outline-none sm:px-6 md:pb-8 lg:px-8">
           <Suspense fallback={null}><SavedPresets /></Suspense>
+          {!isAdmin && <p className="mb-4 rounded-lg border border-border p-3 text-sm text-muted">New records save immediately. Edits and deletions are submitted for administrator approval. Track them in <a className="underline" href="/approvals">My change requests</a>.</p>}
           {children}
         </main>
       </div>

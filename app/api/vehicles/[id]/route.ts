@@ -1,48 +1,21 @@
-export const dynamic = "force-dynamic";
-
-import { NextRequest, NextResponse } from "next/server";
-import { getVehicleDetail, updateVehicle, deactivateVehicle } from "@/lib/db/vehicles";
-import { requireSession, requireAdmin, handleApiError, jsonError } from "@/lib/api-response";
-import { invalidateFleetData } from "@/lib/invalidate-fleet";
-
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
-
-export async function GET(_request: NextRequest, props: RouteParams) {
-  const params = await props.params;
+import { changeRoute } from '@/lib/change-route';
+import { NextResponse } from 'next/server';
+import { getVehicleDetail } from '@/lib/db/vehicles';
+import { requireSession, handleApiError, jsonError } from '@/lib/api-response';
+export async function GET(_request: Request, props: Props) {
   try {
     await requireSession();
-    const detail = await getVehicleDetail(params.id);
-    if (!detail) return jsonError("Vehicle not found", 404);
-    return NextResponse.json(detail);
-  } catch (error) {
-    return handleApiError(error);
-  }
+    const detail = await getVehicleDetail((await props.params).id);
+    return detail ? NextResponse.json(detail) : jsonError('Vehicle not found', 404);
+  } catch (error) { return handleApiError(error); }
 }
 
-export async function PATCH(request: NextRequest, props: RouteParams) {
-  const params = await props.params;
-  try {
-    await requireAdmin();
-    const body = await request.json();
-    const vehicle = await updateVehicle(params.id, body);
-    invalidateFleetData();
-    return NextResponse.json({ vehicle });
-  } catch (error) {
-    return handleApiError(error);
-  }
+export const dynamic = 'force-dynamic';
+type Props = { params: Promise<{ id: string }> };
+export async function PATCH(request: Request, props: Props) {
+  return changeRoute(request, (await props.params).id, 'vehicle', 'vehicle');
 }
 
-/** Soft-deactivate only — see lib/db/vehicles.ts. */
-export async function DELETE(_request: NextRequest, props: RouteParams) {
-  const params = await props.params;
-  try {
-    await requireAdmin();
-    const vehicle = await deactivateVehicle(params.id);
-    invalidateFleetData();
-    return NextResponse.json({ vehicle });
-  } catch (error) {
-    return handleApiError(error);
-  }
+export async function DELETE(request: Request, props: Props) {
+  return changeRoute(request, (await props.params).id, 'vehicle', 'vehicle');
 }

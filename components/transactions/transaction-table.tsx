@@ -31,9 +31,9 @@ export function TransactionTable({
 }: TransactionTableProps) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(
-    isAdmin ? (initialEditingId ?? null) : null
+    initialEditingId ?? null
   );
-  const editingTransaction = isAdmin ? transactions.find((t) => t.id === editingId) : undefined;
+  const editingTransaction = transactions.find((t) => t.id === editingId);
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
@@ -41,8 +41,9 @@ export function TransactionTable({
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error ?? "Couldn't delete this transaction.");
     }
-    window.dispatchEvent(new Event("fleet-data-changed"));
+    if (res.status !== 202) window.dispatchEvent(new Event("fleet-data-changed"));
     router.refresh();
+    return res.status === 202;
   }
 
   if (transactions.length === 0) {
@@ -77,13 +78,13 @@ export function TransactionTable({
               {t.mileageKm != null ? ` · ${formatKm(t.mileageKm)}` : ""}
             </p>
             {t.notes && <p className="mt-3 break-words text-sm text-ink-secondary">{t.notes}</p>}
-            {isAdmin && (
+            {(
               <div className="mt-3 flex items-center justify-end gap-2 border-t border-border-subtle pt-2">
                 <Button variant="ghost" aria-label="Edit transaction" onClick={() => setEditingId(t.id)}>
                   <Pencil aria-hidden="true" />
                   Edit
                 </Button>
-                <DeleteConfirmDialog
+                <DeleteConfirmDialog requiresApproval={!isAdmin}
                   title="Delete this transaction?"
                   description={`Remove the ${CATEGORY_LABELS[t.category] ?? t.category} entry from ${formatDate(t.date)} from your active ledger and reports.`}
                   onDelete={() => handleDelete(t.id)}
@@ -114,7 +115,7 @@ export function TransactionTable({
                 </SortableHeader>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Notes</TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Month</TableHead>
-                {isAdmin && (
+                {(
                   <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Actions</TableHead>
                 )}
               </TableRow>
@@ -142,13 +143,13 @@ export function TransactionTable({
                     {t.notes ?? "—"}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm text-muted">{formatMonthKey(t.date)}</TableCell>
-                  {isAdmin && (
+                  {(
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" aria-label="Edit transaction" onClick={() => setEditingId(t.id)} className="text-muted hover:text-ink hover:bg-surface-elevated">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <DeleteConfirmDialog
+                        <DeleteConfirmDialog requiresApproval={!isAdmin}
                           title="Delete this transaction?"
                           description={`Remove the ${CATEGORY_LABELS[t.category] ?? t.category} entry from ${formatDate(t.date)} from your active ledger and reports.`}
                           onDelete={() => handleDelete(t.id)}
@@ -165,7 +166,7 @@ export function TransactionTable({
         </div>
       </div>
 
-      {isAdmin && (
+      {(
         <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>

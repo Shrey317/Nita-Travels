@@ -37,7 +37,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
 
     const shouldRevokeSessions =
       Boolean(input.password) ||
-      (input.status !== undefined && input.status !== "ACTIVE" && existing.status === "ACTIVE");
+      input.status !== undefined;
 
     const data: {
       name?: string;

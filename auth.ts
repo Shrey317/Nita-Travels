@@ -6,9 +6,8 @@ import { checkLoginRateLimit, clearLoginRateLimit, getClientIp } from "@/lib/rat
 import { prisma } from '@/lib/db/client';
 
 /**
- * Single admin account, no sign-up flow, no user table (SRS 10). Credentials are compared
- * against ADMIN_USERNAME and a bcrypt hash in ADMIN_PASSWORD_HASH — plaintext passwords are
- * never stored anywhere, including in this file.
+ * The administrator uses configured credentials; approved managers use StaffAccount.
+ * Only password hashes are stored. Manager sessions are revalidated on every request.
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,

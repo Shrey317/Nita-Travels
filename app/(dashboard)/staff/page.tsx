@@ -29,7 +29,7 @@ export default async function StaffAccountsPage() {
     console.error("Failed to load staff accounts:", {
       kind: error instanceof Error ? error.name : "UNKNOWN",
     });
-    accounts = [];
+    throw new Error('Unable to load staff accounts. Check the database migrations and try again.');
   }
 
   const adminUsername = process.env.ADMIN_USERNAME?.trim() || "admin";

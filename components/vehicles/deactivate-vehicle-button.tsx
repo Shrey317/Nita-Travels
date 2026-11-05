@@ -19,11 +19,12 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface DeactivateVehicleButtonProps {
   vehicleId: string;
+  requiresApproval?: boolean;
 }
 
 /** Soft-deactivate only (SRS 16, 26) — historical transactions, mileage, and notes referencing
  *  this vehicle stay intact and queryable; it just drops off the active fleet list and Dashboard. */
-export function DeactivateVehicleButton({ vehicleId }: DeactivateVehicleButtonProps) {
+export function DeactivateVehicleButton({ vehicleId, requiresApproval = false }: DeactivateVehicleButtonProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -38,8 +39,8 @@ export function DeactivateVehicleButton({ vehicleId }: DeactivateVehicleButtonPr
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error ?? "Couldn't deactivate this vehicle.");
         }
-        toast({ title: `${vehicleId} deactivated` });
-        window.dispatchEvent(new Event("fleet-data-changed"));
+        toast({ title: res.status === 202 ? "Submitted for admin approval" : `${vehicleId} deactivated` });
+        if (res.status !== 202) window.dispatchEvent(new Event("fleet-data-changed"));
         setOpen(false);
         router.push("/vehicles");
         router.refresh();
@@ -59,13 +60,14 @@ export function DeactivateVehicleButton({ vehicleId }: DeactivateVehicleButtonPr
       <AlertDialogTrigger asChild>
         <Button variant="outline" className="text-status-red hover:bg-status-red/10 hover:text-status-red">
           <PowerOff className="h-4 w-4" />
-          Deactivate
+          {requiresApproval ? "Request deactivation" : "Deactivate"}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Deactivate {vehicleId}?</AlertDialogTitle>
+          <AlertDialogTitle>{requiresApproval ? "Request deactivation of" : "Deactivate"} {vehicleId}?</AlertDialogTitle>
           <AlertDialogDescription>
+            {requiresApproval && "An administrator must approve this request before anything changes. "}
             {vehicleId} will drop off the active fleet list and Dashboard. Its transactions, mileage
             log, and notes stay intact and remain queryable from its profile — this doesn&apos;t
             delete any history.
@@ -80,7 +82,7 @@ export function DeactivateVehicleButton({ vehicleId }: DeactivateVehicleButtonPr
             }}
             disabled={isPending}
           >
-            {isPending ? "Deactivating..." : "Deactivate"}
+            {isPending ? "Submitting..." : requiresApproval ? "Submit request" : "Deactivate"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

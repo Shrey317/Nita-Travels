@@ -19,7 +19,8 @@ import { useToast } from "@/components/ui/use-toast";
 interface DeleteConfirmDialogProps {
   title: string;
   description: string;
-  onDelete: () => Promise<void>;
+  onDelete: () => Promise<void | boolean>;
+  requiresApproval?: boolean;
   successMessage?: string;
   triggerLabel?: string;
 }
@@ -33,6 +34,7 @@ export function DeleteConfirmDialog({
   onDelete,
   successMessage = "Deleted.",
   triggerLabel = "Delete",
+  requiresApproval = false,
 }: DeleteConfirmDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -42,12 +44,12 @@ export function DeleteConfirmDialog({
     if (isPending) return;
     setIsPending(true);
       try {
-        await onDelete();
-        toast({ title: successMessage });
+        const pendingApproval = await onDelete();
+        toast({ title: pendingApproval === true ? "Submitted for admin approval" : successMessage });
         setOpen(false);
       } catch (error) {
         toast({
-          title: "Couldn't delete",
+          title: requiresApproval ? "Couldn't request deletion" : "Couldn't delete",
           description: error instanceof Error ? error.message : "Please try again.",
           variant: "destructive",
         });
@@ -59,14 +61,14 @@ export function DeleteConfirmDialog({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={triggerLabel}>
+        <Button variant="ghost" size="icon" aria-label={requiresApproval ? `Request deletion: ${triggerLabel}` : triggerLabel}>
           <Trash2 className="h-4 w-4 text-status-red" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+          <AlertDialogTitle>{requiresApproval ? "Request deletion?" : title}</AlertDialogTitle>
+          <AlertDialogDescription>{requiresApproval ? "Submit this deletion for admin approval. The record will remain unchanged until an administrator approves the request." : description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
@@ -77,7 +79,7 @@ export function DeleteConfirmDialog({
             }}
             disabled={isPending}
           >
-            {isPending ? "Deleting..." : "Delete"}
+            {requiresApproval ? (isPending ? "Submitting..." : "Request deletion") : (isPending ? "Deleting..." : "Delete")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

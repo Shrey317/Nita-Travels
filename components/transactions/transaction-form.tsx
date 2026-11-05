@@ -122,8 +122,9 @@ export function TransactionForm({ vehicles, transaction, onClose, initialVehicle
           toast({ title: data.error ?? "Something went wrong", variant: "destructive" });
           return;
         }
-        toast({ title: isEdit ? "Transaction updated" : "Transaction added" });
-        window.dispatchEvent(new Event("fleet-data-changed"));
+        const pendingApproval = data.pendingApproval === true;
+        toast({ title: pendingApproval ? "Submitted for admin approval" : isEdit ? "Transaction updated" : "Transaction added" });
+        if (!pendingApproval) window.dispatchEvent(new Event("fleet-data-changed"));
         if (!isEdit) {
           try {
           if (vehicleId) localStorage.setItem("nita-last-vehicle", vehicleId);

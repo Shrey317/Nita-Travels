@@ -185,9 +185,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         toast({ title: data.error ?? "Something went wrong", variant: "destructive" });
         return;
       }
-      toast({ title: isEdit ? "Vehicle updated" : "Vehicle added" });
-      window.dispatchEvent(new Event("fleet-data-changed"));
-      router.push(`/vehicles/${data.vehicle.id}`);
+      const pendingApproval = data.pendingApproval === true;
+      toast({ title: pendingApproval ? "Submitted for admin approval" : isEdit ? "Vehicle updated" : "Vehicle added" });
+      if (!pendingApproval) window.dispatchEvent(new Event("fleet-data-changed"));
+      router.push(`/vehicles/${pendingApproval && vehicle ? vehicle.id : data.vehicle.id}`);
       router.refresh();
     } catch {
       toast({ title: "Network error — please try again", variant: "destructive" });

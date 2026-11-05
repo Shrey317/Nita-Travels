@@ -114,7 +114,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
           <p className="mt-1 text-xs text-muted">Vehicle command center · lifetime financial totals</p>
         </div>
         <div className="flex min-w-0 max-w-full items-center gap-2 flex-wrap">
-          {isAdmin && (
+          {(
             <Button asChild variant="outline" size="sm">
               <Link href={`/vehicles/${vehicle.id}/edit`}>
                 <Pencil className="h-3.5 w-3.5" />
@@ -140,7 +140,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
               Note
             </Link>
           </Button>
-          {isAdmin && vehicle.active && <DeactivateVehicleButton vehicleId={vehicle.id} />}
+          {vehicle.active && <DeactivateVehicleButton vehicleId={vehicle.id} requiresApproval={!isAdmin} />}
         </div>
       </div>
 

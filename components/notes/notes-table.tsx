@@ -33,8 +33,9 @@ export function NotesTable({ notes, vehicles, isAdmin = true }: NotesTableProps)
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error ?? "Couldn't delete this note.");
     }
-    window.dispatchEvent(new Event("fleet-data-changed"));
+    if (res.status !== 202) window.dispatchEvent(new Event("fleet-data-changed"));
     router.refresh();
+    return res.status === 202;
   }
 
   if (notes.length === 0) {
@@ -56,7 +57,7 @@ export function NotesTable({ notes, vehicles, isAdmin = true }: NotesTableProps)
             <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Vehicle</TableHead>
             <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Registration</TableHead>
             <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Note</TableHead>
-            {isAdmin && (
+            {(
               <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Actions</TableHead>
             )}
           </TableRow>
@@ -71,10 +72,10 @@ export function NotesTable({ notes, vehicles, isAdmin = true }: NotesTableProps)
                 <p className="whitespace-pre-wrap text-ink-secondary leading-relaxed">{n.note}</p>
                 <PhotoThumbnails urls={n.photoUrls} label={`Note file for ${registrationLabel(n.vehicleId, vehicles)} on ${formatDate(n.date)}`} />
               </TableCell>
-              {isAdmin && (
+              {(
                 <TableCell className="text-right">
                   <div className="flex justify-end">
-                    <DeleteConfirmDialog
+                    <DeleteConfirmDialog requiresApproval={!isAdmin}
                       title="Delete this note?"
                       description="This permanently removes the note. This can't be undone."
                       onDelete={() => handleDelete(n.id)}

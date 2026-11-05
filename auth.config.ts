@@ -2,8 +2,8 @@ import type { NextAuthConfig } from "next-auth";
 import { isAllowedWriteOrigin } from "@/lib/request-origin";
 
 /**
- * Shared route authorization. Credential verification and database access stay in auth.ts;
- * middleware only verifies the session using this configuration on the Node.js runtime.
+ * Shared route authorization. Node.js middleware uses auth.ts so manager status and
+ * session version are checked before redirect and permission decisions.
  */
 export const authConfig: NextAuthConfig = {
   logger: {
@@ -50,24 +50,17 @@ export const authConfig: NextAuthConfig = {
         return Response.json({ error: "Authentication required" }, { status: 401 });
       }
       if (auth?.staffRole === 'MANAGER') {
-        if (['PATCH', 'PUT', 'DELETE'].includes(method)) {
-          return Response.json({ error: 'Administrator approval is required to change existing records.' }, { status: 403 });
-        }
         if (nextUrl.pathname.startsWith('/api/staff') && nextUrl.pathname !== '/api/staff/register') {
           return Response.json({ error: 'Administrator access required.' }, { status: 403 });
         }
         if (nextUrl.pathname === '/staff' || nextUrl.pathname.startsWith('/staff/')) {
           return Response.redirect(new URL('/', nextUrl));
         }
-        if (/^\/vehicles\/[^/]+\/edit(?:\/|$)/.test(nextUrl.pathname)) {
-          const vehicleId = nextUrl.pathname.split('/')[2];
-          return Response.redirect(new URL(`/vehicles/${vehicleId}`, nextUrl));
-        }
       }
       return isLoggedIn;
     },
   },
-  providers: [], // real providers are added in auth.ts, which is never imported by middleware
+  providers: [], // real providers are added in auth.ts
 };
 
 export default authConfig;

@@ -1,15 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import bcrypt from 'bcryptjs';
+import type { Session } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
 
 const mocks = vi.hoisted(() => ({
   check: vi.fn(), clear: vi.fn(), account: vi.fn(),
   authorize: undefined as undefined | ((credentials: Record<string, unknown>, request: Request) => Promise<unknown>),
+  session: undefined as undefined | ((args: { session: Session; token: JWT }) => Promise<Session>),
 }));
 vi.mock('@/lib/rate-limit', () => ({ checkLoginRateLimit: mocks.check, clearLoginRateLimit: mocks.clear, getClientIp: () => 'fixture-ip' }));
 vi.mock('@/lib/db/client', () => ({ prisma: { staffAccount: { findUnique: mocks.account } } }));
 vi.mock('next-auth/providers/credentials', () => ({ default: (config: { authorize: typeof mocks.authorize }) => config }));
-vi.mock('next-auth', () => ({ default: (config: { providers: { authorize: typeof mocks.authorize }[] }) => {
+vi.mock('next-auth', () => ({ default: (config: { providers: { authorize: typeof mocks.authorize }[]; callbacks: { session: typeof mocks.session } }) => {
   mocks.authorize = config.providers[0]!.authorize;
+  mocks.session = config.callbacks.session;
   return {};
 } }));
 import '@/auth';
@@ -64,5 +68,33 @@ describe('real credential authorization', () => {
   it('assigns active accounts the manager role regardless of submitted role', async () => {
     mocks.account.mockResolvedValue({ id: 'manager', name: 'Manager', email: 'manager@example.com', status: 'ACTIVE', sessionVersion: 2, passwordHash: await bcrypt.hash('manager-fixture-password', 4) });
     expect(await mocks.authorize!({ username: 'manager@example.com', password: 'manager-fixture-password', role: 'ADMIN' }, request)).toMatchObject({ id: 'manager', role: 'MANAGER', sessionVersion: 2 });
+  });
+});
+
+describe('manager session revocation', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const evaluateSession = () => mocks.session!({
+    session: { user: { name: 'Manager', email: 'manager@example.com' }, expires: '2030-01-01T00:00:00.000Z' },
+    token: { sub: 'manager', staffRole: 'MANAGER', sessionVersion: 2 },
+  });
+
+  it('keeps an active manager signed in when the session version matches', async () => {
+    mocks.account.mockResolvedValue({ status: 'ACTIVE', sessionVersion: 2 });
+    expect(await evaluateSession()).toMatchObject({
+      user: { email: 'manager@example.com' }, staffId: 'manager', staffRole: 'MANAGER', sessionVersion: 2,
+    });
+    expect(mocks.account).toHaveBeenCalledWith({
+      where: { id: 'manager' }, select: { status: true, sessionVersion: true },
+    });
+  });
+
+  it.each([
+    ['disabled', { status: 'DISABLED', sessionVersion: 2 }],
+    ['removed', null],
+    ['version changed', { status: 'ACTIVE', sessionVersion: 3 }],
+  ])('clears the authenticated user when the manager account is %s', async (_reason, account) => {
+    mocks.account.mockResolvedValue(account);
+    expect((await evaluateSession()).user).toBeUndefined();
   });
 });

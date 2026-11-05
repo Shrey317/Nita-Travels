@@ -83,8 +83,9 @@ export function EditMileageDialog({
           setError(data.error ?? "Something went wrong.");
           return;
         }
-        toast({ title: "Mileage entry updated" });
-        window.dispatchEvent(new Event("fleet-data-changed"));
+        const pendingApproval = data.pendingApproval === true;
+        toast({ title: pendingApproval ? "Submitted for admin approval" : "Mileage entry updated" });
+        if (!pendingApproval) window.dispatchEvent(new Event("fleet-data-changed"));
         setOpen(false);
         onSaved();
       } catch {

@@ -50,34 +50,17 @@ export async function ensureVehicleFinanceColumns(client: PrismaClient = basePri
 }
 
 /**
- * Ensures the StaffAccount table exists before querying or mutating user accounts.
+ * Verifies the migration-owned table is available. Requests must never create schema.
  */
 export async function ensureStaffAccountTable(client: PrismaClient = basePrisma): Promise<void> {
-  if (typeof client.$executeRawUnsafe !== "function") return;
+  if (typeof client.$queryRaw !== "function") return;
   if (!globalForPrisma.staffAccountTableEnsured) {
     globalForPrisma.staffAccountTableEnsured = client
-      .$executeRawUnsafe(
-        `CREATE TABLE IF NOT EXISTS "StaffAccount" (
-          "id" TEXT NOT NULL,
-          "email" TEXT NOT NULL,
-          "name" TEXT NOT NULL,
-          "passwordHash" TEXT NOT NULL,
-          "status" TEXT NOT NULL DEFAULT 'PENDING',
-          "sessionVersion" INTEGER NOT NULL DEFAULT 0,
-          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "StaffAccount_pkey" PRIMARY KEY ("id"),
-          CONSTRAINT "StaffAccount_status_check" CHECK ("status" IN ('PENDING', 'ACTIVE', 'DISABLED'))
-        );`
-      )
-      .then(() =>
-        client.$executeRawUnsafe(
-          `CREATE UNIQUE INDEX IF NOT EXISTS "StaffAccount_email_key" ON "StaffAccount"("email");`
-        )
-      )
+      .$queryRaw`SELECT "id", "email", "passwordHash", "status", "sessionVersion" FROM "StaffAccount" LIMIT 0`
       .then(() => undefined)
-      .catch(() => {
+      .catch((error: unknown) => {
         globalForPrisma.staffAccountTableEnsured = undefined;
+        throw error;
       });
   }
   await globalForPrisma.staffAccountTableEnsured;

@@ -1,33 +1,11 @@
-export const dynamic = "force-dynamic";
+import { changeRoute } from '@/lib/change-route';
 
-import { NextRequest, NextResponse } from "next/server";
-import { deleteMileageEntry, updateMileageEntry } from "@/lib/db/mileage";
-import { requireAdmin, handleApiError } from "@/lib/api-response";
-import { invalidateFleetData } from "@/lib/invalidate-fleet";
-import { z } from "zod";
-import { positiveIntegerSchema } from "@/lib/schemas/common.schema";
-
-export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
-  try {
-    await requireAdmin();
-    const body = z.object({ currentMileageKm: positiveIntegerSchema }).parse(await request.json());
-    const entry = await updateMileageEntry(params.id, body);
-    invalidateFleetData();
-    return NextResponse.json({ entry });
-  } catch (error) {
-    return handleApiError(error);
-  }
+export const dynamic = 'force-dynamic';
+type Props = { params: Promise<{ id: string }> };
+export async function PATCH(request: Request, props: Props) {
+  return changeRoute(request, (await props.params).id, 'mileage', 'entry');
 }
 
-export async function DELETE(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
-  try {
-    await requireAdmin();
-    await deleteMileageEntry(params.id);
-    invalidateFleetData();
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return handleApiError(error);
-  }
+export async function DELETE(request: Request, props: Props) {
+  return changeRoute(request, (await props.params).id, 'mileage', 'entry');
 }

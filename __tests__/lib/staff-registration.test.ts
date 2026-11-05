@@ -49,7 +49,7 @@ describe('staff registration & admin user management schemas', () => {
 describe('role-based route authorization', () => {
   const authorized = authConfig.callbacks!.authorized!;
 
-  it('blocks non-admin (MANAGER) from PATCH, PUT, and DELETE API calls with 403', async () => {
+  it('allows manager mutations to reach the approval-enforcing route handlers', async () => {
     for (const method of ['PATCH', 'PUT', 'DELETE']) {
       const req = new NextRequest('http://localhost/api/transactions/tx-1', {
         method,
@@ -59,8 +59,7 @@ describe('role-based route authorization', () => {
         auth: { user: { name: 'Staff' }, staffRole: 'MANAGER', expires: '' },
         request: req,
       });
-      expect(res).toBeInstanceOf(Response);
-      expect((res as Response).status).toBe(403);
+      expect(res).toBe(true);
     }
   });
 
@@ -78,7 +77,7 @@ describe('role-based route authorization', () => {
     }
   });
 
-  it('blocks non-admin (MANAGER) from /staff and /vehicles/[id]/edit and /api/staff', async () => {
+  it('blocks managers from staff administration but allows correction forms', async () => {
     const apiStaffReq = new NextRequest('http://localhost/api/staff', { method: 'GET' });
     const apiStaffRes = await authorized({
       auth: { user: { name: 'Staff' }, staffRole: 'MANAGER', expires: '' },
@@ -100,8 +99,7 @@ describe('role-based route authorization', () => {
       auth: { user: { name: 'Staff' }, staffRole: 'MANAGER', expires: '' },
       request: editVehicleReq,
     });
-    expect(editVehicleRes).toBeInstanceOf(Response);
-    expect((editVehicleRes as Response).headers.get('location')).toBe('http://localhost/vehicles/N001');
+    expect(editVehicleRes).toBe(true);
   });
 
   it('allows ADMIN full access to PATCH, DELETE, /staff, and /vehicles/[id]/edit', async () => {

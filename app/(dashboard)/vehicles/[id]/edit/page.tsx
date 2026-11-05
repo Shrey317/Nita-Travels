@@ -1,16 +1,13 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ensureVehicleFinanceColumns, prisma } from "@/lib/db/client";
-import { isAdminSession } from "@/lib/api-response";
+import { requireSession } from "@/lib/api-response";
 import { VehicleForm } from "@/components/vehicles/vehicle-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditVehiclePage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  const isAdmin = await isAdminSession();
-  if (!isAdmin) {
-    redirect(`/vehicles/${params.id}`);
-  }
+  await requireSession();
 
   await ensureVehicleFinanceColumns();
   const vehicle = await prisma.vehicle.findUnique({ where: { id: params.id } });

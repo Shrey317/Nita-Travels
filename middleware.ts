@@ -1,8 +1,6 @@
-import NextAuth from "next-auth";
-import authConfig from "@/auth.config";
-
-/** All routes except /api/auth/* and /login require an authenticated session (SRS 10). */
-export const { auth: middleware } = NextAuth(authConfig);
+// Node.js middleware must use the same database-backed session validation as route
+// handlers. A revoked manager JWT must not redirect /login back to the dashboard.
+export { auth as middleware } from "@/auth";
 
 export const config = {
   runtime: "nodejs",

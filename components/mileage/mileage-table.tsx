@@ -26,8 +26,9 @@ export function MileageTable({
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error ?? "Couldn't delete this entry.");
     }
-    window.dispatchEvent(new Event("fleet-data-changed"));
+    if (res.status !== 202) window.dispatchEvent(new Event("fleet-data-changed"));
     router.refresh();
+    return res.status === 202;
   }
 
   if (entries.length === 0) {
@@ -55,7 +56,7 @@ export function MileageTable({
             <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Rem</TableHead>
             <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Allowance used</TableHead>
             <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Reading status</TableHead>
-            {isAdmin && (
+            {(
               <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Actions</TableHead>
             )}
           </TableRow>
@@ -93,7 +94,7 @@ export function MileageTable({
                 )}
                 <PhotoThumbnails urls={e.photoUrls} label={`Odometer photo for ${e.vehicle.registration} on ${formatDate(e.date)}`} />
               </TableCell>
-              {isAdmin && (
+              {(
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <EditMileageDialog
@@ -103,7 +104,7 @@ export function MileageTable({
                       previousMileageKm={e.previousMileageKm}
                       onSaved={() => router.refresh()}
                     />
-                    <DeleteConfirmDialog
+                    <DeleteConfirmDialog requiresApproval={!isAdmin}
                       title="Delete this mileage entry?"
                       description={`This permanently removes the ${formatDate(e.date)} entry for ${e.vehicleId}. This can't be undone.`}
                       onDelete={() => handleDelete(e.id)}
