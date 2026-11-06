@@ -25,3 +25,5 @@ Passed: production build, TypeScript, ESLint, 232 unit tests, 26 integration tes
 The browser test verifies expired-link rejection, password update, session-version increment, URL fragment removal and replay rejection. Database tests also verify concurrent use, invalidated earlier links and disabled-account rejection. SMTP tests use a mocked transport; actual Gmail delivery has not been verified.
 
 Release sequence: back up the intended production database, apply 20261106090000_password_resets with prisma migrate deploy, release the verified code, request a link for an active email-based manager account and confirm receipt. The account holder should complete their own password entry and confirm the new sign-in works.
+
+Production migration completed on 6 November 2026 at the owner's request. Only the password-reset migration was pending. A fresh private backup was created and its archive verified before deployment. PasswordReset is queryable, and existing staff, vehicle, transaction, mileage and note fingerprints match their pre-migration values. The owner is handling application deployment; real Gmail delivery remains unverified.
