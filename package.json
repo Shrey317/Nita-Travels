@@ -21,6 +21,7 @@
     "node": ">=22.12.0 <23"
   },
   "overrides": {
+    "nodemailer": "$nodemailer",
     "postcss": "$postcss",
     "zod": "$zod"
   },
