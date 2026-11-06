@@ -36,7 +36,7 @@ export function RegistrationForm() {
           </button>
         </div>
       </div>
-      <p className="text-sm text-muted">Use 12–72 characters. Password recovery by email is not available yet.</p>
+      <p className="text-sm text-muted">Use 12–72 characters. Once your account is approved, you can request a password-reset link using this email.</p>
       <Button type="submit" disabled={pending}>{pending ? 'Submitting...' : 'Request access'}</Button>
     </ReadyFieldset>}
     <p role="status">{message}</p>

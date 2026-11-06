@@ -64,8 +64,20 @@ Operational alerts go to drash1731@gmail.com through UptimeRobot monitor 8045670
 ## Open handover dependencies
 
 - Deployment access: the connected Vercel account could not access this project during the last inspection.
-- Email delivery: no service or sending domain is currently available.
-- Backup schedule and separate restore drill need verification. Website monitoring delivery is verified; database-backed workflow monitoring remains pending.
+- Gmail SMTP with Nodemailer is implemented for active manager accounts. The owner reports GMAIL_USER and GMAIL_APP_PASSWORD are configured in Vercel. Production migration, release and actual delivery verification remain pending. Administrator recovery remains deployment-managed.
+- Backup schedule needs verification. The saved backup was restored into a separate local database on 5 November 2026; all saved content fingerprints matched (2 staff accounts, 9 vehicles, 401 transactions, 234 mileage entries, zero notes). Website monitoring delivery is verified; database-backed workflow monitoring remains pending.
 - The company must perform acceptance and financial source-document sign-off.
 
+Neon backup settings inspected on 6 November 2026: production has a six-hour point-in-time history window. The Backup & Restore page reports no snapshots and no schedule set; snapshot scheduling displays Upgrade for schedules. No paid upgrade or production restore was performed.
+
 Do not mark these complete until there is evidence of the actual operational result.
+
+## Latest handover verification — 5 November 2026
+
+The live registration page displays Show password and 12–72 character guidance. Local TypeScript and lint checks passed, alongside 229 unit tests. The backup recovery drill completed in nita_restore_20261105 on loopback port 55438. Production was not used as the restore target. The backup predates the approvals repair; the later migrations were successfully applied to the restored database and record fingerprints still matched afterward. The restored staff table default was reconciled to the committed migration schema.
+
+Run scripts/verify-local-recovery.cjs with RECOVERY_DATABASE_URL pointing to the named local recovery database to repeat the content comparison. It prints counts and pass/fail results, not account credentials or ledger contents.
+
+Company acceptance and financial source-document reconciliation require the owner's sign-off.
+
+The current local integration run passed all 23 tests across 11 files, including SQL-backed financial summaries, weekly calculations, mileage integrity, migration preservation and atomic approvals. This verifies calculation behavior; it does not certify the completeness or accuracy of business source entries.

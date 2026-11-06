@@ -168,6 +168,15 @@ model ChangeRequest {
   @@index([status, createdAt])
 }
 
+model PasswordReset {
+  tokenHash String @id
+  staffId String
+  sessionVersion Int
+  expiresAt DateTime
+  usedAt DateTime?
+  @@index([expiresAt])
+}
+
 model FleetDocument {
   id String @id @default(cuid())
   vehicleId String

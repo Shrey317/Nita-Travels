@@ -30,6 +30,7 @@ export const authConfig: NextAuthConfig = {
     authorized({ auth, request: { nextUrl, headers, method } }) {
       const isLoggedIn = !!auth?.user;
       const isOnLogin = nextUrl.pathname === "/login";
+      if (['/forgot-password', '/reset-password'].includes(nextUrl.pathname)) return true;
       if (nextUrl.pathname === '/register') return isLoggedIn ? Response.redirect(new URL('/', nextUrl)) : true;
 
       if (isOnLogin) {
@@ -46,6 +47,7 @@ export const authConfig: NextAuthConfig = {
         return Response.json({ error: "Cross-origin requests are not allowed" }, { status: 403 });
       }
       if (!isLoggedIn && nextUrl.pathname.startsWith("/api/")) {
+        if (nextUrl.pathname === '/api/password-reset' && method === 'POST') return true;
         if (nextUrl.pathname === '/api/staff/register' && method === 'POST') return true;
         return Response.json({ error: "Authentication required" }, { status: 401 });
       }
