@@ -105,8 +105,10 @@ export function LoginForm({ action, error }: { action: (formData: FormData) => v
         </div>
         <SubmitButton />
       </form>
-      <a href="/register" className={styles.registerLink}>Request an account</a>
-      <a href="/forgot-password" className={styles.registerLink}>Forgot password?</a>
+      <div className={styles.links}>
+        <a href="/register" className={styles.registerLink}>Request an account</a>
+        <a href="/forgot-password" className={styles.registerLink}>Forgot password?</a>
+      </div>
 
       <p className={styles.security}>
         <ShieldCheck aria-hidden="true" />
