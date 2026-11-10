@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { captureException } from '@sentry/nextjs';
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
  *  global-error.tsx, which only activates for failures in the root layout itself. */
 export default function RootError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) captureException(error);
     console.error("Page render failed", { digest: error.digest });
   }, [error]);
 

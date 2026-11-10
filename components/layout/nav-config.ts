@@ -61,7 +61,11 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/replacement", label: "Replacement Review", icon: RefreshCw },
       { href: "/data-quality", label: "Data Quality", icon: ListChecks },
       { href: "/staff", label: "Users & Access", icon: Users, adminOnly: true },
+      { href: "/admin-recovery", label: "Admin Recovery", icon: Users, adminOnly: true },
+      { href: "/monitoring", label: "Monitoring", icon: ListChecks, adminOnly: true },
       { href: "/approvals", label: "Change Approvals", icon: ClipboardCheck },
+      { href: "/documents", label: "Document Register", icon: ClipboardCheck },
+      { href: "/work-orders", label: "Service & Repairs", icon: Wrench },
     ],
   },
 ];

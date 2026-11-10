@@ -29,6 +29,8 @@ export const authConfig: NextAuthConfig = {
     },
     authorized({ auth, request: { nextUrl, headers, method } }) {
       const isLoggedIn = !!auth?.user;
+      if (nextUrl.pathname === '/api/ready' && method === 'GET') return true;
+      if (nextUrl.pathname === '/admin-recovery') return true;
       const isOnLogin = nextUrl.pathname === "/login";
       if (['/forgot-password', '/reset-password'].includes(nextUrl.pathname)) return true;
       if (nextUrl.pathname === '/register') return isLoggedIn ? Response.redirect(new URL('/', nextUrl)) : true;
@@ -48,6 +50,7 @@ export const authConfig: NextAuthConfig = {
       }
       if (!isLoggedIn && nextUrl.pathname.startsWith("/api/")) {
         if (nextUrl.pathname === '/api/password-reset' && method === 'POST') return true;
+        if (nextUrl.pathname === '/api/admin-recovery' && method === 'POST') return true;
         if (nextUrl.pathname === '/api/staff/register' && method === 'POST') return true;
         return Response.json({ error: "Authentication required" }, { status: 401 });
       }

@@ -27,6 +27,12 @@ test('reset form changes credentials once and rejects expired and reused links',
   const updated = await prisma.staffAccount.findUniqueOrThrow({ where: { id: account.id } });
   expect(updated.sessionVersion).toBe(1);
   expect(await bcrypt.compare('replacement-password', updated.passwordHash)).toBe(true);
+  await page.goto('/login');
+  await page.getByLabel('Username', { exact: true }).fill(account.email);
+  await page.getByLabel('Password', { exact: true }).fill('replacement-password');
+  await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
   await submit(token);
   await expect(page.getByRole('status')).toContainText('invalid or expired');
 });

@@ -68,6 +68,8 @@ Operational alerts go to drash1731@gmail.com through UptimeRobot monitor 8045670
 - Backup schedule needs verification. The saved backup was restored into a separate local database on 5 November 2026; all saved content fingerprints matched (2 staff accounts, 9 vehicles, 401 transactions, 234 mileage entries, zero notes). Website monitoring delivery is verified; database-backed workflow monitoring remains pending.
 - The company must perform acceptance and financial source-document sign-off.
 
+Owner update, 9 November 2026: password-reset sign-in, company acceptance testing and financial reconciliation were confirmed complete. Formal final sign-off was declined. The owner chose Neon Free and explicitly accepted its six-hour recovery window. Scheduled snapshots remain unavailable under that decision; no plan upgrade is required for the agreed handover scope. Existing local backups are one-off recovery copies.
+
 Neon backup settings inspected on 6 November 2026: production has a six-hour point-in-time history window. The Backup & Restore page reports no snapshots and no schedule set; snapshot scheduling displays Upgrade for schedules. No paid upgrade or production restore was performed.
 
 Do not mark these complete until there is evidence of the actual operational result.

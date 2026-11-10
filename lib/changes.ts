@@ -10,6 +10,7 @@ import { updateVehicle, deactivateVehicle } from '@/lib/db/vehicles';
 import { updateMileageEntry, deleteMileageEntry } from '@/lib/db/mileage';
 import { verifyNewAttachments } from '@/lib/verify-attachments';
 import { z } from 'zod';
+import { validateWorkOrderExpense } from '@/lib/work-order-validation';
 
 export const entitySchema = z.enum(['vehicle', 'transaction', 'mileage', 'note', 'document', 'workOrder']);
 export type ChangeEntity = z.infer<typeof entitySchema>;
@@ -73,6 +74,7 @@ async function apply(tx: Prisma.TransactionClient, entity: ChangeEntity, id: str
   }
   const data = workOrderSchema.parse(input);
   await tx.vehicle.findUniqueOrThrow({ where: { id: data.vehicleId, deletedAt: null } });
+  await validateWorkOrderExpense(tx, data.vehicleId, data.expenseTransactionId);
   return tx.workOrder.update({ where: { id }, data });
 }
 

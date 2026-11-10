@@ -5,7 +5,7 @@ import { completePasswordReset, requestPasswordReset } from '@/lib/password-rese
 import { handleApiError } from '@/lib/api-response';
 
 export async function POST(request: NextRequest) {
-  const generic = { message: 'If an active manager account matches that email, a reset link will be sent.' };
+  const generic = { message: 'If an eligible account matches that email, a reset link will be sent.' };
   try {
     const limit = await checkLoginRateLimit(`password-reset:${getClientIp(request)}`);
     if (!limit.allowed) return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429 });

@@ -21,6 +21,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           session.user = undefined as never;
         }
       }
+      if (session.staffRole === 'ADMIN') {
+        const account = await prisma.administratorCredential.findUnique({ where: { id: 'admin' } });
+        if (account?.emailVerifiedAt && account.sessionVersion !== session.sessionVersion) session.user = undefined as never;
+      }
       return session;
     },
   },
@@ -48,6 +52,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const expectedUsername = process.env.ADMIN_USERNAME;
         const expectedPasswordHash = process.env.ADMIN_PASSWORD_HASH?.replace(/\\/g, '');
+        if (username === expectedUsername) {
+          const administrator = await prisma.administratorCredential.findUnique({ where: { id: 'admin' } });
+          if (administrator?.emailVerifiedAt) {
+            if (!(await bcrypt.compare(password, administrator.passwordHash))) return null;
+            await clearLoginRateLimit(rateLimitKey).catch(() => {});
+            return { id: 'admin', name: 'Nita Travels Admin', role: 'ADMIN', sessionVersion: administrator.sessionVersion, email: administrator.email };
+          }
+        }
 
         if (username !== expectedUsername) {
           const account = await prisma.staffAccount.findUnique({ where: { email: username.trim().toLowerCase() } });

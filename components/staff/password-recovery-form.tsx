@@ -39,7 +39,7 @@ export function PasswordRecoveryForm({ reset = false }: { reset?: boolean }) {
   }
   return <main className="mx-auto max-w-lg space-y-5 px-6 py-16">
     <h1 className="text-2xl font-semibold">{reset ? 'Choose a new password' : 'Reset your password'}</h1>
-    <p className="text-sm text-muted">For active manager accounts registered with an email address. Administrators and username-only accounts should contact the system owner.</p>
+    <p className="text-sm text-muted">For active managers with an email address and administrators with verified recovery. After resetting, sign in with your usual username. Username-only managers should contact the administrator.</p>
     {!done && <form onSubmit={submit}><ReadyFieldset label="Password recovery" className="space-y-4">
       {reset ? <><label className="block">New password<Input name="password" type={show ? 'text' : 'password'} required minLength={12} maxLength={72} autoComplete="new-password" /></label><button type="button" aria-pressed={show} onClick={() => setShow(value => !value)}>{show ? 'Hide password' : 'Show password'}</button></> : <label className="block">Email address<Input name="email" type="email" required maxLength={254} autoComplete="email" /></label>}
       <Button disabled={busy || (reset && !token)} type="submit">{busy ? 'Submitting…' : reset ? 'Save new password' : 'Send reset link'}</Button>

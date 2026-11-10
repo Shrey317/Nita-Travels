@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { captureException } from '@sentry/nextjs';
 
 /**
  * Next.js's top-level error boundary — catches failures even in the root layout itself, which
@@ -11,6 +12,7 @@ import { useEffect } from "react";
  */
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) captureException(error);
     console.error("Application render failed", { digest: error.digest });
   }, [error]);
 

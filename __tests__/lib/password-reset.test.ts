@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ account: vi.fn(), create: vi.fn(), revoke: vi.fn(), send: vi.fn() }));
-vi.mock('@/lib/db/client', () => ({ prisma: { staffAccount: { findUnique: mocks.account }, passwordReset: { create: mocks.create, updateMany: mocks.revoke } } }));
+vi.mock('@/lib/db/client', () => ({ prisma: { staffAccount: { findUnique: mocks.account }, administratorCredential: { findUnique: vi.fn().mockResolvedValue(null) }, passwordReset: { create: mocks.create, updateMany: mocks.revoke } } }));
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: mocks.send }) } }));
 import { requestPasswordReset, hashResetToken } from '@/lib/password-reset';
 describe('password recovery delivery', () => {

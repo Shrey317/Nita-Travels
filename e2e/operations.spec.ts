@@ -1,0 +1,47 @@
+import { test, expect } from '@playwright/test';
+import { encode } from 'next-auth/jwt';
+import { prisma } from '../lib/db/client';
+import { verifyTestEnvironment } from '../lib/db/safety';
+import { login } from './helpers';
+test('document renewals and repair completion keep manager changes pending', async ({ page, browser }) => {
+  await verifyTestEnvironment(true);
+  await login(page);
+  const title = `Licence fixture ${Date.now()}`;
+  await page.goto('/documents');
+  await page.getByRole('combobox', { name: 'Vehicle', exact: true }).selectOption('CR93');
+  await page.getByLabel('Document title', { exact: true }).fill(title);
+  await page.getByLabel('Expiry date', { exact: true }).fill('2026-01-01');
+  await page.getByRole('button', { name: 'Save record', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Saved successfully');
+  const document = await prisma.fleetDocument.findFirstOrThrow({ where: { title } });
+  const manager = await prisma.staffAccount.create({ data: { email: `ops-${Date.now()}@example.test`, name: 'Operations manager', passwordHash: 'unused-fixture', status: 'ACTIVE' } });
+  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
+  try {
+    const cookie = await encode({ secret: process.env.NEXTAUTH_SECRET!, salt: 'authjs.session-token', maxAge: 300, token: { sub: manager.id, name: manager.name, staffRole: 'MANAGER', sessionVersion: 0 } });
+    await context.addCookies([{ name: 'authjs.session-token', value: cookie, url: 'http://127.0.0.1:3100', httpOnly: true, sameSite: 'Lax' }]);
+    const managerPage = await context.newPage();
+    await managerPage.goto('/documents');
+    await managerPage.getByRole('article').filter({ hasText: title }).getByRole('button', { name: 'Request edit', exact: true }).click();
+    await managerPage.getByLabel('Expiry date', { exact: true }).fill('2027-12-31');
+    await managerPage.getByRole('button', { name: 'Request changes', exact: true }).click();
+    await expect(managerPage.getByRole('status')).toContainText('Submitted for admin approval');
+    expect((await prisma.fleetDocument.findUniqueOrThrow({ where: { id: document.id } })).expiryDate).toEqual(new Date('2026-01-01'));
+    const request = await prisma.changeRequest.findFirstOrThrow({ where: { recordId: document.id, status: 'PENDING' } });
+    expect((await page.request.post(`/api/approvals/${request.id}`, { data: { approve: true } })).status()).toBe(200);
+    expect((await prisma.fleetDocument.findUniqueOrThrow({ where: { id: document.id } })).expiryDate).toEqual(new Date('2027-12-31'));
+    await page.goto('/work-orders');
+    await page.getByRole('combobox', { name: 'Vehicle', exact: true }).selectOption('CR93');
+    await page.getByLabel('Work description', { exact: true }).fill('Repair fixture');
+    await page.getByLabel('Work type', { exact: true }).selectOption('REPAIR');
+    await page.getByLabel('Planned date', { exact: true }).fill('2026-01-01');
+    await page.getByRole('button', { name: 'Save record', exact: true }).click();
+    await expect(page.getByRole('status')).toContainText('Saved successfully');
+    const work = await prisma.workOrder.findFirstOrThrow({ where: { title: 'Repair fixture' } });
+    const change = await managerPage.request.patch(`/api/work-orders/${work.id}`, { data: { vehicleId: 'CR93', kind: 'REPAIR', title: 'Repair fixture', plannedDate: '2026-01-01', startedDate: '2026-01-02', completedDate: '2026-01-05' } });
+    expect(change.status()).toBe(202);
+    expect((await prisma.workOrder.findUniqueOrThrow({ where: { id: work.id } })).completedDate).toBeNull();
+    expect((await page.request.post(`/api/approvals/${(await change.json()).requestId}`, { data: { approve: true } })).status()).toBe(200);
+    await page.reload();
+    await expect(page.getByRole('article').filter({ hasText: 'Repair fixture' })).toContainText('3 calendar days unavailable');
+  } finally { await context.close(); }
+});

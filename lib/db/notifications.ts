@@ -13,7 +13,7 @@ export interface FleetNotification {
   description: string;
   vehicleId: string | null;
   href: string;
-  category: "service" | "insurance" | "mileage" | "repairs";
+  category: "service" | "insurance" | "mileage" | "repairs" | "documents";
   timestamp: Date;
 }
 
@@ -24,7 +24,7 @@ export async function getFleetNotifications(serviceRead?: ReturnType<typeof getS
   const [vehicles, serviceRows, mileageEntries] = await Promise.all([
     prisma.vehicle.findMany({
       where: { active: true, deletedAt: null },
-      select: { id: true, registration: true, make: true, model: true },
+      select: { id: true, registration: true, make: true, model: true, currentMileageKm: true },
       orderBy: { id: "asc" },
     }),
     serviceRead ?? getServiceStatusAllVehicles(),
@@ -34,6 +34,17 @@ export async function getFleetNotifications(serviceRead?: ReturnType<typeof getS
     }),
   ]);
   const notifications: FleetNotification[] = [];
+  const [documents, plannedWork] = await Promise.all([
+    prisma.fleetDocument.findMany({ where: { archived: false, expiryDate: { lte: addDays(today, 30) } }, select: { id: true, vehicleId: true, title: true, expiryDate: true } }),
+    prisma.workOrder.findMany({ where: { archived: false, completedDate: null }, select: { id: true, vehicleId: true, title: true, plannedDate: true, startedDate: true, kind: true, targetMileageKm: true } }),
+  ]);
+  for (const document of documents) notifications.push({ id: `doc-${document.id}`, priority: document.expiryDate < today ? 'critical' : 'warning', title: `${document.vehicleId} · Document renewal`, description: `${document.title} expires ${dateKey(document.expiryDate)}.`, vehicleId: document.vehicleId, href: `/documents?vehicleId=${document.vehicleId}#${document.id}`, category: 'documents', timestamp: today });
+  for (const work of plannedWork) {
+    const vehicle = vehicles.find(row => row.id === work.vehicleId);
+    const mileageDue = work.targetMileageKm !== null && !!vehicle && vehicle.currentMileageKm >= work.targetMileageKm;
+    if (!work.startedDate && work.plannedDate > addDays(today, 7) && !mileageDue) continue;
+    notifications.push({ id: `work-${work.id}`, priority: (work.plannedDate < today || mileageDue) && !work.startedDate ? 'warning' : 'info', title: `${work.vehicleId} · ${work.startedDate ? 'Work in progress' : 'Planned work'}`, description: `${work.title}, planned ${dateKey(work.plannedDate)}.${mileageDue ? ' Target odometer reached.' : ''}`, vehicleId: work.vehicleId, href: `/work-orders?vehicleId=${work.vehicleId}#${work.id}`, category: work.kind === 'SERVICE' ? 'service' : 'repairs', timestamp: today });
+  }
   const vehicleMap = new Map(vehicles.map(vehicle => [vehicle.id, vehicle]));
   const base = { timestamp: today };
   for (const row of serviceRows) {

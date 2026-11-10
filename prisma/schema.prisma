@@ -174,7 +174,16 @@ model PasswordReset {
   sessionVersion Int
   expiresAt DateTime
   usedAt DateTime?
+  principalType String @default("STAFF")
   @@index([expiresAt])
+}
+
+model AdministratorCredential {
+  id String @id
+  email String @unique
+  passwordHash String
+  sessionVersion Int @default(0)
+  emailVerifiedAt DateTime?
 }
 
 model FleetDocument {
@@ -200,6 +209,9 @@ model WorkOrder {
   startedDate DateTime? @db.Date
   completedDate DateTime? @db.Date
   notes String?
+  workshop String?
+  targetMileageKm Int?
+  expenseTransactionId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   archived Boolean @default(false)

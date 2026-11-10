@@ -26,7 +26,7 @@ export default defineConfig({
     ...(['firefox', 'webkit'] as const).map(browserName => ({
       name: browserName,
       use: { browserName, viewport: { width: 1280, height: 900 } },
-      testMatch: /(?:core|core-workflow|vehicle-mutations|intelligence|uploads|auth-release|accounts-approvals)\.spec\.ts/,
+      testMatch: /(?:core|core-workflow|vehicle-mutations|intelligence|uploads|auth-release|accounts-approvals|admin-recovery|operations)\.spec\.ts/,
     })),
   ],
   webServer: {

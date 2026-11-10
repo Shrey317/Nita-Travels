@@ -36,6 +36,7 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.1",
     "@radix-ui/react-tooltip": "^1.2.16",
+    "@sentry/nextjs": "^11.11.0",
     "@vercel/blob": "^2.8.2",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",

@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
+import { captureException } from '@sentry/nextjs';
 import {
   NotFoundError,
   ValidationError,
@@ -72,5 +73,6 @@ export function handleApiError(error: unknown): NextResponse {
 
   // Error objects may contain connection details or submitted data; log only an allowlisted code.
   console.error("Unhandled API error", { kind: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : "UNEXPECTED" });
+  if (process.env.SENTRY_DSN) captureException(error);
   return jsonError("Something went wrong. Please try again.", 500);
 }

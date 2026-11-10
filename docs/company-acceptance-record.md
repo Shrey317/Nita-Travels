@@ -26,3 +26,13 @@ Owner acceptance: __________________
 Manager acceptance: __________________
 
 Do not enter passwords, API keys or financial source documents into this record.
+
+## Owner update — 9 November 2026
+
+The owner confirmed successful password-reset sign-in, completion of company acceptance testing, and financial-report reconciliation. These are owner-reported confirmations; individual test evidence above has not been independently supplied. The owner requested skipping formal final handover sign-off.
+
+The owner also confirmed monitoring works. Verified technical evidence remains the website uptime monitor and received email notification; authenticated workflow monitoring and application error alerting have not independently been verified.
+
+Administrator recovery remains deployment-managed. The owner's acknowledgement does not establish a new administrator email-reset flow.
+
+Backup decision: the owner elected to remain on Neon Free and explicitly accepted its six-hour recovery history window. No paid upgrade or scheduled snapshot service is authorized. The existing verified logical backups remain available locally; they are one-off copies, not an ongoing backup schedule.

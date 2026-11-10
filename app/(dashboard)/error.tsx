@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
+import { captureException } from '@sentry/nextjs';
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function DashboardError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) captureException(error);
     console.error("Dashboard render failed", { digest: error.digest });
   }, [error]);
 
