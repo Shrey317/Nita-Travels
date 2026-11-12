@@ -8,6 +8,7 @@ import { queryVehicleTimeline } from "@/lib/db/timeline";
  */
 
 import type { Prisma, Vehicle } from "@prisma/client";
+import { redactLegacyFinance } from '@/lib/private-finance';
 import { ensureVehicleFinanceColumns, prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
 import { recalculateMileageChain } from "@/lib/db/mileage";
 import { getServiceStatusAllVehicles, getLatestServiceForVehicle, type VehicleServiceRow } from "@/lib/db/service";
@@ -71,7 +72,7 @@ export async function getVehiclesWithFinancials(dateFrom?: Date, dateTo?: Date, 
     const incomeCents = incomeExpenseMap.get(vehicle.id)?.incomeZarCents ?? 0;
     const expenseCents = incomeExpenseMap.get(vehicle.id)?.expenseZarCents ?? 0;
     return {
-      vehicle,
+      vehicle: redactLegacyFinance(vehicle),
       incomeCents,
       expenseCents,
       repairsCents: repairsMap.get(vehicle.id) ?? 0,
@@ -92,7 +93,7 @@ export interface VehicleDetail extends VehicleSummary {
 
 /** Full detail for the Vehicle Profile page (SRS 15.3). Not filtered by `active` — a
  *  deactivated vehicle's profile must stay viewable even though it drops off the main list. */
-export async function getVehicleDetail(id: string): Promise<VehicleDetail | null> {
+export async function getVehicleDetail(id: string, includePrivateFinance = false): Promise<VehicleDetail | null> {
   await ensureVehicleFinanceColumns();
   const vehicle = await prisma.vehicle.findUnique({ where: { id, deletedAt: null } });
   if (!vehicle) return null;
@@ -146,13 +147,13 @@ export async function getVehicleDetail(id: string): Promise<VehicleDetail | null
     : { balanceCents: 0 };
 
   return {
-    vehicle,
+    vehicle: includePrivateFinance ? vehicle : redactLegacyFinance(vehicle),
     incomeCents,
     expenseCents,
     repairsCents: repairs._sum.expenseZarCents ?? 0,
     netProfitCents,
     marginLabel: formatMargin(incomeCents, expenseCents),
-    emiBalanceCents: financeCountdown.balanceCents,
+    emiBalanceCents: includePrivateFinance ? financeCountdown.balanceCents : 0,
     roiPercent: calculateRoiPercent(netProfitCents, vehicle.purchasePriceCents),
     kmSincePurchase: vehicle.currentMileageKm - vehicle.mileageAtPurchaseKm,
     service: {
@@ -173,7 +174,7 @@ export async function getVehicleDetail(id: string): Promise<VehicleDetail | null
 export async function createVehicle(input: VehicleInput): Promise<Vehicle> {
   await ensureVehicleFinanceColumns();
   const data = vehicleSchema.parse(input);
-  return prisma.vehicle.create({ data });
+  return prisma.vehicle.create({ data: { ...data, assignments: { create: { module: 'NORMAL_RENTAL', startsAt: data.purchaseDate } } } });
 }
 
 /** Merges the PATCH body onto the existing row, then validates the complete result — so a
@@ -200,11 +201,15 @@ export async function updateVehicle(id: string, input: VehicleUpdateInput, clien
     });
     const baselineChanged = merged.mileageAtPurchaseKm !== existing.mileageAtPurchaseKm;
     if (baselineChanged || merged.currentMileageKm !== existing.currentMileageKm) {
-      const [logs, transactions] = await Promise.all([
+      const [logs, transactions, rtoLogs, handover, rtoServices, meter] = await Promise.all([
         tx.mileageEntry.aggregate({ where: { vehicleId: id }, _max: { currentMileageKm: true } }),
         tx.transaction.aggregate({ where: { vehicleId: id, deletedAt: null }, _max: { mileageKm: true } }),
+        tx.rtoMileageEntry.aggregate({ where: { agreement: { vehicleId: id } }, _max: { odometerKm: true } }),
+        tx.vehicleTransfer.aggregate({ where: { vehicleId: id }, _max: { odometerKm: true } }),
+        tx.rtoService.aggregate({ where: { status: 'COMPLETED', agreement: { vehicleId: id } }, _max: { odometerKm: true } }),
+        tx.vehicleOdometerEvent.aggregate({ where: { vehicleId: id }, _max: { lifetimeKm: true } }),
       ]);
-      const recordedMileage = Math.max(logs._max.currentMileageKm ?? 0, transactions._max.mileageKm ?? 0);
+      const recordedMileage = Math.max(logs._max.currentMileageKm ?? 0, transactions._max.mileageKm ?? 0, rtoLogs._max.odometerKm ?? 0, handover._max.odometerKm ?? 0, rtoServices._max.odometerKm ?? 0, meter._max.lifetimeKm ?? 0);
       if (merged.currentMileageKm < recordedMileage) throw new ValidationError("Current mileage cannot be lower than recorded mileage. Correct the source reading first.", "currentMileageKm");
     }
     await tx.vehicle.update({ where: { id }, data: merged });

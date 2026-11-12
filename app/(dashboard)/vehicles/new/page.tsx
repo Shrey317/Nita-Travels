@@ -1,6 +1,8 @@
 import { VehicleForm } from "@/components/vehicles/vehicle-form";
+import { requireSession } from '@/lib/api-response';
 
-export default function NewVehiclePage() {
+export default async function NewVehiclePage() {
+  const session = await requireSession();
   return (
     <div className="max-w-4xl space-y-6">
       <div>
@@ -8,7 +10,7 @@ export default function NewVehiclePage() {
         <p className="text-sm text-muted">Add a new vehicle to the fleet register.</p>
       </div>
       <div className="rounded-xl border border-border bg-card p-6">
-        <VehicleForm />
+        <VehicleForm canEditFinance={session.staffRole === 'ADMIN'} />
       </div>
     </div>
   );

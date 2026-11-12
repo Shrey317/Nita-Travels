@@ -41,4 +41,6 @@ The CI workflow runs a production dependency audit, typecheck, lint, unit tests,
 
 ## Product boundaries
 
+The fleet expansion adds separate Rent-to-Own and administrator-only bank-finance modules. See the [codebase audit](docs/RTO_EXPANSION_AUDIT.md) and [implementation, financial definitions and release limitations](docs/RTO_IMPLEMENTATION.md) before staging or production migration.
+
 Operational conclusions are evidence based. Downtime is unavailable where no start/end records exist. Free-text warranty information cannot establish an expiry date or remaining distance. Finance projections and TCO cost inclusion must be interpreted according to the financial definitions; the platform does not infer unrecorded costs or make replacement decisions on management's behalf.

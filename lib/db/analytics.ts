@@ -7,6 +7,7 @@
  */
 
 import { ensureVehicleFinanceColumns, prisma } from "@/lib/db/client";
+import { redactLegacyFinance } from '@/lib/private-finance';
 import { getVehiclesWithFinancials } from "@/lib/db/vehicles";
 import { calculateRoiPercent, calculateRevenuePerKm, calculateCostPerKm, calculateProfitPerKm } from "@/lib/finance";
 import { buildPeriodAnalysis, explainProfitChange } from "@/lib/analytics";
@@ -127,7 +128,7 @@ export async function getAnalyticsReport(params: AnalyticsSearchParams = {}) {
   const previous = buildPeriodAnalysis({ ...input, range: selection.comparisonRange, scale: selection.comparisonScale });
   const sourceParams = new URLSearchParams({ dateFrom: dateKey(selection.range.from), dateTo: dateKey(selection.range.to) });
   if (selection.vehicleId) sourceParams.set("vehicleId", selection.vehicleId);
-  return { selection, vehicles, current, previous, profitBridge: explainProfitChange(current.totals, previous.totals),
+  return { selection, vehicles: redactLegacyFinance(vehicles), current, previous, profitBridge: explainProfitChange(current.totals, previous.totals),
     sourceHref: `/transactions?${sourceParams}`, mileageHref: `/mileage?${sourceParams}` };
 }
 export type AnalyticsReport = Awaited<ReturnType<typeof getAnalyticsReport>>;

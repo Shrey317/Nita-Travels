@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { VehicleModuleHistory } from '@/components/fleet-expansion/vehicle-module-history';
 import { notFound } from "next/navigation";
 import { Pencil, Plus, StickyNote, Gauge, Car } from "lucide-react";
 import { getVehicleDetail } from "@/lib/db/vehicles";
@@ -33,10 +34,8 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
   const searchParams = await props.searchParams;
   const { filters: timelineFilters, error: timelineFilterError } = parsePageListQuery(searchParams);
   const params = await props.params;
-  const [detail, isAdmin] = await Promise.all([
-    getVehicleDetail(params.id),
-    isAdminSession(),
-  ]);
+  const isAdmin = await isAdminSession();
+  const detail = await getVehicleDetail(params.id, isAdmin);
   if (!detail) notFound();
 
   const { vehicle, incomeCents, expenseCents, repairsCents, netProfitCents, emiBalanceCents, roiPercent, kmSincePurchase, service, recentRepairs, highRepairCost } =
@@ -94,6 +93,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
 
   return (
     <div className="space-y-8">
+      <VehicleModuleHistory vehicleId={vehicle.id} isAdmin={isAdmin} />
       {/* ── Vehicle Header ── */}
       <div className="flex flex-col gap-4 xl:flex-row xl:flex-wrap xl:items-start xl:justify-between">
         <div className="min-w-0">
@@ -242,8 +242,8 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
             { label: "KM Since Purchase", value: formatKm(kmSincePurchase) },
           ]}
         />
-        <InfoCard
-          title="Financing"
+        {isAdmin && <InfoCard
+          title="Legacy financing estimates"
           fields={
             financed && financeCountdown
               ? [
@@ -256,17 +256,17 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
                     label: "Months Left",
                     value:
                       financeCountdown.monthsLeft === 0
-                        ? "Owned by company (0 months left)"
+                        ? "Scheduled term elapsed; verify bank settlement"
                         : `${financeCountdown.monthsLeft} month${financeCountdown.monthsLeft === 1 ? "" : "s"} left (${financeCountdown.monthsElapsed} / ${vehicle.emiMonthsTotal} elapsed)`,
                   },
-                  { label: "Remaining Balance", value: formatZAR(emiBalanceCents) },
+                  { label: "Projected instalments (not bank balance)", value: formatZAR(emiBalanceCents) },
                 ]
               : [
                   { label: "Ownership", value: "Bought Privately (Cash)" },
                   { label: "Status", value: "Owned by company" },
                 ]
           }
-        />
+        />}
         <InfoCard
           title="Insurance"
           fields={[

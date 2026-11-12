@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => {
   const tx = {
     $queryRaw: vi.fn(),
     vehicle: { findUnique: vi.fn(), updateMany: vi.fn() },
+    vehicleAssignment: { findFirst: vi.fn() },
     transaction: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
     vehicleNote: { create: vi.fn() },
   };

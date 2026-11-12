@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma, TRANSACTION_OPTIONS } from '@/lib/db/client';
-import { ConflictError, NotFoundError, UnauthorizedError, ValidationError } from '@/lib/errors';
+import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '@/lib/errors';
+import { PRIVATE_FINANCE_FIELDS } from '@/lib/private-finance';
 import { transactionUpdateSchema } from '@/lib/schemas/transaction.schema';
 import { vehicleUpdateSchema } from '@/lib/schemas/vehicle.schema';
 import { calendarDateSchema, positiveIntegerSchema } from '@/lib/schemas/common.schema';
@@ -11,6 +12,7 @@ import { updateMileageEntry, deleteMileageEntry } from '@/lib/db/mileage';
 import { verifyNewAttachments } from '@/lib/verify-attachments';
 import { z } from 'zod';
 import { validateWorkOrderExpense } from '@/lib/work-order-validation';
+import { assertRentalDate } from '@/lib/db/fleet-assignment';
 
 export const entitySchema = z.enum(['vehicle', 'transaction', 'mileage', 'note', 'document', 'workOrder']);
 export type ChangeEntity = z.infer<typeof entitySchema>;
@@ -74,11 +76,13 @@ async function apply(tx: Prisma.TransactionClient, entity: ChangeEntity, id: str
   }
   const data = workOrderSchema.parse(input);
   await tx.vehicle.findUniqueOrThrow({ where: { id: data.vehicleId, deletedAt: null } });
+  await assertRentalDate(tx, data.vehicleId, data.plannedDate);
   await validateWorkOrderExpense(tx, data.vehicleId, data.expenseTransactionId);
   return tx.workOrder.update({ where: { id }, data });
 }
 
 export async function changeRecord(actor: Actor, entity: ChangeEntity, id: string, operation: 'UPDATE' | 'DELETE', input: unknown = {}) {
+  if (actor.role !== 'ADMIN' && entity === 'vehicle' && input && typeof input === 'object' && [...PRIVATE_FINANCE_FIELDS, 'purchaseType'].some(key => Object.prototype.hasOwnProperty.call(input, key))) throw new ForbiddenError('Only administrators may change bank-finance fields.');
   const proposed = json(validate(entity, operation, input));
   return prisma.$transaction(async tx => {
     await lockRecord(tx, entity, id);

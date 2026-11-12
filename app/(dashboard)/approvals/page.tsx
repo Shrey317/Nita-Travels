@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireSession } from '@/lib/api-response';
 import { prisma } from '@/lib/db/client';
 import { ApprovalReview } from '@/components/staff/approval-review';
+import { redactLegacyFinance } from '@/lib/private-finance';
 
 export const dynamic = 'force-dynamic';
 export default async function ApprovalsPage(props: { searchParams: Promise<{ page?: string }> }) {
@@ -20,7 +21,7 @@ export default async function ApprovalsPage(props: { searchParams: Promise<{ pag
     <p className="text-sm text-muted">Pending requests leave the original record unchanged until an administrator approves them.</p>
     {requests.length === 0 && <p>No change requests.</p>}
     {requests.map(row => <ApprovalReview key={row.id} isAdmin={isAdmin} item={{
-      ...row, createdAt: row.createdAt.toISOString(),
+      ...(isAdmin ? row : redactLegacyFinance(row)), createdAt: row.createdAt.toISOString(),
       requester: row.requestedBy === 'admin' ? 'Administrator' : staff.find(person => person.id === row.requestedBy)?.name || 'Former staff member',
     }} />)}
     <nav aria-label="Approval pages" className="flex gap-4">

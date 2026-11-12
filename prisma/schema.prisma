@@ -1,7 +1,8 @@
 // Nita Travels Fleet Management System — Prisma Schema
 //
 // Critical schema rules (see SRS Section 11):
-// - All ZAR amounts stored as integer cents (Int). Float/Decimal are prohibited for currency.
+// - Legacy rental ZAR amounts remain integer cents (Int). New RTO/bank ledgers use
+//   Decimal(14,2) in rand with decimal arithmetic; never mix the two representations.
 // - Transaction.vehicleId is nullable: null = no vehicle (e.g. loan repayments, excluded from
 //   vehicle groupings), "ALLCR" = fleet-wide entry (counts toward fleet totals, excluded from
 //   per-vehicle P&L), "CR01"-"CR09" = normal vehicle entries.
@@ -32,36 +33,469 @@ datasource db {
 }
 
 model Vehicle {
-  id                    String         @id // CR01–CR09, fixed — never auto-generated
+  id                    String                 @id // CR01–CR09, fixed — never auto-generated
   make                  String
   model                 String
   registration          String
   registration2         String?
   transmission          String // "Manual" | "Auto"
-  purchaseDate          DateTime       @db.Date
+  purchaseDate          DateTime               @db.Date
   purchasePriceCents    Int
   mileageAtPurchaseKm   Int
-  currentMileageKm      Int            @default(0)
+  currentMileageKm      Int                    @default(0)
   warranty              String?
-  serviceIntervalKm     Int            @default(20000)
-  purchaseType          String         @default("Cash") // "Cash" | "Financed"
+  serviceIntervalKm     Int                    @default(20000)
+  purchaseType          String                 @default("Cash") // "Cash" | "Financed"
   financeBank           String?
   financePolicyNumber   String?
-  targetEmiCents        Int            @default(0)
-  emiMonthsTotal        Int            @default(0)
-  emiMonthsPaid         Int            @default(0)
+  targetEmiCents        Int                    @default(0)
+  emiMonthsTotal        Int                    @default(0)
+  emiMonthsPaid         Int                    @default(0)
   insurer               String?
   policyNumber          String?
-  monthlyPremiumCents   Int            @default(0)
-  insurancePeriodMonths Int            @default(0)
-  insuranceEndDate      DateTime?      @db.Date
-  active                Boolean        @default(true)
+  monthlyPremiumCents   Int                    @default(0)
+  insurancePeriodMonths Int                    @default(0)
+  insuranceEndDate      DateTime?              @db.Date
+  active                Boolean                @default(true)
   mileageEntries        MileageEntry[]
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  assignments           VehicleAssignment[]
+  transfers             VehicleTransfer[]
+  rtoAgreements         RtoAgreement[]
+  bankAgreements        BankFinanceAgreement[]
+  availability          VehicleAvailability    @default(AVAILABLE)
+  odometerEvents        VehicleOdometerEvent[]
+  replacementDowntime   RtoDowntime[]          @relation("ReplacementVehicle")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
   deletedAt             DateTime?
 
   @@index([active])
+}
+
+enum OperatingModule {
+  NORMAL_RENTAL
+  RENT_TO_OWN
+  UNASSIGNED
+}
+
+enum VehicleAvailability {
+  AVAILABLE
+  MAINTENANCE
+  UNAVAILABLE
+  DISPOSED
+}
+
+enum PaymentFrequency {
+  WEEKLY
+  FORTNIGHTLY
+  MONTHLY
+  QUARTERLY
+}
+
+enum RepairApprovalStatus {
+  QUOTED
+  APPROVED
+  INVOICED
+  PAID
+  CANCELLED
+}
+
+enum ServiceRecordStatus {
+  PLANNED
+  COMPLETED
+  CANCELLED
+}
+
+model VehicleOdometerEvent {
+  id            String   @id @default(cuid())
+  vehicleId     String
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  effectiveDate DateTime @db.Date
+  lifetimeKm    Int
+  displayedKm   Int
+  offsetKm      Int
+  reason        String
+  actor         String
+  createdAt     DateTime @default(now())
+
+  @@unique([vehicleId, effectiveDate])
+}
+
+enum RtoStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  IN_DEFAULT
+  COMPLETED
+  TERMINATED
+  CANCELLED
+}
+
+enum BankFinanceStatus {
+  ACTIVE
+  SETTLED
+  REFINANCED
+}
+
+model VehicleAssignment {
+  id        String          @id @default(cuid())
+  vehicleId String
+  vehicle   Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  module    OperatingModule
+  startsAt  DateTime
+  endsAt    DateTime?
+  createdAt DateTime        @default(now())
+
+  @@index([vehicleId, startsAt])
+}
+
+// Includes the immutable handover and prior-agreement resolution attestation.
+model VehicleTransfer {
+  id          String          @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  fromModule  OperatingModule
+  toModule    OperatingModule
+  effectiveAt DateTime
+  odometerKm  Int
+  condition   String
+  resolution  String
+  actor       String
+  createdAt   DateTime        @default(now())
+
+  @@index([vehicleId, effectiveAt])
+}
+
+model FleetAuditEvent {
+  id        String   @id @default(cuid())
+  scope     String
+  recordId  String
+  action    String
+  actor     String
+  detail    Json
+  createdAt DateTime @default(now())
+
+  @@index([scope, recordId, createdAt])
+}
+
+model RtoDriver {
+  id               String         @id @default(cuid())
+  name             String
+  phone            String
+  email            String?
+  licenceReference String
+  createdAt        DateTime       @default(now())
+  agreements       RtoAgreement[]
+}
+
+model RtoAgreement {
+  id              String                @id @default(cuid())
+  number          String                @unique
+  vehicleId       String
+  vehicle         Vehicle               @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  driverId        String
+  driver          RtoDriver             @relation(fields: [driverId], references: [id], onDelete: Restrict)
+  modelYear       Int
+  status          RtoStatus             @default(DRAFT)
+  startDate       DateTime              @db.Date
+  weeks           Int                   @default(234)
+  weeklyAmount    Decimal               @db.Decimal(14, 2)
+  upfrontRequired Decimal               @default(8000) @db.Decimal(14, 2)
+  terms           Json
+  activatedAt     DateTime?
+  resolvedAt      DateTime?
+  resolution      String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  installments    RtoInstallment[]
+  payments        RtoPayment[]
+  charges         RtoCharge[]
+  mileage         RtoMileageEntry[]
+  repairs         RtoRepair[]
+  services        RtoService[]
+  downtime        RtoDowntime[]
+  documents       RtoDocument[]
+  settlements     RtoSettlementReview[]
+  mileagePeriods  RtoMileagePeriod[]
+
+  @@index([vehicleId, status])
+  @@index([driverId])
+}
+
+model RtoInstallment {
+  id               String                 @id @default(cuid())
+  agreementId      String
+  agreement        RtoAgreement           @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  sequence         Int
+  originalDueDate  DateTime
+  effectiveDueDate DateTime
+  amount           Decimal                @db.Decimal(14, 2)
+  allocations      RtoPaymentAllocation[]
+
+  @@unique([agreementId, sequence])
+  @@index([effectiveDueDate])
+}
+
+enum RtoPaymentKind {
+  RENT
+  UPFRONT
+  CHARGE
+}
+
+model RtoPayment {
+  id             String                 @id @default(cuid())
+  agreementId    String
+  agreement      RtoAgreement           @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  date           DateTime               @db.Date
+  amount         Decimal                @db.Decimal(14, 2)
+  kind           RtoPaymentKind
+  reference      String
+  method         String
+  notes          String?
+  idempotencyKey String                 @unique
+  reversedAt     DateTime?
+  reversalReason String?
+  actor          String
+  createdAt      DateTime               @default(now())
+  allocations    RtoPaymentAllocation[]
+
+  @@unique([agreementId, reference])
+  @@index([agreementId, date])
+}
+
+model RtoPaymentAllocation {
+  id            String          @id @default(cuid())
+  paymentId     String
+  payment       RtoPayment      @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  installmentId String?
+  installment   RtoInstallment? @relation(fields: [installmentId], references: [id], onDelete: Restrict)
+  chargeId      String?
+  charge        RtoCharge?      @relation(fields: [chargeId], references: [id], onDelete: Restrict)
+  amount        Decimal         @db.Decimal(14, 2)
+  createdAt     DateTime        @default(now())
+
+  @@index([installmentId])
+  @@index([chargeId])
+}
+
+model RtoCharge {
+  id          String                 @id @default(cuid())
+  agreementId String
+  agreement   RtoAgreement           @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  date        DateTime               @db.Date
+  kind        String
+  description String
+  amount      Decimal                @db.Decimal(14, 2)
+  sourceKey   String                 @unique
+  createdAt   DateTime               @default(now())
+  allocations RtoPaymentAllocation[]
+
+  @@index([agreementId, date])
+}
+
+model RtoMileageEntry {
+  id             String       @id @default(cuid())
+  agreementId    String
+  agreement      RtoAgreement @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  date           DateTime     @db.Date
+  odometerKm     Int
+  displayedKm    Int?
+  reviewRequired Boolean      @default(false)
+  source         String
+  distanceKm     Int
+  excessKm       Int
+  createdAt      DateTime     @default(now())
+
+  @@unique([agreementId, date])
+}
+
+model RtoMileagePeriod {
+  id          String       @id @default(cuid())
+  agreementId String
+  agreement   RtoAgreement @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  startsAt    DateTime     @db.Date
+  endsAt      DateTime     @db.Date
+  distanceKm  Int
+  excessKm    Int
+  evidence    String
+  actor       String
+  createdAt   DateTime     @default(now())
+
+  @@unique([agreementId, startsAt])
+  @@index([agreementId, endsAt])
+}
+
+model RtoRepair {
+  id              String               @id @default(cuid())
+  agreementId     String
+  agreement       RtoAgreement         @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  date            DateTime             @db.Date
+  kind            String
+  description     String
+  workshop        String
+  quotation       Decimal              @db.Decimal(14, 2)
+  approvedAmount  Decimal              @db.Decimal(14, 2)
+  invoiceAmount   Decimal              @db.Decimal(14, 2)
+  recoveryAmount  Decimal              @default(0) @db.Decimal(14, 2)
+  companyAmount   Decimal              @db.Decimal(14, 2)
+  driverAmount    Decimal              @db.Decimal(14, 2)
+  approvedBy      String?
+  status          RepairApprovalStatus @default(INVOICED)
+  quotedDate      DateTime?            @db.Date
+  companyPaidDate DateTime?            @db.Date
+  createdAt       DateTime             @default(now())
+
+  @@index([agreementId, date])
+}
+
+model RtoService {
+  id              String              @id @default(cuid())
+  agreementId     String
+  agreement       RtoAgreement        @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  date            DateTime            @db.Date
+  odometerKm      Int
+  intervalKm      Int                 @default(15000)
+  workshop        String
+  description     String
+  cost            Decimal             @db.Decimal(14, 2)
+  status          ServiceRecordStatus @default(COMPLETED)
+  plannedDate     DateTime?           @db.Date
+  targetMileageKm Int?
+  createdAt       DateTime            @default(now())
+
+  @@index([agreementId, date])
+}
+
+model RtoDowntime {
+  id                    String       @id @default(cuid())
+  agreementId           String
+  agreement             RtoAgreement @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  startsAt              DateTime
+  endsAt                DateTime?
+  reason                String
+  approvedBy            String
+  replacementVehicleId  String?
+  replacementVehicle    Vehicle?     @relation("ReplacementVehicle", fields: [replacementVehicleId], references: [id], onDelete: Restrict)
+  replacementReturnedAt DateTime?
+  createdAt             DateTime     @default(now())
+
+  @@index([agreementId, startsAt])
+}
+
+model RtoSettlementReview {
+  id               String       @id @default(cuid())
+  agreementId      String
+  agreement        RtoAgreement @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  indicativeAmount Decimal      @db.Decimal(14, 2)
+  approvedAmount   Decimal?     @db.Decimal(14, 2)
+  legalBasis       String?
+  status           String       @default("PENDING")
+  reviewedBy       String?
+  createdAt        DateTime     @default(now())
+
+  @@index([agreementId])
+}
+
+model RtoDocument {
+  id          String       @id @default(cuid())
+  agreementId String
+  agreement   RtoAgreement @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  title       String
+  kind        String
+  mimeType    String
+  content     Bytes
+  actor       String
+  createdAt   DateTime     @default(now())
+
+  @@index([agreementId])
+}
+
+model BankFinanceAgreement {
+  id                String                  @id @default(cuid())
+  vehicleId         String
+  vehicle           Vehicle                 @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  bank              String
+  reference         String                  @unique
+  startDate         DateTime                @db.Date
+  originalPrincipal Decimal                 @db.Decimal(14, 2)
+  termMonths        Int
+  monthlyAmount     Decimal                 @db.Decimal(14, 2)
+  interestRate      Decimal?                @db.Decimal(7, 4)
+  maturityDate      DateTime                @db.Date
+  firstDueDate      DateTime?               @db.Date
+  paymentFrequency  PaymentFrequency        @default(MONTHLY)
+  status            BankFinanceStatus       @default(ACTIVE)
+  createdAt         DateTime                @default(now())
+  payments          BankFinancePayment[]
+  statements        BankFinanceStatement[]
+  adjustments       BankFinanceAdjustment[]
+  documents         BankFinanceDocument[]
+
+  @@index([vehicleId, status])
+}
+
+model BankFinancePayment {
+  id             String               @id @default(cuid())
+  financeId      String
+  finance        BankFinanceAgreement @relation(fields: [financeId], references: [id], onDelete: Restrict)
+  date           DateTime             @db.Date
+  amount         Decimal              @db.Decimal(14, 2)
+  principal      Decimal?             @db.Decimal(14, 2)
+  interest       Decimal?             @db.Decimal(14, 2)
+  fees           Decimal?             @db.Decimal(14, 2)
+  reference      String
+  notes          String?
+  idempotencyKey String               @unique
+  reversedAt     DateTime?
+  reversalReason String?
+  actor          String
+  createdAt      DateTime             @default(now())
+
+  @@unique([financeId, reference])
+  @@index([financeId, date])
+}
+
+model BankFinanceStatement {
+  id                   String               @id @default(cuid())
+  financeId            String
+  finance              BankFinanceAgreement @relation(fields: [financeId], references: [id], onDelete: Restrict)
+  date                 DateTime             @db.Date
+  outstandingPrincipal Decimal              @db.Decimal(14, 2)
+  arrears              Decimal              @default(0) @db.Decimal(14, 2)
+  fees                 Decimal              @default(0) @db.Decimal(14, 2)
+  settlementAmount     Decimal?             @db.Decimal(14, 2)
+  quotationDate        DateTime?            @db.Date
+  quotationExpiry      DateTime?            @db.Date
+  actor                String
+  createdAt            DateTime             @default(now())
+
+  @@unique([financeId, date])
+}
+
+model BankFinanceAdjustment {
+  id        String               @id @default(cuid())
+  financeId String
+  finance   BankFinanceAgreement @relation(fields: [financeId], references: [id], onDelete: Restrict)
+  date      DateTime             @db.Date
+  amount    Decimal              @db.Decimal(14, 2)
+  reason    String
+  actor     String
+  createdAt DateTime             @default(now())
+
+  @@index([financeId, date])
+}
+
+model BankFinanceDocument {
+  id        String               @id @default(cuid())
+  financeId String
+  finance   BankFinanceAgreement @relation(fields: [financeId], references: [id], onDelete: Restrict)
+  title     String
+  mimeType  String
+  content   Bytes
+  actor     String
+  createdAt DateTime             @default(now())
+
+  @@index([financeId])
 }
 
 model Transaction {
@@ -142,78 +576,82 @@ model RateLimit {
 }
 
 model StaffAccount {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String
-  status       String   @default("PENDING")
-  sessionVersion Int    @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  passwordHash   String
+  status         String   @default("PENDING")
+  sessionVersion Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model ChangeRequest {
-  id String @id @default(cuid())
+  id          String    @id @default(cuid())
   requestedBy String
-  entity String
-  recordId String
-  operation String
-  before Json
-  proposed Json
-  status String @default("PENDING")
-  reviewedBy String?
-  reviewNote String?
-  createdAt DateTime @default(now())
-  reviewedAt DateTime?
+  entity      String
+  recordId    String
+  operation   String
+  before      Json
+  proposed    Json
+  status      String    @default("PENDING")
+  reviewedBy  String?
+  reviewNote  String?
+  createdAt   DateTime  @default(now())
+  reviewedAt  DateTime?
+
   @@index([status, createdAt])
 }
 
 model PasswordReset {
-  tokenHash String @id
-  staffId String
+  tokenHash      String    @id
+  staffId        String
   sessionVersion Int
-  expiresAt DateTime
-  usedAt DateTime?
-  principalType String @default("STAFF")
+  expiresAt      DateTime
+  usedAt         DateTime?
+  principalType  String    @default("STAFF")
+
   @@index([expiresAt])
 }
 
 model AdministratorCredential {
-  id String @id
-  email String @unique
-  passwordHash String
-  sessionVersion Int @default(0)
+  id              String    @id
+  email           String    @unique
+  passwordHash    String
+  sessionVersion  Int       @default(0)
   emailVerifiedAt DateTime?
 }
 
 model FleetDocument {
-  id String @id @default(cuid())
-  vehicleId String
-  title String
+  id           String   @id @default(cuid())
+  vehicleId    String
+  title        String
   documentType String
-  reference String?
-  expiryDate DateTime @db.Date
-  photoUrls String[] @default([])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  archived Boolean @default(false)
+  reference    String?
+  expiryDate   DateTime @db.Date
+  photoUrls    String[] @default([])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  archived     Boolean  @default(false)
+
   @@index([vehicleId, expiryDate])
 }
 
 model WorkOrder {
-  id String @id @default(cuid())
-  vehicleId String
-  kind String
-  title String
-  plannedDate DateTime @db.Date
-  startedDate DateTime? @db.Date
-  completedDate DateTime? @db.Date
-  notes String?
-  workshop String?
-  targetMileageKm Int?
+  id                   String    @id @default(cuid())
+  vehicleId            String
+  kind                 String
+  title                String
+  plannedDate          DateTime  @db.Date
+  startedDate          DateTime? @db.Date
+  completedDate        DateTime? @db.Date
+  notes                String?
+  workshop             String?
+  targetMileageKm      Int?
   expenseTransactionId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  archived Boolean @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  archived             Boolean   @default(false)
+
   @@index([vehicleId, plannedDate])
 }

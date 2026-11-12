@@ -4,12 +4,14 @@ import { prisma } from '@/lib/db/client';
 import { workOrderSchema } from '@/lib/schemas/operations.schema';
 import { validateWorkOrderExpense } from '@/lib/work-order-validation';
 import { invalidateFleetData } from '@/lib/invalidate-fleet';
+import { assertRentalDate } from '@/lib/db/fleet-assignment';
 export async function POST(request: Request) {
   try {
     await requireSession();
     const data = workOrderSchema.parse(await request.json());
     const record = await prisma.$transaction(async tx => {
       await tx.vehicle.findUniqueOrThrow({ where: { id: data.vehicleId, deletedAt: null } });
+      await assertRentalDate(tx, data.vehicleId, data.plannedDate);
       await validateWorkOrderExpense(tx, data.vehicleId, data.expenseTransactionId);
       return tx.workOrder.create({ data });
     });

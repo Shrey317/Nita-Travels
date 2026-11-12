@@ -4,8 +4,8 @@ import { getVehicleDetail } from '@/lib/db/vehicles';
 import { requireSession, handleApiError, jsonError } from '@/lib/api-response';
 export async function GET(_request: Request, props: Props) {
   try {
-    await requireSession();
-    const detail = await getVehicleDetail((await props.params).id);
+    const session = await requireSession();
+    const detail = await getVehicleDetail((await props.params).id, session.staffRole === 'ADMIN');
     return detail ? NextResponse.json(detail) : jsonError('Vehicle not found', 404);
   } catch (error) { return handleApiError(error); }
 }

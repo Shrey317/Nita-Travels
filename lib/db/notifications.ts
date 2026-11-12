@@ -23,7 +23,7 @@ export async function getFleetNotifications(serviceRead?: ReturnType<typeof getS
   const weekStart = isoWeekStart(today);
   const [vehicles, serviceRows, mileageEntries] = await Promise.all([
     prisma.vehicle.findMany({
-      where: { active: true, deletedAt: null },
+      where: { active: true, deletedAt: null, assignments: { none: { endsAt: null, module: { not: 'NORMAL_RENTAL' } } } },
       select: { id: true, registration: true, make: true, model: true, currentMileageKm: true },
       orderBy: { id: "asc" },
     }),
@@ -34,6 +34,24 @@ export async function getFleetNotifications(serviceRead?: ReturnType<typeof getS
     }),
   ]);
   const notifications: FleetNotification[] = [];
+  const rtoAgreements = await prisma.rtoAgreement.findMany({ where: { status: { in: ['ACTIVE','SUSPENDED','IN_DEFAULT'] } }, select: {
+    id: true, number: true, vehicleId: true, vehicle: { select: { currentMileageKm: true } },
+    services: { where: { status: { in: ['PLANNED','COMPLETED'] } }, orderBy: { date: 'desc' }, select: { id: true, date: true, status: true, targetMileageKm: true, odometerKm: true, intervalKm: true } },
+    mileage: { orderBy: { date: 'desc' }, take: 1, select: { date: true, reviewRequired: true } },
+    downtime: { where: { endsAt: null }, select: { id: true } },
+  } });
+  for (const agreement of rtoAgreements) {
+    const service = agreement.services.find(s => s.status === 'COMPLETED'); const reading = agreement.mileage[0];
+    const href = `/rent-to-own/agreements/${agreement.id}`;
+    const remaining = service ? service.odometerKm + service.intervalKm - agreement.vehicle.currentMileageKm : null;
+    for (const plan of agreement.services.filter(s => s.status === 'PLANNED')) {
+      const mileageDue = plan.targetMileageKm !== null && plan.targetMileageKm <= agreement.vehicle.currentMileageKm;
+      if (plan.date <= addDays(today, 7) || mileageDue) notifications.push({ id: `rto-service-plan-${plan.id}`, priority: plan.date < today || mileageDue ? 'warning' : 'info', title: `${agreement.vehicleId} · Planned RTO service`, description: `Scheduled ${dateKey(plan.date)}${plan.targetMileageKm !== null ? ` at ${plan.targetMileageKm.toLocaleString('en-ZA')} km` : ''}. Record completion and the company-paid cost.`, vehicleId: agreement.vehicleId, href, category: 'service', timestamp: today });
+    }
+    if (remaining === null || remaining <= 1500) notifications.push({ id: `rto-service-${agreement.id}`, priority: remaining === null ? 'info' : remaining <= 0 ? 'critical' : 'warning', title: `${agreement.vehicleId} · RTO service ${remaining === null ? 'baseline needed' : remaining <= 0 ? 'due' : 'due soon'}`, description: remaining === null ? 'Record the last completed RTO service and its interval.' : `${Math.abs(remaining).toLocaleString('en-ZA')} km ${remaining <= 0 ? 'past' : 'until'} scheduled servicing. Company pays 100%.`, vehicleId: agreement.vehicleId, href, category: 'service', timestamp: today });
+    if (!reading || reading.date < addDays(today, -7) || reading.reviewRequired) notifications.push({ id: `rto-mileage-${agreement.id}`, priority: 'warning', title: `${agreement.vehicleId} · RTO mileage ${reading?.reviewRequired ? 'review required' : 'reading due'}`, description: reading?.reviewRequired ? 'Irregular readings need verified weekly reconciliation before excess mileage is charged.' : `Record a current reading for ${agreement.number}.`, vehicleId: agreement.vehicleId, href, category: 'mileage', timestamp: today });
+    if (agreement.downtime.length) notifications.push({ id: `rto-downtime-${agreement.id}`, priority: 'info', title: `${agreement.vehicleId} · Rent suspended`, description: 'Approved downtime remains open. Close it when the vehicle is available and the replacement is returned.', vehicleId: agreement.vehicleId, href, category: 'repairs', timestamp: today });
+  }
   const [documents, plannedWork] = await Promise.all([
     prisma.fleetDocument.findMany({ where: { archived: false, expiryDate: { lte: addDays(today, 30) } }, select: { id: true, vehicleId: true, title: true, expiryDate: true } }),
     prisma.workOrder.findMany({ where: { archived: false, completedDate: null }, select: { id: true, vehicleId: true, title: true, plannedDate: true, startedDate: true, kind: true, targetMileageKm: true } }),

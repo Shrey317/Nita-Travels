@@ -24,6 +24,13 @@ export type NavGroup = {
 
 export const NAV_GROUPS: NavGroup[] = [
   {
+    label: "BUSINESS MODULES",
+    items: [
+      { href: "/rent-to-own", label: "Rent-to-Own", icon: Car },
+      { href: "/bank-finance", label: "Private Bank Finance", icon: Receipt, adminOnly: true },
+    ],
+  },
+  {
     label: "OVERVIEW",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },

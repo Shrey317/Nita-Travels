@@ -7,6 +7,7 @@
  */
 
 import type { Prisma, Transaction, Category } from "@prisma/client";
+import { assertRentalDate } from './fleet-assignment';
 import { verifyNewAttachments } from "@/lib/verify-attachments";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/db/client";
 import { NotFoundError } from "@/lib/errors";
@@ -114,6 +115,7 @@ export async function createTransaction(input: TransactionInput): Promise<Transa
   await verifyNewAttachments(data.photoUrls);
   return prisma.$transaction(async (tx) => {
     await requireVehicleReference(tx, data.vehicleId);
+    await assertRentalDate(tx, data.vehicleId, data.date);
     const created = await tx.transaction.create({ data });
     await syncVehicleMileageFromReading(tx, data.vehicleId, data.mileageKm);
     return created;
@@ -131,6 +133,7 @@ export async function updateTransaction(id: string, input: TransactionUpdateInpu
     const merged = transactionSchema.parse({ ...existing, ...partial });
     await verifyNewAttachments(merged.photoUrls, existing.photoUrls);
     await requireVehicleReference(tx, merged.vehicleId);
+    await assertRentalDate(tx, merged.vehicleId, merged.date);
     const updated = await tx.transaction.update({ where: { id, deletedAt: null }, data: merged });
     await syncVehicleMileageFromReading(tx, merged.vehicleId, merged.mileageKm);
     return updated;

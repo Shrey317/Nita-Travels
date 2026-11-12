@@ -1,4 +1,5 @@
 import { verifyNewAttachments } from "@/lib/verify-attachments";
+import { assertRentalDate } from './fleet-assignment';
 /**
  * lib/db/mileage.ts
  *
@@ -80,6 +81,7 @@ export async function createMileageEntry(input: MileageEntryInput): Promise<Mile
     if (!vehicle.active || vehicle.deletedAt) {
       throw new ValidationError("Cannot add mileage entries to a deactivated or deleted vehicle", "vehicleId");
     }
+    await assertRentalDate(tx, data.vehicleId, data.date);
     const previousMileageKm = vehicle.mileageAtPurchaseKm;
     const derived = buildMileageEntry(data.date, data.currentMileageKm, previousMileageKm);
     const created = await tx.mileageEntry.create({
@@ -120,7 +122,10 @@ export async function recalculateMileageChain(tx: Prisma.TransactionClient, vehi
   if (entries.length > 0) {
     const vehicle = await tx.vehicle.findUniqueOrThrow({ where: { id: vehicleId }, select: { mileageAtPurchaseKm: true } });
     
-    const reconciled = deriveMileageChain(entries, vehicle.mileageAtPurchaseKm, changedId);
+    // Handover anchors preserve continuity without importing RTO distance into rental mileage.
+    const transfers = await tx.vehicleTransfer.findMany({ where: { vehicleId }, orderBy: { effectiveAt: 'asc' } });
+    const anchors = transfers.map(t => ({ id: `handover:${t.id}`, date: t.effectiveAt, createdAt: new Date(0), currentMileageKm: t.odometerKm, weeklyLimitKm: WEEKLY_MILEAGE_LIMIT }));
+    const reconciled = deriveMileageChain([...entries, ...anchors], vehicle.mileageAtPurchaseKm, changedId).filter(e => !e.id.startsWith('handover:'));
     const originalById = new Map(entries.map((entry) => [entry.id, entry]));
     for (const entry of reconciled) {
       const original = originalById.get(entry.id);
@@ -138,13 +143,21 @@ export async function recalculateMileageChain(tx: Prisma.TransactionClient, vehi
   }
 
   // Finally, re-sync vehicle's currentMileageKm to the max of all MileageEntry and Transaction
-  const [maxEntry, maxTx, vehicle] = await Promise.all([
+  const [maxEntry, maxTx, vehicle, rtoMileage, handover, rtoService, meter] = await Promise.all([
     tx.mileageEntry.findFirst({ where: { vehicleId }, orderBy: { currentMileageKm: "desc" }, select: { currentMileageKm: true } }),
     tx.transaction.findFirst({ where: { vehicleId, mileageKm: { not: null }, deletedAt: null }, orderBy: { mileageKm: "desc" }, select: { mileageKm: true } }),
-    tx.vehicle.findUniqueOrThrow({ where: { id: vehicleId } })
+    tx.vehicle.findUniqueOrThrow({ where: { id: vehicleId } }),
+    tx.rtoMileageEntry.aggregate({ where: { agreement: { vehicleId } }, _max: { odometerKm: true } }),
+    tx.vehicleTransfer.aggregate({ where: { vehicleId }, _max: { odometerKm: true } }),
+    tx.rtoService.aggregate({ where: { status: 'COMPLETED', agreement: { vehicleId } }, _max: { odometerKm: true } }),
+    tx.vehicleOdometerEvent.aggregate({ where: { vehicleId }, _max: { lifetimeKm: true } })
   ]);
   const highestKm = Math.max(
     minimumCurrentMileage,
+    rtoMileage._max.odometerKm ?? 0,
+    handover._max.odometerKm ?? 0,
+    rtoService._max.odometerKm ?? 0,
+    meter._max.lifetimeKm ?? 0,
     maxEntry?.currentMileageKm ?? 0,
     maxTx?.mileageKm ?? 0,
     vehicle.mileageAtPurchaseKm // Absolute floor
@@ -168,6 +181,7 @@ export async function updateMileageEntry(id: string, input: UpdateMileageInput, 
 
     await lockMileageVehicle(tx, existing.vehicleId);
     const date = input.date === undefined ? existing.date : calendarDateSchema.parse(input.date);
+    await assertRentalDate(tx, existing.vehicleId, date);
     const derived = buildMileageEntry(date, newCurrentKm, 0);
     await tx.mileageEntry.update({
       where: { id },

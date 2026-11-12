@@ -13,9 +13,11 @@ import { vehicleSchema, type PurchaseType } from "@/lib/schemas/vehicle.schema";
 import { randToCents, centsToRand, formatZAR } from "@/lib/format";
 import { calculateFinanceCountdown, getVehicleFinanceInfo } from "@/lib/finance";
 import type { Vehicle } from "@prisma/client";
+import { omitFinanceInputs } from '@/lib/private-finance';
 
 interface VehicleFormProps {
   vehicle?: Vehicle;
+  canEditFinance?: boolean;
 }
 
 interface FormState {
@@ -97,7 +99,7 @@ function buildInitialState(vehicle?: Vehicle): FormState {
   };
 }
 
-export function VehicleForm({ vehicle }: VehicleFormProps) {
+export function VehicleForm({ vehicle, canEditFinance = false }: VehicleFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const isEdit = !!vehicle;
@@ -177,7 +179,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
       const res = await fetch(isEdit ? `/api/vehicles/${vehicle.id}` : "/api/vehicles", {
         method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(canEditFinance ? payload : omitFinanceInputs(payload)),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -352,7 +354,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
           </div>
         </section>
 
-        <section className="space-y-4">
+        {canEditFinance && <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Financing</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
@@ -420,13 +422,13 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
                 </div>
                 <div className="flex flex-col justify-center rounded-xl border border-border-subtle bg-surface-elevated px-4 py-3">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                    Countdown to Ownership
+                    Scheduled Finance Term
                   </span>
                   <span className="mt-1 font-mono-figures text-sm font-bold text-ink">
                     {parsedTotalMonths === 0
                       ? "Enter finance period"
                       : financeCountdown.monthsLeft === 0
-                        ? "Owned by company (0 months left)"
+                        ? "Term elapsed; verify bank settlement"
                         : `${financeCountdown.monthsLeft} month${financeCountdown.monthsLeft === 1 ? "" : "s"} left`}
                   </span>
                   {parsedTotalMonths > 0 && (
@@ -443,7 +445,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               </div>
             )}
           </div>
-        </section>
+        </section>}
 
         <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Insurance</h2>

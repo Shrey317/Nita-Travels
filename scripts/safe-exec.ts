@@ -69,7 +69,7 @@ async function runSuite(testFile?: string, project?: string) {
     await client.$executeRawUnsafe(`CREATE SCHEMA "${schema}"`);
     console.warn(`Isolated test schema: ${schema}`);
     run('prisma/build/index.js', ['migrate', 'deploy'], env);
-    if (mode === 'integration') run(join(dirname(require.resolve('vitest/package.json')), 'vitest.mjs'), ['run', '--config', 'vitest.integration.config.mts', ...(testFile ? [testFile] : []), ...process.argv.slice(3)], env);
+    if (mode === 'integration') run(join(dirname(require.resolve('vitest/package.json')), 'vitest.mjs'), ['run', '--config', 'vitest.integration.config.mts', ...(testFile ? [testFile] : []), ...process.argv.slice(3).filter(arg => !arg.endsWith('.test.ts'))], env);
     else run('@playwright/test/cli', ['test', ...(project ? [`--project=${project}`] : []), ...process.argv.slice(3)], env);
   } finally {
     await client.$disconnect();
@@ -78,7 +78,8 @@ async function runSuite(testFile?: string, project?: string) {
 
 async function main() {
   if (process.argv[2] === 'integration') {
-    for (const file of readdirSync('__tests__/integration').filter(file => file.endsWith('.test.ts'))) {
+    const selected = process.argv.slice(3).filter(arg => arg.endsWith('.test.ts')).map(arg => arg.replaceAll('\\', '/').split('/').at(-1));
+    for (const file of readdirSync('__tests__/integration').filter(file => file.endsWith('.test.ts') && (!selected.length || selected.includes(file)))) {
       await runSuite(join('__tests__/integration', file));
     }
   } else if (process.argv.slice(3).some(arg => arg.startsWith('--project'))) await runSuite();
