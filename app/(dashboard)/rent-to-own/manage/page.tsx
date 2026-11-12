@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requireAdmin } from '@/lib/api-response';
 import { prisma } from '@/lib/db/client';
 import { ActionForm } from '@/components/fleet-expansion/action-form';
@@ -14,9 +15,7 @@ export default async function ManageRto() {
   const vehicleOptions = vehicles.map(v => ({ value: v.id, label: `${v.id} · ${v.registration} · ${assignments.find(a => a.vehicleId === v.id)?.module ?? 'NORMAL_RENTAL'}` }));
   return <><ModuleLinks /><ModuleHeader title="RTO setup & transfers" description="Keep one permanent vehicle identity. Register the driver, transfer the vehicle, then prepare and activate its agreement." />
     <div className="space-y-4">
-      <ActionForm title="Add a new Rent-to-Own vehicle" endpoint="/api/rent-to-own/vehicles" description="Creates a permanent vehicle directly in Rent-to-Own. For an existing fleet car, use Transfer vehicle instead." fields={[
-        { name: 'id', label: 'Vehicle ID (for example RT01)' }, { name: 'make', label: 'Make', value: 'Suzuki' }, { name: 'model', label: 'Model', value: 'S-Presso' }, { name: 'registration', label: 'Registration' }, { name: 'transmission', label: 'Transmission', options: [{ value: 'Manual', label: 'Manual' }, { value: 'Auto', label: 'Auto' }] }, { name: 'purchaseDate', label: 'Purchase date', type: 'date' }, { name: 'purchasePrice', label: 'Purchase price (R)' }, { name: 'mileageAtPurchaseKm', label: 'Mileage at purchase (km)', type: 'number' }, { name: 'currentMileageKm', label: 'Current lifetime mileage (km)', type: 'number' }, { name: 'serviceIntervalKm', label: 'Service interval (km)', type: 'number', value: 15000 },
-      ]} />
+      <Link className="inline-block rounded-lg bg-primary px-4 py-3 text-white" href="/rent-to-own/vehicles/new">Add car</Link>
       <ActionForm title="Update physical availability" endpoint="/api/rent-to-own/availability" description="Physical condition is independent of the operating module. Open downtime and replacement reservations must be resolved through their own workflow." fields={[{ name: 'vehicleId', label: 'Vehicle', options: vehicleOptions }, { name: 'availability', label: 'Physical availability', options: ['AVAILABLE','MAINTENANCE','UNAVAILABLE','DISPOSED'].map(value => ({ value, label: value })) }, { name: 'reason', label: 'Reason / authorisation' }]} />
       <ActionForm title="1. Register driver" endpoint="/api/rent-to-own/drivers" fields={[{ name: 'name', label: 'Full name' }, { name: 'phone', label: 'Phone' }, { name: 'email', label: 'Email', type: 'email', optional: true }, { name: 'licenceReference', label: 'Driving licence reference' }]} />
       <ActionForm title="2. Transfer vehicle" endpoint="/api/rent-to-own/transfer" description="Confirm the prior agreement has been lawfully resolved. This records an immutable handover and preserves every prior module record." fields={[

@@ -78,3 +78,15 @@ Normal Rental active lists, service status and entry selectors exclude vehicles 
 The new navigation and page changes have not been deployed; Vercel team access is still required.
 
 Verification for business-system separation: production build, lint and TypeScript passed; 253 unit tests, 11 isolated PostgreSQL integration tests and 3 Chromium workflows passed. Browser coverage includes all eleven RTO registers, focused repair forms, desktop/mobile switching, manager bank privacy and exclusion from the Normal Rental vehicle API.
+
+## RTO interface simplification
+
+Removed Service & Repairs planning and Scheduled Servicing navigation entries, and the RTO service task tab. Existing stored records and backend services are retained. The RTO dashboard now shows three daily actions, four summary figures, a six-column vehicle/driver register and collapsed charts/exports. Agreement task pages show only relevant summary figures, with a short overview action panel. Registers use a labelled agreement selector. This is an interface-only update; no live data migration is required.
+
+Simplified-interface verification: production build (including lint and TypeScript) and all three Chromium workflows passed, covering the vehicle picker, focused forms, module navigation, privacy and mobile layout.
+
+## Manual entries and direct car creation
+
+RTO Vehicles now has an Add car button and dedicated /rent-to-own/vehicles/new form. Successful creation returns to the vehicle register; no driver or agreement is required at this stage. The Payments register opens the Manual entry agreement tab, where the administrator explicitly records actual receipts, repair invoices and completed services. The manual repair route does not require a quotation workflow and does not invent a quotation or payment. Expenses and driver receipts remain separate records. Expected weekly rent remains a schedule, never automatically collected income. Service planning remains absent from navigation.
+
+Manual-entry verification: production build passed, 12 isolated database tests passed and all 4 Chromium workflows passed. Browser verification creates a car using the actual form and checks payment, repair and completed-service entry forms without service planning.

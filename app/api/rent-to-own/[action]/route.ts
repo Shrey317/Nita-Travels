@@ -10,7 +10,7 @@ import { revalidatePath } from 'next/cache';
 const actions: Record<string, (input: unknown, actor: string) => Promise<unknown>> = {
   vehicles: createRtoVehicle, drivers: rto.createDriver, agreements: rto.createAgreement, status: rto.changeAgreementStatus,
   payments: rto.recordRtoPayment, reversal: rto.reverseRtoPayment, mileage: rto.recordRtoMileage,
-  repairs: rto.recordRtoRepair, services: rto.recordRtoService, downtime: rto.recordDowntime,
+  repairs: rto.recordRtoRepair, 'manual-repair': rto.recordManualRtoRepair, services: rto.recordRtoService, downtime: rto.recordDowntime,
   'close-downtime': rto.closeDowntime, settlement: rto.settlementReview, transfer: transferVehicle,
   'adjust-installment': rto.adjustInstallment, 'correct-mileage': rto.correctRtoMileage,
   'reconcile-mileage': reconcileMileage, 'meter-replacement': recordMeterReplacement, availability: setVehicleAvailability, 'correct-downtime': correctDowntime,

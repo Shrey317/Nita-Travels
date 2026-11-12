@@ -7,7 +7,7 @@ import { transferVehicle } from '@/lib/db/fleet-assignment';
 import { createTransaction } from '@/lib/db/transactions';
 import { createBankAgreement, recordBankPayment, recordBankStatement, getBankAgreement } from '@/lib/db/bank-finance';
 import { correctDowntime, reconcileMileage, recordMeterReplacement } from '@/lib/db/rto-reconciliation';
-import { closeDowntime } from '@/lib/db/rto';
+import { closeDowntime, recordManualRtoRepair } from '@/lib/db/rto';
 import { getFleetNotifications } from '@/lib/db/notifications';
 import { approveRepair, createRepairQuotation, invoiceRepair, markRepairPaid } from '@/lib/db/rto-repairs';
 import { completeRtoService, planRtoService } from '@/lib/db/rto-service';
@@ -133,4 +133,12 @@ describe('separate fleet ledgers and atomic lifecycle', () => {
     expect((await prisma.vehicle.findUniqueOrThrow({ where: { id: 'CR76' } })).currentMileageKm).toBe(17800);
     expect(await prisma.rtoCharge.count({ where: { agreementId } })).toBe(chargeCount);
   });
+  it('records a manual repair expense without inventing a driver payment or quotation', async () => {
+    const before = await prisma.rtoPayment.count({ where: { agreementId } });
+    const repair = await recordManualRtoRepair({ agreementId, date: '2025-03-11', kind: 'Tyres', description: 'Manually entered paid invoice', workshop: 'Test workshop', invoiceAmount: '1000', recoveryAmount: '200' }, 'admin');
+    expect(repair.quotation.toFixed(2)).toBe('0.00');
+    expect(repair.driverAmount.toFixed(2)).toBe('400.00');
+    expect(await prisma.rtoPayment.count({ where: { agreementId } })).toBe(before);
+  });
+
 });

@@ -97,7 +97,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
           </Command.Group>
         )}
 
-        {!query && rto && <Command.Group heading="Rent-to-Own actions">{[['agreements', 'Agreements & drivers'], ['payments', 'Record payment'], ['mileage', 'Record mileage'], ['repairs', 'Manage repairs'], ['service', 'Plan service']].map(([path, label]) => <Command.Item key={path} onSelect={() => onSelect(`/rent-to-own/${path}`)} className="cursor-pointer rounded p-3 aria-selected:bg-primary/10">{label}</Command.Item>)}</Command.Group>}
+        {!query && rto && <Command.Group heading="Rent-to-Own actions">{[['agreements', 'Agreements & drivers'], ['payments', 'Record payment'], ['mileage', 'Record mileage'], ['repairs', 'Manage repairs']].map(([path, label]) => <Command.Item key={path} onSelect={() => onSelect(`/rent-to-own/${path}`)} className="cursor-pointer rounded p-3 aria-selected:bg-primary/10">{label}</Command.Item>)}</Command.Group>}
         {results?.vehicles?.length ? (
           <Command.Group heading="Vehicles" className="px-2 py-2 text-xs font-medium text-muted">
             {results.vehicles.map((v) => (

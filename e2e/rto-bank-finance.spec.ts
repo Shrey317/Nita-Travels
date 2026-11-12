@@ -12,6 +12,7 @@ test('RTO setup, payment allocation, private bank records and responsive dashboa
   const agreement = await post('/api/rent-to-own/agreements', { number: 'BROWSER-RTO-77', vehicleId: 'CR77', driverId: driver.id, modelYear: 2025, startDate: '2025-02-01', weeklyAmount: '2850' });
   await page.goto(`/rent-to-own/agreements/${agreement.id}?tab=documents`);
   await expect(page.getByRole('heading', { name: 'BROWSER-RTO-77' })).toBeVisible();
+  await expect(page.getByLabel('File', { exact: true })).toHaveCount(1);
   await page.getByLabel('File', { exact: true }).setInputFiles({ name: 'signed.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\nSynthetic signed document') });
   await page.getByRole('button', { name: 'Attach document', exact: true }).click();
   await expect(page.getByText('Document attached.', { exact: true })).toBeVisible();
@@ -59,13 +60,15 @@ test('business switcher separates navigation, registers and normal vehicle lists
   await expect(switcher.getByRole('link', { name: 'Rent-to-Own', exact: true })).toHaveAttribute('aria-current', 'true');
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   await expect(sidebar.getByRole('link', { name: 'Transactions', exact: true })).toHaveCount(0);
+  await expect(sidebar.getByRole('link', { name: 'Scheduled Servicing', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Vehicles & drivers', exact: true })).toBeVisible();
   for (const [section, title] of [['vehicles','Vehicles'], ['agreements','Agreements & Drivers'], ['payments','Payments & Charges'], ['mileage','Mileage'], ['repairs','Repairs & Approvals'], ['service','Scheduled Servicing'], ['downtime','Downtime & Replacements'], ['documents','Documents'], ['settlements','Settlement Reviews'], ['alerts','Alerts'], ['reports','Reports']]) {
     await page.goto(`/rent-to-own/${section}`);
     await expect(page.getByRole('heading', { name: `Rent-to-Own · ${title}`, exact: true })).toBeVisible();
   }
   await page.goto('/rent-to-own/repairs');
-  await page.getByText('Add or manage records — choose an agreement', { exact: true }).click();
-  await page.getByRole('link', { name: 'CR77 · BROWSER-RTO-77', exact: true }).click();
+  await page.getByLabel('Choose a vehicle or agreement').selectOption({ label: 'CR77 · BROWSER-RTO-77' });
+  await page.getByRole('button', { name: 'Open & manage' }).click();
   await expect(page).toHaveURL(/\/rent-to-own\/agreements\/[^?]+\?tab=repairs$/, { timeout: 30000 });
   await expect(page.locator('summary').filter({ hasText: /^Register repair quotation$/ })).toBeVisible();
   await expect(page.getByText('Record payment', { exact: true })).toHaveCount(0);
@@ -80,4 +83,30 @@ test('business switcher separates navigation, registers and normal vehicle lists
   await page.getByRole('navigation', { name: 'Quick navigation' }).getByRole('link', { name: 'Payments', exact: true }).click();
   await expect(page).toHaveURL(/\/rent-to-own\/payments$/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+
+test('add car is available in RTO vehicles and manual entries include completed services', async ({ page }) => {
+  await login(page);
+  await page.goto('/rent-to-own/vehicles');
+  await page.getByRole('link', { name: 'Add car', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Add Rent-to-Own car' })).toBeVisible();
+  await page.getByLabel('Vehicle ID (for example RT01)', { exact: true }).fill('RT91');
+  await page.getByLabel('Registration', { exact: true }).fill('MANUAL-TEST-91');
+  await page.getByRole('combobox', { name: /^Transmission/ }).selectOption('Manual');
+  await page.getByLabel('Purchase date', { exact: true }).fill('2025-01-01');
+  await page.getByLabel('Purchase price (R)', { exact: true }).fill('100000');
+  await page.getByLabel('Mileage at purchase (km)', { exact: true }).fill('1000');
+  await page.getByLabel('Current lifetime mileage (km)', { exact: true }).fill('1000');
+  await page.getByRole('button', { name: 'Save car', exact: true }).click();
+  await expect(page).toHaveURL(/\/rent-to-own\/vehicles$/);
+  await expect(page.getByText('MANUAL-TEST-91', { exact: true })).toBeVisible();
+  await page.goto('/rent-to-own/payments');
+  await page.getByLabel('Choose a vehicle or agreement').selectOption({ label: 'CR77 · BROWSER-RTO-77' });
+  await page.getByRole('button', { name: 'Open & manage' }).click();
+  await expect(page).toHaveURL(/tab=entries$/);
+  await expect(page.locator('summary').filter({ hasText: /^Record completed service$/ })).toBeVisible();
+  await expect(page.locator('summary').filter({ hasText: /^Record repair expense$/ })).toBeVisible();
+  await expect(page.locator('summary').filter({ hasText: /^Record payment$/ })).toBeVisible();
+  await expect(page.locator('summary').filter({ hasText: /^Plan scheduled service$/ })).toHaveCount(0);
 });

@@ -1,3 +1,4 @@
+import { AgreementPicker } from '@/components/fleet-expansion/agreement-picker';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -10,7 +11,7 @@ export const dynamic = 'force-dynamic';
 const sections: Record<string, [string, string]> = {
   vehicles: ['Vehicles', 'Vehicles currently assigned to Rent-to-Own, with their own agreements and operational history.'],
   agreements: ['Agreements & Drivers', 'Manage the driver relationship, contractual terms and agreement lifecycle.'],
-  payments: ['Payments & Charges', 'Driver receipts, allocations and reversals. Open an agreement to record a payment or review charges.'],
+  payments: ['Payments & Charges', 'Record payments and expenses manually when the driver pays. Nothing is marked as paid until you save a payment.'],
   mileage: ['Mileage', 'Weekly readings, allowances, excess kilometres and reviewed corrections.'],
   repairs: ['Repairs & Approvals', 'Quotations, approvals, invoices and the company/driver cost split.'],
   service: ['Scheduled Servicing', 'Plan maintenance, complete services and track company-paid costs.'],
@@ -28,7 +29,7 @@ export default async function RtoSection({ params, searchParams }: { params: Pro
   const q = (query.q ?? '').trim().slice(0, 100);
   const filter = q ? { OR: [{ number: { contains: q, mode: 'insensitive' as const } }, { vehicleId: { contains: q, mode: 'insensitive' as const } }, { driver: { name: { contains: q, mode: 'insensitive' as const } } }] } : {};
   const pagination = { skip: (page - 1) * 30, take: 31 };
-  const tab = ['vehicles', 'agreements'].includes(section) ? 'overview' : section;
+  const tab = ['vehicles', 'agreements'].includes(section) ? 'overview' : section === 'payments' ? 'entries' : section;
   const agreementLink = (a: { id: string; number: string; vehicleId: string }) => <Link prefetch={false} className="underline" href={`/rent-to-own/agreements/${a.id}?tab=${tab}`}>{a.vehicleId} · {a.number}</Link>;
   let headers: string[] = []; let rows: ReactNode[][] = [];
   if (section === 'vehicles') {
@@ -76,10 +77,11 @@ export default async function RtoSection({ params, searchParams }: { params: Pro
   const pageHref = (value: number) => `/rent-to-own/${section}?${new URLSearchParams({ q, page: String(value) })}`;
   return <>
     <ModuleHeader title={`Rent-to-Own · ${config[0]}`} description={config[1]} />
+    {section === 'vehicles' && session.staffRole === 'ADMIN' && <Link className="mb-5 inline-block rounded-lg bg-primary px-5 py-3 font-semibold text-white" href="/rent-to-own/vehicles/new">Add car</Link>}
     {section === 'reports' ? <div className="grid gap-4 sm:grid-cols-2"><Link prefetch={false} className="rounded-xl border border-border p-5 underline" href="/rent-to-own">Dashboard, date filters & financial charts</Link>{['agreements','payments','mileage','repairs'].map(type => <a key={type} className="rounded-xl border border-border p-5 capitalize underline" href={`/api/rent-to-own/export?type=${type}`}>{type} CSV export (current month)</a>)}</div> : <>
       <form className="mb-5 flex flex-wrap gap-3"><input aria-label="Search this RTO register" name="q" defaultValue={q} placeholder="Search vehicle, driver or agreement" className="min-w-0 flex-1 rounded-lg border border-border bg-background p-3" /><button className="rounded-lg bg-primary px-4 py-2 text-white">Search</button></form>
       {session.staffRole === 'ADMIN' && ['vehicles','agreements'].includes(section) && <Link prefetch={false} className="underline" href="/rent-to-own/manage">Create agreement or transfer a vehicle into Rent-to-Own</Link>}
-      {choices.length > 0 && <details className="mb-4 rounded-xl border border-border p-4"><summary className="cursor-pointer font-semibold">{session.staffRole === 'ADMIN' ? 'Add or manage records — choose an agreement' : 'View agreement records'}</summary><div className="mt-3 grid gap-3 sm:grid-cols-2">{choices.map(a => <div key={a.id}>{agreementLink(a)}</div>)}</div><p className="mt-3 text-sm text-muted">Showing up to 30 matching agreements. Use search to narrow the list.</p></details>}
+      {choices.length > 0 && <AgreementPicker agreements={choices} tab={tab} canEdit={session.staffRole === 'ADMIN'} />}
       <DataTable headers={headers} rows={rows.slice(0, 30)} empty="No Rent-to-Own records in this register yet. Choose an agreement above to get started." />
       <nav aria-label="Register pages" className="flex gap-4 text-sm">{page > 1 && <Link prefetch={false} href={pageHref(page - 1)}>Previous</Link>}<span>Page {page}</span>{rows.length > 30 && <Link prefetch={false} href={pageHref(page + 1)}>Next</Link>}</nav>
     </>}

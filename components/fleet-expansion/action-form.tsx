@@ -4,10 +4,10 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 export type Field = { name: string; label: string; type?: string; value?: string | number; options?: { value: string; label: string }[]; optional?: boolean; help?: string };
-export function ActionForm({ title, endpoint, fields, fixed = {}, description }: { title: string; endpoint: string; fields: Field[]; fixed?: Record<string, string>; description?: string }) {
+export function ActionForm({ title, endpoint, fields, fixed = {}, description, initiallyOpen = false, successHref }: { title: string; endpoint: string; fields: Field[]; fixed?: Record<string, string>; description?: string; initiallyOpen?: boolean; successHref?: string }) {
   const router = useRouter(); const [pending, setPending] = useState(false); const [error, setError] = useState(''); const [success, setSuccess] = useState('');
   const [key, setKey] = useState<string | null>(null);
-  return <details className="rounded-xl border border-border bg-card p-4"><summary className="cursor-pointer font-semibold">{title}</summary>
+  return <details open={initiallyOpen || undefined} className="rounded-xl border border-border bg-card p-4"><summary className="cursor-pointer font-semibold">{title}</summary>
     {description && <p className="mt-3 text-sm text-muted">{description}</p>}
     <form className="mt-4 grid gap-4 sm:grid-cols-2" onSubmit={async event => {
       event.preventDefault(); setPending(true); setError(''); setSuccess('');
@@ -18,7 +18,7 @@ export function ActionForm({ title, endpoint, fields, fixed = {}, description }:
       try {
         const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const result = await response.json(); if (!response.ok) throw new Error(result.error ?? 'Unable to save.');
-        setKey(null); setSuccess('Saved successfully.'); form.reset(); router.refresh();
+        setKey(null); setSuccess('Saved successfully.'); form.reset(); router.refresh(); if (successHref) router.push(successHref);
       } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save.'); } finally { setPending(false); }
     }}>
       {fields.map(field => <label key={field.name} className="grid gap-1 text-sm">{field.label}{field.optional ? ' (optional)' : ''}

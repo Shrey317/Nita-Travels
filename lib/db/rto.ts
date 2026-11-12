@@ -137,6 +137,11 @@ export async function recordRtoMileage(input: unknown, actor: string) {
     return row;
   }, TRANSACTION_OPTIONS);
 }
+export async function recordManualRtoRepair(input: unknown, actor: string) {
+  const data = s.repairSchema.omit({ quotation: true, approvedAmount: true }).parse(input);
+  // The administrator submits the actual invoice directly; no quotation is invented.
+  return recordRtoRepair({ ...data, quotation: '0', approvedAmount: data.invoiceAmount }, actor);
+}
 export async function recordRtoRepair(input: unknown, actor: string) {
   const data = s.repairSchema.parse(input);
   const split = repairSplit(data.invoiceAmount, data.recoveryAmount);
