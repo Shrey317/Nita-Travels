@@ -61,3 +61,7 @@ This implementation is not a complete production sign-off against every item in 
 - Final production build passed, including lint and TypeScript checks; static-page generation recovered on retry after an execution pause.
 - Final Chromium verification: both tests passed (contract upload/activation, rent allocation, responsive dashboard, private bank views/export, and manager restrictions across API, edit forms and approval snapshots).
 - Working-tree whitespace validation passed (Git emitted only line-ending conversion notices).
+
+## Live demo data — 12 November 2026
+
+At the user's explicit request, the configured live database was backed up to the ignored backups directory and all three expansion migrations were applied successfully. The repeat-safe script scripts/seed-rto-demo.ts adds only DEMO-RTO-01 through DEMO-RTO-03, with fictional drivers and payments. These fixtures intentionally have no signed legal contracts. Demo figures appear in operational totals until the demo records are removed. Deployment visibility requires separate Vercel verification.
