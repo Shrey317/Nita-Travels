@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ModuleSwitcher } from "./module-switcher";
 import { Search } from "lucide-react";
 import { CommandPalette } from "./command-palette";
 import { NotificationCenter } from "./notification-center";
@@ -18,8 +19,9 @@ export function Topbar({
   const [commandOpen, setCommandOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-border-subtle bg-background/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
-      <div className="flex flex-1 items-center">
+    <header className="sticky top-0 z-30 flex min-h-[72px] flex-wrap gap-2 py-2 items-center justify-between border-b border-border-subtle bg-background/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+      <ModuleSwitcher />
+      <div className="flex min-w-0 flex-1 items-center">
         <button
           type="button"
           aria-label="Search vehicles, transactions, services (Ctrl K)"

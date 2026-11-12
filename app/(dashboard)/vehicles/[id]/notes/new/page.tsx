@@ -1,3 +1,4 @@
+import { normalRentalVehicles } from '@/lib/db/module-scope';
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/db/client";
@@ -7,7 +8,7 @@ import { notFound } from "next/navigation";
 export default async function NewVehicleNotePage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const vehicles = await prisma.vehicle.findMany({
-    where: { active: true, deletedAt: null },
+    where: { active: true, deletedAt: null, ...normalRentalVehicles },
     select: { id: true, registration: true },
     orderBy: { id: "asc" },
   });

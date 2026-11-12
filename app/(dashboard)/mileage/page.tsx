@@ -1,3 +1,4 @@
+import { normalRentalVehicles } from '@/lib/db/module-scope';
 import { parsePageListQuery } from "@/lib/query-filters";
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function MileagePage(props: MileagePageProps) {
   const [isAdmin, vehicles, result] = await Promise.all([
     isAdminSession(),
     prisma.vehicle.findMany({
-      where: { active: true, deletedAt: null },
+      where: { active: true, deletedAt: null, ...normalRentalVehicles },
       select: {
         id: true,
         registration: true,

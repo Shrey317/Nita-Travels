@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Gauge, LayoutDashboard, Plus, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const destinations = [
+const normalDestinations = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/vehicles", label: "Vehicles", icon: Truck },
   { href: "/mileage", label: "Mileage", icon: Gauge },
@@ -14,10 +14,16 @@ const destinations = [
 
 export function MobileNavigation() {
   const pathname = usePathname();
+  const destinations = pathname.startsWith("/rent-to-own") ? [
+    { href: "/rent-to-own", label: "Overview", icon: LayoutDashboard },
+    { href: "/rent-to-own/vehicles", label: "Vehicles", icon: Truck },
+    { href: "/rent-to-own/mileage", label: "Mileage", icon: Gauge },
+    { href: "/rent-to-own/payments", label: "Payments", icon: Plus },
+  ] : normalDestinations;
   return (
     <nav aria-label="Quick navigation" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-border-subtle bg-surface/95 px-2 pt-1 pb-1 backdrop-blur-xl md:hidden" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
       {destinations.map(({ href, label, icon: Icon }) => {
-        const active = href === "/" ? pathname === href : pathname.startsWith(href);
+        const active = href === "/" || href === "/rent-to-own" ? pathname === href : pathname.startsWith(href);
         return (
           <Link 
             key={href} 

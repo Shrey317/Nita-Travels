@@ -1,3 +1,4 @@
+import { normalRentalVehicles } from '@/lib/db/module-scope';
 import Link from 'next/link';
 import { requireSession } from '@/lib/api-response';
 import { prisma } from '@/lib/db/client';
@@ -12,7 +13,7 @@ export async function RegisterPage({ mode, searchParams }: { mode: 'documents' |
   const [records, total, vehicles, expenses] = await Promise.all([
     mode === 'documents' ? prisma.fleetDocument.findMany({ where, orderBy: [{ expiryDate: 'asc' }, { id: 'asc' }], take: 25, skip: (page - 1) * 25 }) : prisma.workOrder.findMany({ where, orderBy: [{ plannedDate: 'desc' }, { id: 'asc' }], take: 25, skip: (page - 1) * 25 }),
     mode === 'documents' ? prisma.fleetDocument.count({ where }) : prisma.workOrder.count({ where }),
-    prisma.vehicle.findMany({ where: { deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: 'asc' } }),
+    prisma.vehicle.findMany({ where: { deletedAt: null, ...normalRentalVehicles }, select: { id: true, registration: true }, orderBy: { id: 'asc' } }),
     prisma.transaction.findMany({ where: { deletedAt: null, incomeZarCents: 0, OR: [{ expenseZarCents: { gt: 0 } }, { category: 'Service' }] }, select: { id: true, vehicleId: true, date: true, expenseZarCents: true }, orderBy: [{ date: 'desc' }, { id: 'desc' }], take: 200 }),
   ]);
   const rows = records.map(record => Object.fromEntries(Object.entries(record).map(([key, value]) => [key, value instanceof Date ? dateKey(value) : value]))) as { id: string; vehicleId: string; title: string }[];

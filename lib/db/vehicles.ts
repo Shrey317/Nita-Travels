@@ -1,3 +1,4 @@
+import { normalRentalVehicles } from '@/lib/db/module-scope';
 import { queryVehicleTimeline } from "@/lib/db/timeline";
 /**
  * lib/db/vehicles.ts
@@ -43,7 +44,7 @@ export interface VehicleSummary {
  */
 export async function getVehiclesWithFinancials(dateFrom?: Date, dateTo?: Date, includeInactive?: boolean): Promise<VehicleSummary[]> {
   await ensureVehicleFinanceColumns();
-  const vehicles = await prisma.vehicle.findMany({ where: { deletedAt: null, ...(includeInactive ? {} : { active: true }) }, orderBy: { id: "asc" } });
+  const vehicles = await prisma.vehicle.findMany({ where: { deletedAt: null, ...normalRentalVehicles, ...(includeInactive ? {} : { active: true }) }, orderBy: { id: "asc" } });
   const vehicleIds = vehicles.map((v) => v.id);
 
   const dateWhere = dateFrom || dateTo
@@ -99,7 +100,7 @@ export async function getVehicleDetail(id: string, includePrivateFinance = false
   if (!vehicle) return null;
 
   const twelveMonthsAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-  const activeVehicles = await prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true } });
+  const activeVehicles = await prisma.vehicle.findMany({ where: { active: true, deletedAt: null, ...normalRentalVehicles }, select: { id: true } });
   const activeVehicleIds = activeVehicles.map(v => v.id);
 
   const [incomeExpense, repairs, latestService, recentRepairs, vehicleRepairs12m, fleetRepairs12m] = await Promise.all([

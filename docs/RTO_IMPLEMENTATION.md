@@ -65,3 +65,16 @@ This implementation is not a complete production sign-off against every item in 
 ## Live demo data — 12 November 2026
 
 At the user's explicit request, the configured live database was backed up to the ignored backups directory and all three expansion migrations were applied successfully. The repeat-safe script scripts/seed-rto-demo.ts adds only DEMO-RTO-01 through DEMO-RTO-03, with fictional drivers and payments. These fixtures intentionally have no signed legal contracts. Demo figures appear in operational totals until the demo records are removed. Deployment visibility requires separate Vercel verification.
+
+
+## Business-system navigation — 12 November 2026
+
+The top navigation switches between Normal Rental and Rent-to-Own. Routes determine the active system, including on refresh and direct links. The sidebar and mobile shortcuts show only that system's operations. Bank finance remains shared and administrator-only.
+
+Rent-to-Own has dedicated vehicle, agreement/driver, payment, mileage, repair, service, downtime/replacement, document, settlement, alert and report registers. Registers use database pagination (30 rows per page) and agreement search. Choosing an agreement opens the corresponding focused task tab, including the existing mutation workflows. New vehicles can be registered directly into RTO without creating a Normal Rental assignment.
+
+Normal Rental active lists, service status and entry selectors exclude vehicles assigned to another system. Rental historical analytics retain vehicles that previously operated in Normal Rental, preserving their legitimate earlier ledger history; RTO-only vehicles are excluded. Search, notification badges and alert views follow the selected system. No financial records are copied between systems.
+
+The new navigation and page changes have not been deployed; Vercel team access is still required.
+
+Verification for business-system separation: production build, lint and TypeScript passed; 253 unit tests, 11 isolated PostgreSQL integration tests and 3 Chromium workflows passed. Browser coverage includes all eleven RTO registers, focused repair forms, desktop/mobile switching, manager bank privacy and exclusion from the Normal Rental vehicle API.

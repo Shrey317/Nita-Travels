@@ -1,3 +1,4 @@
+import { normalRentalVehicles } from '@/lib/db/module-scope';
 import { parsePageListQuery } from "@/lib/query-filters";
 export const dynamic = "force-dynamic";
 import Link from "next/link";
@@ -25,7 +26,7 @@ export default async function NotesPage(props: NotesPageProps) {
 
   const [isAdmin, vehicles, result] = await Promise.all([
     isAdminSession(),
-    prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
+    prisma.vehicle.findMany({ where: { active: true, deletedAt: null, ...normalRentalVehicles }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
     getNotes({
       noteId: searchParams.noteId,
       vehicleId: vehicleIdFilter.length ? vehicleIdFilter : undefined,

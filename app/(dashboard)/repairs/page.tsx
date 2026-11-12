@@ -1,3 +1,4 @@
+import { normalRentalVehicles } from '@/lib/db/module-scope';
 import { parsePageListQuery } from "@/lib/query-filters";
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export default async function RepairsPage(props: RepairsPageProps) {
   const page = filters.page;
 
   const [vehicles, summary, anomalies, result] = await Promise.all([
-    prisma.vehicle.findMany({ where: { active: true, deletedAt: null }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
+    prisma.vehicle.findMany({ where: { active: true, deletedAt: null, ...normalRentalVehicles }, select: { id: true, registration: true }, orderBy: { id: "asc" } }),
     getRepairsSummary(),
     getRepairsAnomalies(),
     getTransactions({

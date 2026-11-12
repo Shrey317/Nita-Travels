@@ -10,7 +10,7 @@ test('RTO setup, payment allocation, private bank records and responsive dashboa
   const driver = await post('/api/rent-to-own/drivers', { name: 'Browser test driver', phone: '000', licenceReference: 'TEST' });
   await post('/api/rent-to-own/transfer', { vehicleId: 'CR77', toModule: 'RENT_TO_OWN', effectiveAt: '2025-02-01', odometerKm: 10000, condition: 'Good', resolution: 'Hire resolved' });
   const agreement = await post('/api/rent-to-own/agreements', { number: 'BROWSER-RTO-77', vehicleId: 'CR77', driverId: driver.id, modelYear: 2025, startDate: '2025-02-01', weeklyAmount: '2850' });
-  await page.goto(`/rent-to-own/agreements/${agreement.id}`);
+  await page.goto(`/rent-to-own/agreements/${agreement.id}?tab=documents`);
   await expect(page.getByRole('heading', { name: 'BROWSER-RTO-77' })).toBeVisible();
   await page.getByLabel('File', { exact: true }).setInputFiles({ name: 'signed.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\nSynthetic signed document') });
   await page.getByRole('button', { name: 'Attach document', exact: true }).click();
@@ -49,4 +49,35 @@ test('manager sessions cannot read or write private bank finance', async ({ page
   await page.goto('/vehicles/CR77/edit'); await expect(page.locator('#financePolicyNumber')).toHaveCount(0); await expect(page.locator('body')).not.toContainText('HIDDEN-REFERENCE-77');
   await page.goto('/rent-to-own'); await expect(page.getByRole('heading', { name: 'Rent-to-Own', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Private Bank Finance', exact: true })).toHaveCount(0);
+});
+
+
+test('business switcher separates navigation, registers and normal vehicle lists', async ({ page }) => {
+  await login(page);
+  await page.goto('/rent-to-own');
+  const switcher = page.getByRole('navigation', { name: 'Business systems' });
+  await expect(switcher.getByRole('link', { name: 'Rent-to-Own', exact: true })).toHaveAttribute('aria-current', 'true');
+  const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
+  await expect(sidebar.getByRole('link', { name: 'Transactions', exact: true })).toHaveCount(0);
+  for (const [section, title] of [['vehicles','Vehicles'], ['agreements','Agreements & Drivers'], ['payments','Payments & Charges'], ['mileage','Mileage'], ['repairs','Repairs & Approvals'], ['service','Scheduled Servicing'], ['downtime','Downtime & Replacements'], ['documents','Documents'], ['settlements','Settlement Reviews'], ['alerts','Alerts'], ['reports','Reports']]) {
+    await page.goto(`/rent-to-own/${section}`);
+    await expect(page.getByRole('heading', { name: `Rent-to-Own · ${title}`, exact: true })).toBeVisible();
+  }
+  await page.goto('/rent-to-own/repairs');
+  await page.getByText('Add or manage records — choose an agreement', { exact: true }).click();
+  await page.getByRole('link', { name: 'CR77 · BROWSER-RTO-77', exact: true }).click();
+  await expect(page).toHaveURL(/\/rent-to-own\/agreements\/[^?]+\?tab=repairs$/, { timeout: 30000 });
+  await expect(page.locator('summary').filter({ hasText: /^Register repair quotation$/ })).toBeVisible();
+  await expect(page.getByText('Record payment', { exact: true })).toHaveCount(0);
+  await switcher.getByRole('link', { name: 'Normal Rental', exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(sidebar.getByRole('link', { name: 'Transactions', exact: true })).toBeVisible();
+  await expect(sidebar.getByRole('link', { name: 'Payments & Charges', exact: true })).toHaveCount(0);
+  const normal = await page.request.get('/api/vehicles');
+  expect((await normal.json()).vehicles.some((v: { vehicle: { id: string } }) => v.vehicle.id === 'CR77')).toBe(false);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await switcher.getByRole('link', { name: 'Rent-to-Own', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Quick navigation' }).getByRole('link', { name: 'Payments', exact: true }).click();
+  await expect(page).toHaveURL(/\/rent-to-own\/payments$/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

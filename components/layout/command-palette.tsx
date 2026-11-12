@@ -9,6 +9,7 @@ import { globalSearch, SearchResults } from "@/lib/actions/search";
 export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: boolean) => void }) {
   const router = useRouter();
   const pathname = usePathname();
+  const rto = pathname.startsWith("/rent-to-own");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,7 +43,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
     setResults(null);
     const timer = setTimeout(async () => {
       try {
-        const data = await globalSearch(query.trim());
+        const data = await globalSearch(query.trim(), rto ? "RENT_TO_OWN" : "NORMAL_RENTAL");
         if (!cancelled) setResults(data);
       } catch {
         if (!cancelled) setError(true);
@@ -51,7 +52,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
       }
     }, 300);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [query, open]);
+  }, [query, open, rto]);
 
   const onSelect = (href: string) => {
     setOpen(false);
@@ -79,7 +80,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
           {loading ? "Searching fleet records…" : error ? "Search could not load. Change your search to try again." : query.trim().length < 2 ? "Type at least 2 characters to search." : "No results found."}
         </Command.Empty>
 
-        {!query && (
+        {!query && !rto && (
           <Command.Group heading="Quick Actions" className="px-2 py-2 text-xs font-medium text-muted">
             <Command.Item onSelect={() => onSelect("/vehicles/new")} className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-brand-blue/10 aria-selected:text-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mb-1">
               <Car className="mr-2 h-4 w-4 text-muted" />
@@ -96,6 +97,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean, setOpen: (o: 
           </Command.Group>
         )}
 
+        {!query && rto && <Command.Group heading="Rent-to-Own actions">{[['agreements', 'Agreements & drivers'], ['payments', 'Record payment'], ['mileage', 'Record mileage'], ['repairs', 'Manage repairs'], ['service', 'Plan service']].map(([path, label]) => <Command.Item key={path} onSelect={() => onSelect(`/rent-to-own/${path}`)} className="cursor-pointer rounded p-3 aria-selected:bg-primary/10">{label}</Command.Item>)}</Command.Group>}
         {results?.vehicles?.length ? (
           <Command.Group heading="Vehicles" className="px-2 py-2 text-xs font-medium text-muted">
             {results.vehicles.map((v) => (

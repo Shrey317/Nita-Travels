@@ -13,7 +13,7 @@ export default async function AlertsPage(
 ) {
   const searchParams = await props.searchParams;
   const [report, operational] = await Promise.all([getAnalyticsReport(searchParams), getFleetNotifications()]);
-  const all = intelligenceAlerts(report, operational);
+  const all = intelligenceAlerts(report, operational.filter(item => !item.href.startsWith("/rent-to-own")));
   const alerts = all.filter(row => (!searchParams.severity || row.severity === searchParams.severity) && (!searchParams.category || row.category === searchParams.category));
   const href = (severity: string) => { const params = new URLSearchParams(searchParams); severity ? params.set("severity", severity) : params.delete("severity"); return `/alerts?${params}`; };
   return <div className="space-y-6"><PageHeader title="Alert Center" description="Current operational priorities and evidence from the selected financial period." />

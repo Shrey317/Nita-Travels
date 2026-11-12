@@ -7,7 +7,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useFleetNotifications } from "@/lib/hooks/use-fleet-notifications";
 import { Menu, X, LogOut, CarFront, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NAV_GROUPS } from "@/components/layout/nav-config";
+import { navigationGroups, isNavigationActive } from "@/components/layout/nav-config";
 import { signOutAction } from "@/app/(dashboard)/actions";
 
 function NavLinks({
@@ -29,7 +29,7 @@ function NavLinks({
     alertCount: count("insurance") + count("repairs"),
   };
 
-  const visibleGroups = NAV_GROUPS.map((group) => ({
+  const visibleGroups = navigationGroups(pathname).map((group) => ({
     ...group,
     items: group.items.filter((item) => !item.adminOnly || isAdmin),
   })).filter((group) => group.items.length > 0);
@@ -44,7 +44,7 @@ function NavLinks({
             </div>
           )}
           {group.items.map((item) => {
-            const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            const active = isNavigationActive(pathname, item.href);
             const Icon = item.icon;
 
             return (

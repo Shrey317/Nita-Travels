@@ -24,13 +24,6 @@ export type NavGroup = {
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: "BUSINESS MODULES",
-    items: [
-      { href: "/rent-to-own", label: "Rent-to-Own", icon: Car },
-      { href: "/bank-finance", label: "Private Bank Finance", icon: Receipt, adminOnly: true },
-    ],
-  },
-  {
     label: "OVERVIEW",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -76,3 +69,30 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
+
+export const RTO_NAV_GROUPS: NavGroup[] = [
+  { label: 'RENT-TO-OWN', items: [
+    { href: '/rent-to-own', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/rent-to-own/vehicles', label: 'Vehicles', icon: Car },
+    { href: '/rent-to-own/agreements', label: 'Agreements & Drivers', icon: Users },
+    { href: '/rent-to-own/payments', label: 'Payments & Charges', icon: Receipt },
+    { href: '/rent-to-own/mileage', label: 'Mileage', icon: Gauge },
+    { href: '/rent-to-own/repairs', label: 'Repairs & Approvals', icon: Wrench },
+    { href: '/rent-to-own/service', label: 'Scheduled Servicing', icon: ClipboardCheck },
+    { href: '/rent-to-own/downtime', label: 'Downtime & Replacements', icon: RefreshCw },
+    { href: '/rent-to-own/documents', label: 'Documents', icon: FileBarChart },
+    { href: '/rent-to-own/settlements', label: 'Settlement Reviews', icon: Receipt },
+    { href: '/rent-to-own/alerts', label: 'Alerts', icon: Bell },
+    { href: '/rent-to-own/reports', label: 'Reports', icon: BarChart3 },
+    { href: '/rent-to-own/manage', label: 'Setup & Transfers', icon: ListChecks, adminOnly: true },
+  ] },
+];
+export function navigationGroups(pathname: string): NavGroup[] {
+  const groups = pathname.startsWith('/rent-to-own') ? RTO_NAV_GROUPS : NAV_GROUPS;
+  return [...groups, { label: 'SHARED ADMINISTRATION', items: [
+    { href: '/bank-finance', label: 'Private Bank Finance', icon: Receipt, adminOnly: true },
+  ] }];
+}
+export function isNavigationActive(pathname: string, href: string) {
+  return href === '/' || href === '/rent-to-own' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+}

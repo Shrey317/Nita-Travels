@@ -1,3 +1,4 @@
+import { rentalHistoryVehicles } from '@/lib/db/module-scope';
 export const dynamic = "force-dynamic";
 
 import { getWeeklyBreakdown } from "@/lib/db/weekly";
@@ -18,7 +19,7 @@ export default async function WeeklyPage(
   const searchParams = await props.searchParams;
   const rangeParam = searchParams.range || "52";
   const { from, to } = weeklyRange(searchParams);
-  const [rows, vehicles] = await Promise.all([getWeeklyBreakdown(from, to, searchParams.vehicleId || undefined), prisma.vehicle.findMany({ where: { deletedAt: null }, select: { id: true }, orderBy: { id: "asc" } })]);
+  const [rows, vehicles] = await Promise.all([getWeeklyBreakdown(from, to, searchParams.vehicleId || undefined), prisma.vehicle.findMany({ where: { deletedAt: null, ...rentalHistoryVehicles }, select: { id: true }, orderBy: { id: "asc" } })]);
 
   return (
     <div className="space-y-8">

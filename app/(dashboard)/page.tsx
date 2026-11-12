@@ -24,7 +24,7 @@ export default async function DashboardPage(props: { searchParams: Promise<Analy
   const [report, services, notifications, transactionsData] = await Promise.all([
     getAnalyticsReport(searchParams),
     serviceRead,
-    getFleetNotifications(serviceRead),
+    getFleetNotifications(serviceRead).then(items => items.filter(item => !item.href.startsWith("/rent-to-own"))),
     getTransactions({ limit: 10 }), // fetch recent transactions
   ]);
 

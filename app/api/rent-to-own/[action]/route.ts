@@ -1,3 +1,4 @@
+import { createRtoVehicle } from '@/lib/db/rto-vehicles';
 import { NextResponse } from 'next/server';
 import { handleApiError, requireAdmin } from '@/lib/api-response';
 import * as rto from '@/lib/db/rto';
@@ -7,7 +8,7 @@ import { completeRtoService, planRtoService } from '@/lib/db/rto-service';
 import { transferVehicle } from '@/lib/db/fleet-assignment';
 import { revalidatePath } from 'next/cache';
 const actions: Record<string, (input: unknown, actor: string) => Promise<unknown>> = {
-  drivers: rto.createDriver, agreements: rto.createAgreement, status: rto.changeAgreementStatus,
+  vehicles: createRtoVehicle, drivers: rto.createDriver, agreements: rto.createAgreement, status: rto.changeAgreementStatus,
   payments: rto.recordRtoPayment, reversal: rto.reverseRtoPayment, mileage: rto.recordRtoMileage,
   repairs: rto.recordRtoRepair, services: rto.recordRtoService, downtime: rto.recordDowntime,
   'close-downtime': rto.closeDowntime, settlement: rto.settlementReview, transfer: transferVehicle,

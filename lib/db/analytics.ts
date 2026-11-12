@@ -1,3 +1,4 @@
+import { rentalHistoryVehicles } from '@/lib/db/module-scope';
 /**
  * lib/db/analytics.ts
  *
@@ -112,7 +113,7 @@ export async function getAnalyticsReport(params: AnalyticsSearchParams = {}) {
   const ranges = [selection.range, selection.comparisonRange].map(range => ({ date: { gte: range.from, lt: addDays(range.to, 1) } }));
   const mileageRanges = [selection.range, selection.comparisonRange].map(range => ({ date: { gte: addDays(isoWeekStart(range.from), -28), lt: addDays(range.to, 1) } }));
   const [vehicles, transactions, mileage] = await Promise.all([
-    prisma.vehicle.findMany({ where: { deletedAt: null }, orderBy: { id: "asc" } }),
+    prisma.vehicle.findMany({ where: { deletedAt: null, ...rentalHistoryVehicles }, orderBy: { id: "asc" } }),
     prisma.transaction.findMany({
       where: { deletedAt: null, OR: ranges, ...(selection.vehicleId ? { vehicleId: selection.vehicleId } : {}) },
       select: { id: true, date: true, vehicleId: true, category: true, incomeZarCents: true, expenseZarCents: true, mileageKm: true },

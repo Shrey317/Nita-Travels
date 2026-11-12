@@ -1,3 +1,4 @@
+import { rentalHistoryVehicles } from '@/lib/db/module-scope';
 export const dynamic = "force-dynamic";
 import { getMonthlyBreakdown, getAvailableYears } from "@/lib/db/monthly";
 import { MonthlyTable } from "@/components/monthly/monthly-table";
@@ -19,7 +20,7 @@ export default async function MonthlyPage(
   const [availableYears, rows, previousRows, vehicles] = await Promise.all([
     getAvailableYears(), getMonthlyBreakdown(year, selection.range, searchParams.vehicleId || undefined),
     getMonthlyBreakdown(year - 1, selection.comparisonRange, searchParams.vehicleId || undefined),
-    prisma.vehicle.findMany({ where: { deletedAt: null }, select: { id: true }, orderBy: { id: "asc" } }),
+    prisma.vehicle.findMany({ where: { deletedAt: null, ...rentalHistoryVehicles }, select: { id: true }, orderBy: { id: "asc" } }),
   ]);
   const current = summarizePeriods(rows), previous = summarizePeriods(previousRows);
 

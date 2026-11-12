@@ -1,3 +1,4 @@
+import { normalRentalVehicles } from '@/lib/db/module-scope';
 /**
  * lib/db/service.ts
  *
@@ -62,7 +63,7 @@ async function getLatestServiceByVehicle(): Promise<Map<string, { date: Date; mi
 export async function getServiceStatusAllVehicles(): Promise<VehicleServiceRow[]> {
   const [vehicles, latestServiceMap] = await Promise.all([
     prisma.vehicle.findMany({
-      where: { active: true, deletedAt: null },
+      where: { active: true, deletedAt: null, ...normalRentalVehicles },
       select: { id: true, registration: true, currentMileageKm: true, serviceIntervalKm: true },
       orderBy: { id: "asc" },
     }),

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import useSWR from "swr";
+import { usePathname } from "next/navigation";
 import type { FleetNotification } from "@/lib/db/notifications";
 
 const READ_STORAGE_KEY = "nita-read-notifications";
@@ -30,6 +31,8 @@ async function fetchNotifications(url: string): Promise<FleetNotification[]> {
 
 /** Navigation badges, dashboard alerts, and the notification popover share one SWR cache and read state. */
 export function useFleetNotifications() {
+  const pathname = usePathname();
+  const rto = pathname.startsWith("/rent-to-own");
   const result = useSWR("/api/notifications", fetchNotifications, { refreshInterval: 60000 });
   const { mutate } = result;
   const [readIds, setReadIds] = useState<Set<string>>(() => new Set(memoryReadIds));
@@ -70,13 +73,15 @@ export function useFleetNotifications() {
     window.dispatchEvent(new Event(READ_CHANGED_EVENT));
   }, []);
 
+  const data = useMemo(() => (result.data ?? []).filter(item => item.href.startsWith("/rent-to-own") === rto), [result.data, rto]);
   const unreadData = useMemo(
-    () => (result.data ?? []).filter((item) => !readIds.has(item.id)),
-    [result.data, readIds]
+    () => data.filter((item) => !readIds.has(item.id)),
+    [data, readIds]
   );
 
   return {
     ...result,
+    data,
     unreadData,
     readIds,
     markRead,

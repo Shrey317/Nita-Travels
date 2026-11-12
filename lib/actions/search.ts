@@ -1,5 +1,6 @@
 "use server";
 
+import { normalRentalVehicles } from '@/lib/db/module-scope';
 import { prisma } from "@/lib/db/client";
 import { auth } from "@/auth";
 import type { Prisma } from "@prisma/client";
@@ -18,7 +19,7 @@ export type SearchResults = {
 const emptyResults = (): SearchResults => ({ vehicles: [], transactions: [], repairs: [], services: [], mileage: [], notes: [] });
 
 /** Authenticated, bounded record search. Search fields never become raw SQL. */
-export async function globalSearch(query: string): Promise<SearchResults> {
+export async function globalSearch(query: string, module: 'NORMAL_RENTAL' | 'RENT_TO_OWN' = 'NORMAL_RENTAL'): Promise<SearchResults> {
   const session = await auth();
   if (!session?.user) throw new Error("Sign in to search fleet records.");
   if (typeof query !== "string") return emptyResults();
@@ -26,12 +27,16 @@ export async function globalSearch(query: string): Promise<SearchResults> {
   if (q.length < 2) return emptyResults();
   if (q.length > 100) throw new Error("Search must be 100 characters or fewer.");
   const text = { contains: q, mode: "insensitive" as const };
+  if (module === 'RENT_TO_OWN') {
+    const agreements = await prisma.rtoAgreement.findMany({ where: { OR: [{ number: text }, { vehicleId: text }, { driver: { name: text } }, { vehicle: { registration: text } }] }, select: { id: true, number: true, vehicleId: true, status: true, driver: { select: { name: true } } }, take: 15, orderBy: { number: 'asc' } });
+    return { ...emptyResults(), vehicles: agreements.map(a => ({ id: a.id, title: `${a.vehicleId} · ${a.number}`, subtitle: `${a.driver.name} · ${a.status}`, href: `/rent-to-own/agreements/${a.id}`, type: 'vehicle' })) };
+  }
   let date: Date | undefined;
   if (/^\d{4}-\d{2}-\d{2}$/.test(q)) {
     try { date = parseCalendarDate(q); } catch { /* An invalid date can still match free text. */ }
   }
   const vehicles = await prisma.vehicle.findMany({
-    where: { deletedAt: null, OR: [{ id: text }, { make: text }, { model: text }, { registration: text }, { registration2: text }, { insurer: text }, { policyNumber: text }, { warranty: text }, ...(date ? [{ insuranceEndDate: date }] : [])] },
+    where: { deletedAt: null, ...normalRentalVehicles, OR: [{ id: text }, { make: text }, { model: text }, { registration: text }, { registration2: text }, { insurer: text }, { policyNumber: text }, { warranty: text }, ...(date ? [{ insuranceEndDate: date }] : [])] },
     select: { id: true, make: true, model: true, registration: true, registration2: true, active: true, insurer: true, policyNumber: true, warranty: true },
     orderBy: { id: "asc" }, take: 20,
   });

@@ -11,7 +11,17 @@ import { closeDowntime } from '@/lib/db/rto';
 import { getFleetNotifications } from '@/lib/db/notifications';
 import { approveRepair, createRepairQuotation, invoiceRepair, markRepairPaid } from '@/lib/db/rto-repairs';
 import { completeRtoService, planRtoService } from '@/lib/db/rto-service';
+import { createRtoVehicle } from '@/lib/db/rto-vehicles';
+import { getVehiclesWithFinancials } from '@/lib/db/vehicles';
+import { getServiceStatusAllVehicles } from '@/lib/db/service';
 describe('separate fleet ledgers and atomic lifecycle', () => {
+  it('creates vehicles directly in RTO and excludes them from normal operational lists', async () => {
+    await createRtoVehicle({ id: 'RT90', make: 'Suzuki', model: 'S-Presso', registration: 'RTO-ONLY', transmission: 'Manual', purchaseDate: '2025-01-01', purchasePrice: '120000.50', mileageAtPurchaseKm: 100, currentMileageKm: 100 }, 'admin');
+    expect((await prisma.vehicleAssignment.findFirstOrThrow({ where: { vehicleId: 'RT90' } })).module).toBe('RENT_TO_OWN');
+    expect((await prisma.vehicle.findUniqueOrThrow({ where: { id: 'RT90' } })).purchasePriceCents).toBe(12000050);
+    expect((await getVehiclesWithFinancials()).some(v => v.vehicle.id === 'RT90')).toBe(false);
+    expect((await getServiceStatusAllVehicles()).some(v => v.vehicleId === 'RT90')).toBe(false);
+  });
   let agreementId: string; let financeId: string;
   beforeAll(async () => {
     await verifyTestEnvironment(true);
