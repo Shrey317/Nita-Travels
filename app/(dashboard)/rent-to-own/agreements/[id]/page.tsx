@@ -2,7 +2,7 @@ import { businessToday } from '@/lib/date-ranges';
 import { money, sumMoney } from '@/lib/rto';
 import { WeeklyPaymentForm } from '@/components/fleet-expansion/weekly-payment-form';
 import { depositPart, rentPart } from '@/lib/rto-deposit';
-import Link from 'next/link';
+
 import { requireSession } from '@/lib/api-response';
 import { getRtoAgreement } from '@/lib/db/rto';
 import { ActionForm, DocumentForm, type Field } from '@/components/fleet-expansion/action-form';
@@ -25,7 +25,7 @@ export default async function AgreementPage({ params, searchParams }: { params: 
   const fixed = { agreementId: a.id }; const date: Field = { name: 'date', label: 'Date', type: 'date' };
   const action = (title: string, endpoint: string, fields: Field[], description?: string) => (sections[endpoint] === tab || tab === 'entries' && ['weekly-payment', 'manual-repair', 'services'].includes(endpoint)) ? <ActionForm title={title} endpoint={`/api/rent-to-own/${endpoint}`} fixed={fixed} fields={fields} description={description} initiallyOpen={endpoint === 'weekly-payment'} /> : null;
   return <><ModuleLinks /><ModuleHeader title={a.number} description={`${a.vehicleId} · ${a.vehicle.registration} · ${a.driver.name} · ${a.status}`} />
-    <nav aria-label="Agreement sections" className="mb-5 flex flex-wrap gap-2">{tabs.map(t => <Link prefetch={false} key={t} aria-current={tab === t ? 'page' : undefined} className={`rounded-lg border px-3 py-2 text-sm capitalize ${tab === t ? 'bg-primary text-white' : 'border-border'}`} href={`/rent-to-own/agreements/${a.id}?tab=${t}`}>{{ overview: 'Overview', entries: 'Add payment', payments: 'Payment history', mileage: 'Mileage', repairs: 'Repairs', downtime: 'Time off road', documents: 'Files', settlements: 'Pay off early' }[t]}</Link>)}</nav>
+    <nav aria-label="Agreement sections" className="mb-5 flex flex-wrap gap-2">{tabs.map(t => <a key={t} aria-current={tab === t ? 'page' : undefined} className={`rounded-lg border px-3 py-2 text-sm capitalize ${tab === t ? 'bg-primary text-white' : 'border-border'}`} href={`/rent-to-own/agreements/${a.id}?tab=${t}`}>{{ overview: 'Overview', entries: 'Add payment', payments: 'Payment history', mileage: 'Mileage', repairs: 'Repairs', downtime: 'Time off road', documents: 'Files', settlements: 'Pay off early' }[t]}</a>)}</nav>
     <Metrics items={tab === 'overview' ? [
       ['Weekly rent', zar(a.weeklyAmount)], ['Deposit paid', zar(a.upfrontReceived)], ['Deposit left', zar(a.depositRemaining)], ['Next payment', zar(a.nextPayment)],
     ] : tab === 'payments' ? [
@@ -36,7 +36,7 @@ export default async function AgreementPage({ params, searchParams }: { params: 
       { title: '2. Record payments', text: 'When the driver pays, enter the rent and deposit together.', links: [['entries', 'Add payment'], ['payments', 'Payment history']] },
       { title: '3. Keep records', text: 'Add mileage, repairs and completed service costs.', links: [['mileage', 'Add mileage'], ['repairs', 'Repairs'], ['entries', 'Add service cost'], ['downtime', 'Time off road']] },
       { title: '4. Finish the agreement', text: a.status === 'COMPLETED' ? 'Agreement completed. Files and payment history remain available.' : 'Review payments and ownership paperwork before completing the agreement. Early payoff needs a review.', links: [['payments', 'Check payments'], ['settlements', 'Pay off early'], ['documents', 'Files']] },
-    ].map(step => <li key={step.title} className="rounded-lg border border-border p-4"><h3 className="font-semibold">{step.title}</h3><p className="mt-2 text-sm text-muted">{step.text}</p><div className="mt-3 flex flex-wrap gap-2">{step.links.map(([key,label]) => <Link key={label} prefetch={false} className="rounded-lg border border-border px-3 py-2 text-sm hover:border-primary" href={`/rent-to-own/agreements/${a.id}?tab=${key}`}>{label}</Link>)}</div></li>)}</ol></section>}
+    ].map(step => <li key={step.title} className="rounded-lg border border-border p-4"><h3 className="font-semibold">{step.title}</h3><p className="mt-2 text-sm text-muted">{step.text}</p><div className="mt-3 flex flex-wrap gap-2">{step.links.map(([key,label]) => <a key={label} className="rounded-lg border border-border px-3 py-2 text-sm hover:border-primary" href={`/rent-to-own/agreements/${a.id}?tab=${key}`}>{label}</a>)}</div></li>)}</ol></section>}
     {tab === 'entries' && <div className="mb-5 rounded-xl border border-border bg-card p-5"><h2 className="text-lg font-semibold">Total overdue: {zar(overdue)}</h2><p className="mt-2 text-sm">One unpaid week: rent {zar(a.nextRent)} + deposit {zar(a.nextDeposit)}</p><p className="mt-2 text-sm text-muted">Deposit paid: {zar(a.upfrontReceived)} of {zar(a.upfrontRequired)}. {Number(a.depositRemaining) === 0 ? 'Deposit paid in full.' : 'Pay R650 each week until it is paid off. The last payment is smaller.'}</p><p className="mt-2 text-sm text-muted">Only save money you have received. For a late payment, choose how many unpaid weeks it covers.</p></div>}
     {admin && <div className="space-y-3">
       {action(a.status === 'DRAFT' ? 'Start agreement' : 'Change status', 'status', [{ name: 'status', label: 'New status', options: transitions[a.status].map(value => ({ value, label: value })) }, { name: 'reason', label: 'Reason' }])}

@@ -131,6 +131,16 @@ test('weekly payment form saves rent and a 650 deposit together without upfront 
   await expect(form.getByText(/^Payment saved\. Weeks 1, 2\./)).toBeVisible();
   const receipt = await prisma.rtoPayment.findFirstOrThrow({where:{agreementId:a.id,reference:'WEEKLY-92-RECEIPT'}});
   expect(receipt.depositAmount.toFixed(2)).toBe('1300.00'); expect(receipt.amount.toFixed(2)).toBe('7000.00');
+  const sections = page.getByRole('navigation', { name: 'Agreement sections' });
+  for (let visit = 0; visit < 2; visit++) {
+    await sections.getByRole('link', { name: 'Payment history', exact: true }).click();
+    await expect(page).toHaveURL(/tab=payments$/);
+    await expect(page.getByRole('heading', { name: 'Payment history', exact: true })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'WEEKLY-92-RECEIPT', exact: true })).toBeVisible();
+    await sections.getByRole('link', { name: 'Add payment', exact: true }).click();
+    await expect(page).toHaveURL(/tab=entries$/);
+    await expect(form.getByRole('button', { name: 'Save payment', exact: true })).toBeVisible();
+  }
   await page.getByRole('link', {name:'Back to drivers',exact:true}).click();
   await page.getByRole('navigation', {name:'Payment filters'}).getByRole('link', {name:'Overdue',exact:true}).click();
   const card = page.locator('article').filter({hasText:'Weekly deposit driver'});
