@@ -1,4 +1,4 @@
-import { depositSchedule, rentPart } from '../rto-deposit';
+import { depositSchedule, depositPaid, depositRemaining, rentPart } from '../rto-deposit';
 import { z } from 'zod';
 import { prisma } from './client';
 import { calendarDateSchema } from '../schemas/common.schema';
@@ -14,6 +14,7 @@ export function reportRange(params: Record<string, string | undefined>) {
 export async function rtoReport(params: Record<string, string | undefined>) {
   const range = reportRange(params);
   const agreements = await prisma.rtoAgreement.findMany({ where: { ...(params.status ? { status: z.enum(['DRAFT','ACTIVE','SUSPENDED','IN_DEFAULT','COMPLETED','TERMINATED','CANCELLED']).parse(params.status) } : {}), ...(params.q ? { OR: [{ number: { contains: params.q, mode: 'insensitive' } }, { vehicleId: { contains: params.q, mode: 'insensitive' } }, { driver: { name: { contains: params.q, mode: 'insensitive' } } }] } : {}) }, orderBy: { number: params.sort === 'desc' ? 'desc' : 'asc' }, include: {
+    documents: { select: { kind: true } }, mileage: { orderBy: { date: 'desc' }, take: 1, select: { date: true, reviewRequired: true } },
     vehicle: { select: { registration: true } }, driver: { select: { name: true } }, downtime: true,
     installments: { include: { allocations: { include: { payment: true } } }, orderBy: { sequence: 'asc' } },
     payments: { where: { date: { lt: range.until }, OR: [{ reversedAt: null }, { reversedAt: { gte: range.until } }] } },
@@ -28,13 +29,19 @@ export async function rtoReport(params: Record<string, string | undefined>) {
 
   const rows = agreements.map(a => {
     const dueBalances: string[] = [];
+    const dueItems: { label: string; date: Date; amount: string }[] = [];
+    const addDue = (label: string, date: Date, amount: ReturnType<typeof sumMoney>) => {
+      if (date >= range.until || !amount.gt(0)) return;
+      dueBalances.push(amount.toString());
+      dueItems.push({ label, date, amount: amount.toFixed(2) });
+    };
     const dates = dueDates(a.startDate, a.weeks, a.downtime, range.until);
     let outstanding = 0; let outstandingAmount = 0; let expectedAmount = 0;
     for (const installment of a.installments) {
       const date = dates[installment.sequence - 1]!;
       const asOfAllocations = installment.allocations.filter(v => v.payment.date < range.until && (!v.payment.reversedAt || v.payment.reversedAt >= range.until)).map(v => ({ ...v, payment: { reversedAt: null } }));
       const asOfBalance = installmentBalance(installment.amount, asOfAllocations);
-      if (date < range.until) dueBalances.push(asOfBalance.toString());
+      addDue(`Week ${installment.sequence} rent`, date, asOfBalance);
       if (date >= range.from && date < range.until) {
         expected.push(installment.amount.toString()); bucket(date).expected += installment.amount.toNumber();
         expectedAmount += installment.amount.toNumber(); weekBucket(date).expected += installment.amount.toNumber();
@@ -45,16 +52,21 @@ export async function rtoReport(params: Record<string, string | undefined>) {
     }
     for (const charge of a.charges) {
       const allocations = charge.allocations.filter(v => v.payment.date < range.until && (!v.payment.reversedAt || v.payment.reversedAt >= range.until)).map(v => ({ ...v, payment: { reversedAt: null } }));
-      dueBalances.push(installmentBalance(charge.amount, allocations).toString());
+      addDue(charge.description, charge.date, installmentBalance(charge.amount, allocations));
     }
     if (a.activatedAt) {
       const deposit = depositSchedule(a.upfrontRequired, a.payments.map(p => ({ ...p, reversedAt: null })), a.weeks);
-      deposit.forEach((week, i) => { if (dates[i]! < range.until) dueBalances.push(week.balance.toString()); });
+      deposit.forEach((week, i) => addDue(`Week ${i + 1} deposit`, dates[i]!, week.balance));
     }
+    const overdueItems = dueItems.filter(item => item.date < range.to);
+    const oldestDue = overdueItems.reduce<Date | null>((oldest, item) => !oldest || item.date < oldest ? item.date : oldest, null);
+    const daysLate = oldestDue ? Math.ceil((+range.to - +oldestDue) / 86400000) : 0;
+    const paymentStatus = daysLate > 0 ? 'Overdue' : dueItems.length > 0 ? 'Due today' : 'Up to date';
+    const depositLeft = depositRemaining(a.upfrontRequired, depositPaid(a.payments.map(p => ({ ...p, reversedAt: null })))).toFixed(2);
     const periodPayments = a.payments.filter(p => p.date >= range.from);
     periodPayments.forEach(p => { bucket(p.date).collected += rentPart(p).toNumber(); weekBucket(p.date).collected += rentPart(p).toNumber(); });
     const completed = a.activatedAt ? dates.filter(d => d < range.until).length : 0;
-    return { ...a, amountDue: sumMoney(dueBalances).toFixed(2), payments: periodPayments, completed, remaining: a.weeks - completed, progress: Math.floor(completed / a.weeks * 100), outstanding, outstandingAmount, expectedAmount, unavailable: a.downtime.some(d => d.startsAt < range.until && (!d.endsAt || d.endsAt >= range.until)) };
+    return { ...a, dueItems, daysLate, paymentStatus, depositLeft, amountDue: sumMoney(dueBalances).toFixed(2), payments: periodPayments, completed, remaining: a.weeks - completed, progress: Math.floor(completed / a.weeks * 100), outstanding, outstandingAmount, expectedAmount, unavailable: a.downtime.some(d => d.startsAt < range.until && (!d.endsAt || d.endsAt >= range.until)) };
   });
   return { range, rows, chart: [...monthly.values()].sort((a, b) => a.label.localeCompare(b.label)), overdue,
     weeklyChart: [...weekly.values()].sort((a, b) => a.label.localeCompare(b.label)),

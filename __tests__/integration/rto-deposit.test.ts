@@ -20,6 +20,12 @@ describe('weekly rent and deposit receipts', () => {
     const a = await getRtoAgreement(agreementId); expect(a.nextPayment).toBe('3500.00'); expect(a.depositRemaining).toBe('8000.00');
     const report = await rtoReport({from:'2025-01-01',to:'2025-01-08'});
     expect(report.totalOutstanding).toBe('3500.00');
+    expect(report.rows[0]?.paymentStatus).toBe('Due today');
+    expect(report.rows[0]?.dueItems.map(item => item.amount)).toEqual(['2850.00', '650.00']);
+    expect(report.rows[0]?.depositLeft).toBe('8000.00');
+    const late = await rtoReport({from:'2025-01-01',to:'2025-01-09'});
+    expect(late.rows[0]?.paymentStatus).toBe('Overdue');
+    expect(late.rows[0]?.daysLate).toBe(1);
   });
   it('rejects a short payment atomically and records delayed weeks together', async () => {
     await expect(recordWeeklyPayment(receipt('2850'),'admin')).rejects.toThrow('3500.00');

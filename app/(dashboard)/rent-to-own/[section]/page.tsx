@@ -1,3 +1,5 @@
+import { rtoReport } from '@/lib/db/rto-report';
+import { CollectionsChart } from '@/components/fleet-expansion/collections-chart';
 import { depositPart, rentPart } from '@/lib/rto-deposit';
 import { AgreementPicker } from '@/components/fleet-expansion/agreement-picker';
 import Link from 'next/link';
@@ -22,10 +24,14 @@ const sections: Record<string, [string, string]> = {
   alerts: ['Alerts', 'Cars that need attention.'],
   reports: ['Reports', 'View and download Rent-to-Own totals.'],
 };
-export default async function RtoSection({ params, searchParams }: { params: Promise<{ section: string }>; searchParams: Promise<{ page?: string; q?: string }> }) {
+export default async function RtoSection({ params, searchParams }: { params: Promise<{ section: string }>; searchParams: Promise<{ page?: string; q?: string; from?: string; to?: string }> }) {
   const session = await requireSession();
   const { section } = await params; const config = sections[section]; if (!config) notFound();
   const query = await searchParams;
+  const historicalReport = section === 'reports' ? await rtoReport(query) : null;
+  const exportRange = new URLSearchParams({ from: query.from ?? '', to: query.to ?? '' });
+  if (!query.from) exportRange.delete('from');
+  if (!query.to) exportRange.delete('to');
   const page = Math.max(1, Math.min(100000, Number.parseInt(query.page ?? '1', 10) || 1));
   const q = (query.q ?? '').trim().slice(0, 100);
   const filter = q ? { OR: [{ number: { contains: q, mode: 'insensitive' as const } }, { vehicleId: { contains: q, mode: 'insensitive' as const } }, { driver: { name: { contains: q, mode: 'insensitive' as const } } }] } : {};
@@ -78,8 +84,12 @@ export default async function RtoSection({ params, searchParams }: { params: Pro
   const pageHref = (value: number) => `/rent-to-own/${section}?${new URLSearchParams({ q, page: String(value) })}`;
   return <>
     <ModuleHeader title={`Rent-to-Own · ${config[0]}`} description={config[1]} />
-    {section === 'vehicles' && session.staffRole === 'ADMIN' && <Link className="mb-5 inline-block rounded-lg bg-primary px-5 py-3 font-semibold text-white" href="/rent-to-own/vehicles/new">Add vehicle</Link>}
-    {section === 'reports' ? <div className="grid gap-4 sm:grid-cols-2"><Link prefetch={false} className="rounded-xl border border-border p-5 underline" href="/rent-to-own">Dashboard, date filters & financial charts</Link>{['agreements', 'payments', 'mileage', 'repairs'].map(type => <a key={type} className="rounded-xl border border-border p-5 capitalize underline" href={`/api/rent-to-own/export?type=${type}`}>{type} CSV export (current month)</a>)}</div> : <>
+    {section === 'vehicles' && session.staffRole === 'ADMIN' && <form action="/rent-to-own/vehicles/new" method="get"><button className="mb-5 inline-block rounded-lg bg-primary px-5 py-3 font-semibold text-white">Add vehicle</button></form>}
+    {section === 'reports' ? <div className="space-y-4">
+      <form className="flex flex-wrap items-end gap-3"><label>From<input required type="date" name="from" defaultValue={historicalReport ? day(historicalReport.range.from) : ''} className="block rounded border bg-background p-2" /></label><label>To<input required type="date" name="to" defaultValue={historicalReport ? day(historicalReport.range.to) : ''} className="block rounded border bg-background p-2" /></label><button className="rounded bg-primary px-4 py-2 text-white">View report</button></form>
+      {historicalReport && <><p>Rent collected {zar(historicalReport.collected)} · Total due at period end {zar(historicalReport.totalOutstanding)}</p><CollectionsChart title="Rent expected and collected" data={historicalReport.chart} /></>}
+      <div className="flex flex-wrap gap-4">{['agreements','payments','mileage','repairs'].map(type => <a key={type} className="capitalize underline" href={`/api/rent-to-own/export?${exportRange}&type=${type}`}>{type} CSV</a>)}</div>
+    </div> : <>
       <form className="mb-5 flex flex-wrap gap-3"><input aria-label="Find a car or driver" name="q" defaultValue={q} placeholder="Search vehicle, driver or agreement" className="min-w-0 flex-1 rounded-lg border border-border bg-background p-3" /><button className="rounded-lg bg-primary px-4 py-2 text-white">Search</button></form>
       {session.staffRole === 'ADMIN' && ['vehicles', 'agreements'].includes(section) && <Link prefetch={false} className="underline" href="/rent-to-own/manage">Create agreement or transfer a vehicle into Rent-to-Own</Link>}
       {choices.length > 0 && <AgreementPicker agreements={choices} tab={tab} canEdit={session.staffRole === 'ADMIN'} />}

@@ -13,7 +13,7 @@ export default async function ManageRto() {
     prisma.vehicleAssignment.findMany({ where: { endsAt: null } }),
   ]);
   const vehicleOptions = vehicles.map(v => ({ value: v.id, label: `${v.id} · ${v.registration} · ${assignments.find(a => a.vehicleId === v.id)?.module ?? 'NORMAL_RENTAL'}` }));
-  return <><ModuleLinks /><ModuleHeader title="Add a driver or agreement" description="Keep one permanent vehicle identity. Register the driver, transfer the vehicle, then prepare and activate its agreement." />
+  return <><ModuleLinks /><ModuleHeader title="Add a driver or agreement" description="Add the car, add the driver, then link them with an agreement. Open the agreement to upload the signed copy and start it." />
     <div className="space-y-4">
       <Link className="inline-block rounded-lg bg-primary px-4 py-3 text-white" href="/rent-to-own/vehicles/new">Add car</Link>
       <ActionForm title="Update physical availability" endpoint="/api/rent-to-own/availability" description="Physical condition is independent of the operating module. Open downtime and replacement reservations must be resolved through their own workflow." fields={[{ name: 'vehicleId', label: 'Vehicle', options: vehicleOptions }, { name: 'availability', label: 'Physical availability', options: ['AVAILABLE','MAINTENANCE','UNAVAILABLE','DISPOSED'].map(value => ({ value, label: value })) }, { name: 'reason', label: 'Reason / authorisation' }]} />
@@ -22,7 +22,7 @@ export default async function ManageRto() {
         { name: 'vehicleId', label: 'Vehicle', options: vehicleOptions }, { name: 'toModule', label: 'Destination', options: ['RENT_TO_OWN', 'NORMAL_RENTAL', 'UNASSIGNED'].map(value => ({ value, label: value.replaceAll('_', ' ') })) },
         { name: 'effectiveAt', label: 'Effective date', type: 'date' }, { name: 'odometerKm', label: 'Final handover odometer (km)', type: 'number' }, { name: 'condition', label: 'Vehicle condition' }, { name: 'resolution', label: 'Prior agreement resolution / handover confirmation' },
       ]} />
-      <ActionForm title="3. Add agreement" endpoint="/api/rent-to-own/agreements" description="Suzuki S-Presso standard weekly amounts: 2023–2024 R2,650; 2025+ R2,850. Review the actual contractual amount below. Upload the signed agreement to start. The R8,000 deposit is paid with rent: R650 a week, then R200 in the last week." fields={[
+      <ActionForm successHref="/rent-to-own/agreements" title="3. Add agreement" endpoint="/api/rent-to-own/agreements" description="Suzuki S-Presso standard weekly amounts: 2023–2024 R2,650; 2025+ R2,850. Review the actual contractual amount below. Upload the signed agreement to start. The R8,000 deposit is paid with rent: R650 a week, then R200 in the last week." fields={[
         { name: 'number', label: 'Agreement number' }, { name: 'vehicleId', label: 'Vehicle', options: vehicleOptions }, { name: 'driverId', label: 'Driver', options: drivers.map(d => ({ value: d.id, label: d.name })) },
         { name: 'modelYear', label: 'Model year', type: 'number', value: 2025 }, { name: 'weeklyAmount', label: 'Weekly amount (R)', value: '2850.00' }, { name: 'upfrontRequired', label: 'Total deposit (R)', value: '8000.00' }, { name: 'weeks', label: 'Weeks', type: 'number', value: 234 }, { name: 'startDate', label: 'Start date', type: 'date' },
       ]} />

@@ -18,7 +18,7 @@ export function ActionForm({ title, endpoint, fields, fixed = {}, description, i
       try {
         const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const result = await response.json(); if (!response.ok) throw new Error(result.error ?? 'Unable to save.');
-        setKey(null); setSuccess('Saved successfully.'); form.reset(); if (successHref) router.push(successHref); else router.refresh();
+        setKey(null); setSuccess('Saved successfully.'); form.reset(); if (successHref) window.location.assign(successHref); else router.refresh();
       } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save.'); } finally { setPending(false); }
     }}>
       {fields.map(field => <label key={field.name} className="grid gap-1 text-sm">{field.label}{field.optional ? ' (optional)' : ''}

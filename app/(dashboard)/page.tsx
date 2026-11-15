@@ -58,6 +58,11 @@ export default async function DashboardPage(props: { searchParams: Promise<Analy
         </Button>
       </PageHeader>
 
+      <section className="rounded-xl border border-border bg-card p-5">
+        <h2 className="text-xl font-semibold">Needs attention</h2>
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">{notifications.filter(item => item.priority !== 'info').slice(0, 8).map(item => <li key={item.id} className="rounded-lg border border-border p-3"><Link className="font-semibold underline" href={item.href}>{item.title}</Link><p className="mt-2 text-sm text-muted">{item.description}</p>{item.vehicleId && <Link className="mt-3 inline-block text-sm underline" href={`/transactions/new?vehicleId=${item.vehicleId}`}>Add payment or expense</Link>}</li>)}</ul>
+        <Link className="mt-4 inline-block text-sm underline" href="/alerts">View all alerts</Link>
+      </section>
       {/* SECTION 2: Fleet KPI cards */}
       <FleetKPIs 
         total={report.vehicles.length}
