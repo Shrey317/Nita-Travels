@@ -8,9 +8,8 @@ import { useFleetNotifications } from "@/lib/hooks/use-fleet-notifications";
 import { cn } from "@/lib/utils";
 
 export function AlertsPanel({ alerts }: { alerts: FleetNotification[] }) {
-  const { readIds, markRead } = useFleetNotifications();
-  const unreadAlerts = alerts.filter((a) => !readIds.has(a.id));
-  const sortedAlerts = [...unreadAlerts].sort((a, b) => {
+  const { markRead } = useFleetNotifications();
+  const sortedAlerts = [...alerts].sort((a, b) => {
     const priorityWeight = { critical: 3, warning: 2, info: 1 };
     return priorityWeight[b.priority] - priorityWeight[a.priority];
   });
@@ -64,7 +63,7 @@ export function AlertsPanel({ alerts }: { alerts: FleetNotification[] }) {
         {sortedAlerts.length === 0 && (
           <div className="p-6 flex flex-col items-center justify-center text-center h-full">
             <Bell className="h-8 w-8 text-muted mb-2 opacity-50" />
-            <p className="text-sm text-muted">No active alerts. Fleet is healthy!</p>
+            <p className="text-sm text-muted">No current alerts.</p>
           </div>
         )}
       </div>

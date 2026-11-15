@@ -16,7 +16,7 @@ export default async function RtoPage({ searchParams }: { searchParams: Promise<
   const queue = rows.map(agreement => {
     const issues = [];
     if (Number(agreement.amountDue) > 0) issues.push(agreement.paymentStatus);
-    if (agreement.status === 'IN_DEFAULT') issues.push('Follow up');
+    if (agreement.status === 'IN_DEFAULT' && Number(agreement.amountDue) === 0) issues.push('Review agreement status');
     if (agreement.unavailable) issues.push('Off the road');
     if (agreement.status === 'DRAFT') issues.push(agreement.documents.some(document => document.kind === 'SIGNED_CONTRACT') ? 'Start agreement' : 'Signed agreement missing');
     if (['ACTIVE','SUSPENDED','IN_DEFAULT'].includes(agreement.status)) {

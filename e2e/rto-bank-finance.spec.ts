@@ -100,7 +100,7 @@ test('add car is available in RTO vehicles and manual entries include completed 
   await page.getByLabel('Current lifetime mileage (km)', { exact: true }).fill('1000');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page).toHaveURL(/\/rent-to-own\/vehicles$/);
-  await expect(page.getByText('MANUAL-TEST-91', { exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'MANUAL-TEST-91', exact: true })).toBeVisible();
   await page.goto('/rent-to-own/payments');
   await page.getByRole('combobox', { name: /^Choose a car/ }).selectOption({ label: 'CR77 · BROWSER-RTO-77' });
   await page.getByRole('button', { name: 'Continue' }).click();
