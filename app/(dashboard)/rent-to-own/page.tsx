@@ -11,25 +11,42 @@ export default async function RtoPage({ searchParams }: { searchParams: Promise<
   const query = new URLSearchParams(Object.entries(params).filter((p): p is [string, string] => p[1] !== undefined));
   const pageLink = (page: number) => { const q = new URLSearchParams(query); q.set('page', String(page)); return `/rent-to-own?${q}`; };
   const active = rows.filter(r => ['ACTIVE','SUSPENDED','IN_DEFAULT'].includes(r.status));
+  const queue = rows.map(agreement => {
+    const issues = [];
+    if (Number(agreement.amountDue) > 0) issues.push('Payment due');
+    if (agreement.status === 'IN_DEFAULT') issues.push('Follow up');
+    if (agreement.unavailable) issues.push('Off the road');
+    if (agreement.status === 'DRAFT') issues.push('Finish setup');
+    return { agreement, issues };
+  }).sort((a, b) => Number(b.issues.length > 0) - Number(a.issues.length > 0)
+    || Number(b.agreement.amountDue) - Number(a.agreement.amountDue));
   return <div className="space-y-6">
     <div className="flex flex-wrap items-start justify-between gap-4"><ModuleHeader title="Rent-to-Own" description="Your vehicles, drivers and rental payments in one place." />{session.staffRole === 'ADMIN' && <Link className="rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white" href="/rent-to-own/manage">Add vehicle or agreement</Link>}</div>
-    <nav aria-label="Rent-to-Own quick actions" className="grid gap-3 sm:grid-cols-3">{[['payments','Record a payment','Choose a driver and add their payment.'], ['mileage','Update mileage','Record the latest odometer reading.'], ['repairs','Manage repairs','Track repair work and shared costs.']].map(([path,title,description]) => <Link prefetch={false} key={path} href={`/rent-to-own/${path}`} className="rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary"><span className="font-semibold">{title} →</span><p className="mt-2 text-sm text-muted">{description}</p></Link>)}</nav>
     <form className="flex flex-wrap items-end gap-3 rounded-xl border border-border p-4">
       <label className="text-sm">From<input aria-label="From" type="date" name="from" defaultValue={day(range.from)} className="block rounded border bg-background p-2" /></label>
       <label className="text-sm">To<input aria-label="To" type="date" name="to" defaultValue={day(range.to)} className="block rounded border bg-background p-2" /></label>
       <label className="min-w-0 flex-1 text-sm">Find a vehicle or driver<input name="q" defaultValue={params.q} placeholder="Vehicle, driver or agreement" className="block w-full rounded border bg-background p-2" /></label>
       <label className="text-sm">Status<select name="status" defaultValue={params.status} className="block rounded border bg-background p-2"><option value="">All</option>{Object.entries(statusLabel).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label><button className="rounded-lg bg-primary px-4 py-2 text-white">Apply</button>
     </form>
-    <Metrics items={[
-      ['Active vehicles', new Set(active.map(r => r.vehicleId)).size], ['Rent collected in period', zar(report.collected)], ['Rent expected in period', zar(report.expected)], ['Total due at period end', zar(report.totalOutstanding)],
-    ]} />
-    <section><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-xl font-semibold">Vehicles & drivers</h2><Link className="text-sm underline" href="/rent-to-own/agreements">View all agreements</Link></div><p className="mt-2 text-sm text-muted">Payment status below covers {day(range.from)} to {day(range.to)}. Open an agreement for the full balance and history.</p>
-    <DataTable headers={['Vehicle / agreement', 'Driver', 'Weekly rent', 'Rent due in period', 'Agreement', 'Actions']} rows={rows.slice((range.page - 1) * 20, range.page * 20).map(r => [
-      <div key={r.id}><p className="font-semibold">{r.vehicleId} · {r.vehicle.registration}</p><Link prefetch={false} className="text-sm text-muted underline" href={`/rent-to-own/agreements/${r.id}`}>{r.number}</Link></div>, r.driver.name, zar(r.weeklyAmount),
-      r.status === 'DRAFT' ? 'Not started' : r.outstandingAmount > 0 ? <span className="font-semibold text-amber-700 dark:text-amber-300">{zar(r.outstandingAmount)} unpaid</span> : 'No unpaid rent in period',
-      statusLabel[r.status], <Link key="open" prefetch={false} className="whitespace-nowrap rounded-lg border border-border px-3 py-2 text-sm" href={`/rent-to-own/agreements/${r.id}`}>Open agreement →</Link>,
-    ])} empty="No agreements yet. Start by adding a vehicle and driver." />
-    <div className="flex gap-4 text-sm">{range.page > 1 && <Link href={pageLink(range.page - 1)}>Previous</Link>}<span>Page {range.page} · {rows.length} agreements</span>{range.page * 20 < rows.length && <Link href={pageLink(range.page + 1)}>Next</Link>}</div></section>
-    <details className="rounded-xl border border-border bg-card p-5"><summary className="cursor-pointer font-semibold">Collection charts & exports</summary><CollectionsChart title="Rent expected and collected" data={report.chart} /><nav aria-label="RTO report exports" className="flex flex-wrap gap-4 text-sm">{['agreements','payments','mileage','repairs'].map(type => <a key={type} className="capitalize underline" href={`/api/rent-to-own/export?${query}&type=${type}`}>Export {type}</a>)}</nav><Link className="mt-4 block text-sm underline" href="/rent-to-own/reports">More reports</Link></details>
+    <section>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xl font-semibold">Vehicles & drivers</h2>
+        <Link className="text-sm underline" href="/rent-to-own/agreements">View all agreements</Link>
+      </div>
+      <p className="my-2 text-sm text-muted">Amounts due as of {day(range.to)} include unpaid rent, deposit instalments and other charges.</p>
+      <DataTable headers={['Driver', 'Car / agreement', 'Amount due', 'Needs attention', 'Action']} rows={queue.slice((range.page - 1) * 20, range.page * 20).map(({ agreement: r, issues }) => [
+        r.driver.name,
+        <Link key={r.id} prefetch={false} className="underline" href={`/rent-to-own/agreements/${r.id}`}>{r.vehicleId} · {r.vehicle.registration} · {r.number}</Link>,
+        <span key="due" className={Number(r.amountDue) > 0 ? 'font-semibold text-amber-700 dark:text-amber-300' : ''}>{zar(r.amountDue)}</span>,
+        issues.join(' · ') || statusLabel[r.status],
+        session.staffRole === 'ADMIN' && ['ACTIVE','SUSPENDED','IN_DEFAULT'].includes(r.status)
+          ? <Link key="payment" prefetch={false} aria-label={`Add payment for ${r.driver.name}, ${r.vehicleId}`} className="whitespace-nowrap rounded-lg bg-primary px-3 py-2 text-sm text-white" href={`/rent-to-own/agreements/${r.id}?tab=entries`}>Add payment</Link>
+          : <Link key="open" className="whitespace-nowrap underline" href={`/rent-to-own/agreements/${r.id}`}>Open agreement</Link>,
+      ])} empty="No matching agreements." />
+      <div className="mt-3 flex gap-4 text-sm">{range.page > 1 && <Link href={pageLink(range.page - 1)}>Previous</Link>}<span>Page {range.page} · {queue.length} agreements</span>{range.page * 20 < queue.length && <Link href={pageLink(range.page + 1)}>Next</Link>}</div>
+    </section>
+    <details className="rounded-xl border border-border bg-card p-5"><summary className="cursor-pointer font-semibold">Collection charts & exports</summary><Metrics items={[
+      ['Active cars', new Set(active.map(r => r.vehicleId)).size], ['Rent collected', zar(report.collected)], ['Rent expected', zar(report.expected)], ['Total due', zar(report.totalOutstanding)],
+    ]} /><CollectionsChart title="Rent expected and collected" data={report.chart} /><nav aria-label="RTO report exports" className="flex flex-wrap gap-4 text-sm">{['agreements','payments','mileage','repairs'].map(type => <a key={type} className="capitalize underline" href={`/api/rent-to-own/export?${query}&type=${type}`}>Export {type}</a>)}</nav><Link className="mt-4 block text-sm underline" href="/rent-to-own/reports">More reports</Link></details>
   </div>;
 }

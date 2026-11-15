@@ -74,14 +74,14 @@ export default async function RtoSection({ params, searchParams }: { params: Pro
     headers = ['Priority', 'Vehicle', 'Alert', 'Details'];
     rows = alerts.slice(pagination.skip, pagination.skip + 31).map(n => [n.priority, n.vehicleId, <Link prefetch={false} key={n.id} href={n.href} className="underline">{n.title}</Link>, n.description]);
   }
-  const choices = ['payments','mileage','repairs','service','downtime','documents','settlements'].includes(section) ? await prisma.rtoAgreement.findMany({ where: filter, select: { id: true, number: true, vehicleId: true }, orderBy: { number: 'asc' }, take: 30 }) : [];
+  const choices = ['payments', 'mileage', 'repairs', 'service', 'downtime', 'documents', 'settlements'].includes(section) ? await prisma.rtoAgreement.findMany({ where: filter, select: { id: true, number: true, vehicleId: true }, orderBy: { number: 'asc' }, take: 30 }) : [];
   const pageHref = (value: number) => `/rent-to-own/${section}?${new URLSearchParams({ q, page: String(value) })}`;
   return <>
     <ModuleHeader title={`Rent-to-Own · ${config[0]}`} description={config[1]} />
-    {section === 'vehicles' && session.staffRole === 'ADMIN' && <Link className="mb-5 inline-block rounded-lg bg-primary px-5 py-3 font-semibold text-white" href="/rent-to-own/vehicles/new">Add car</Link>}
-    {section === 'reports' ? <div className="grid gap-4 sm:grid-cols-2"><Link prefetch={false} className="rounded-xl border border-border p-5 underline" href="/rent-to-own">Dashboard, date filters & financial charts</Link>{['agreements','payments','mileage','repairs'].map(type => <a key={type} className="rounded-xl border border-border p-5 capitalize underline" href={`/api/rent-to-own/export?type=${type}`}>{type} CSV export (current month)</a>)}</div> : <>
+    {section === 'vehicles' && session.staffRole === 'ADMIN' && <Link className="mb-5 inline-block rounded-lg bg-primary px-5 py-3 font-semibold text-white" href="/rent-to-own/vehicles/new">Add vehicle</Link>}
+    {section === 'reports' ? <div className="grid gap-4 sm:grid-cols-2"><Link prefetch={false} className="rounded-xl border border-border p-5 underline" href="/rent-to-own">Dashboard, date filters & financial charts</Link>{['agreements', 'payments', 'mileage', 'repairs'].map(type => <a key={type} className="rounded-xl border border-border p-5 capitalize underline" href={`/api/rent-to-own/export?type=${type}`}>{type} CSV export (current month)</a>)}</div> : <>
       <form className="mb-5 flex flex-wrap gap-3"><input aria-label="Find a car or driver" name="q" defaultValue={q} placeholder="Search vehicle, driver or agreement" className="min-w-0 flex-1 rounded-lg border border-border bg-background p-3" /><button className="rounded-lg bg-primary px-4 py-2 text-white">Search</button></form>
-      {session.staffRole === 'ADMIN' && ['vehicles','agreements'].includes(section) && <Link prefetch={false} className="underline" href="/rent-to-own/manage">Create agreement or transfer a vehicle into Rent-to-Own</Link>}
+      {session.staffRole === 'ADMIN' && ['vehicles', 'agreements'].includes(section) && <Link prefetch={false} className="underline" href="/rent-to-own/manage">Create agreement or transfer a vehicle into Rent-to-Own</Link>}
       {choices.length > 0 && <AgreementPicker agreements={choices} tab={tab} canEdit={session.staffRole === 'ADMIN'} />}
       <DataTable headers={headers} rows={rows.slice(0, 30)} empty="No records yet. Choose a car above to start." />
       <nav aria-label="Register pages" className="flex gap-4 text-sm">{page > 1 && <Link prefetch={false} href={pageHref(page - 1)}>Previous</Link>}<span>Page {page}</span>{rows.length > 30 && <Link prefetch={false} href={pageHref(page + 1)}>Next</Link>}</nav>

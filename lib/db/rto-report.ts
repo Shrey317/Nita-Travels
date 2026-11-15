@@ -25,15 +25,16 @@ export async function rtoReport(params: Record<string, string | undefined>) {
   const weekBucket = (date: Date) => { const monday = new Date(date); monday.setUTCDate(monday.getUTCDate() - (monday.getUTCDay() + 6) % 7); const key = monday.toISOString().slice(0, 10); if (!weekly.has(key)) weekly.set(key, { label: key, expected: 0, collected: 0 }); return weekly.get(key)!; };
   const bucket = (date: Date) => { const key = date.toISOString().slice(0, 7); if (!monthly.has(key)) monthly.set(key, { label: key, expected: 0, collected: 0 }); return monthly.get(key)!; };
   let overdue = 0; const expected: string[] = []; const balances: string[] = [];
-  const allDueBalances: string[] = [];
+
   const rows = agreements.map(a => {
+    const dueBalances: string[] = [];
     const dates = dueDates(a.startDate, a.weeks, a.downtime, range.until);
     let outstanding = 0; let outstandingAmount = 0; let expectedAmount = 0;
     for (const installment of a.installments) {
       const date = dates[installment.sequence - 1]!;
       const asOfAllocations = installment.allocations.filter(v => v.payment.date < range.until && (!v.payment.reversedAt || v.payment.reversedAt >= range.until)).map(v => ({ ...v, payment: { reversedAt: null } }));
       const asOfBalance = installmentBalance(installment.amount, asOfAllocations);
-      if (date < range.until) allDueBalances.push(asOfBalance.toString());
+      if (date < range.until) dueBalances.push(asOfBalance.toString());
       if (date >= range.from && date < range.until) {
         expected.push(installment.amount.toString()); bucket(date).expected += installment.amount.toNumber();
         expectedAmount += installment.amount.toNumber(); weekBucket(date).expected += installment.amount.toNumber();
@@ -44,22 +45,22 @@ export async function rtoReport(params: Record<string, string | undefined>) {
     }
     for (const charge of a.charges) {
       const allocations = charge.allocations.filter(v => v.payment.date < range.until && (!v.payment.reversedAt || v.payment.reversedAt >= range.until)).map(v => ({ ...v, payment: { reversedAt: null } }));
-      allDueBalances.push(installmentBalance(charge.amount, allocations).toString());
+      dueBalances.push(installmentBalance(charge.amount, allocations).toString());
     }
     if (a.activatedAt) {
       const deposit = depositSchedule(a.upfrontRequired, a.payments.map(p => ({ ...p, reversedAt: null })), a.weeks);
-      deposit.forEach((week, i) => { if (dates[i]! < range.until) allDueBalances.push(week.balance.toString()); });
+      deposit.forEach((week, i) => { if (dates[i]! < range.until) dueBalances.push(week.balance.toString()); });
     }
     const periodPayments = a.payments.filter(p => p.date >= range.from);
     periodPayments.forEach(p => { bucket(p.date).collected += rentPart(p).toNumber(); weekBucket(p.date).collected += rentPart(p).toNumber(); });
     const completed = a.activatedAt ? dates.filter(d => d < range.until).length : 0;
-    return { ...a, payments: periodPayments, completed, remaining: a.weeks - completed, progress: Math.floor(completed / a.weeks * 100), outstanding, outstandingAmount, expectedAmount, unavailable: a.downtime.some(d => d.startsAt < range.until && (!d.endsAt || d.endsAt >= range.until)) };
+    return { ...a, amountDue: sumMoney(dueBalances).toFixed(2), payments: periodPayments, completed, remaining: a.weeks - completed, progress: Math.floor(completed / a.weeks * 100), outstanding, outstandingAmount, expectedAmount, unavailable: a.downtime.some(d => d.startsAt < range.until && (!d.endsAt || d.endsAt >= range.until)) };
   });
   return { range, rows, chart: [...monthly.values()].sort((a, b) => a.label.localeCompare(b.label)), overdue,
     weeklyChart: [...weekly.values()].sort((a, b) => a.label.localeCompare(b.label)),
     expected: sumMoney(expected).toFixed(2), outstanding: sumMoney(balances).toFixed(2),
     collected: sumMoney(agreements.flatMap(a => a.payments.filter(p => p.date >= range.from).map(rentPart))).toFixed(2),
-    totalOutstanding: sumMoney(allDueBalances).toFixed(2),
+    totalOutstanding: sumMoney(rows.map(row => row.amountDue)).toFixed(2),
     currentWeeklyRent: sumMoney(rows.filter(r => ['ACTIVE','IN_DEFAULT'].includes(r.status) && !r.unavailable).map(r => r.weeklyAmount)).toFixed(2),
     repairs: sumMoney(agreements.flatMap(a => a.repairs.map(r => r.invoiceAmount))).toFixed(2),
     contributions: sumMoney(agreements.flatMap(a => a.repairs.map(r => r.driverAmount))).toFixed(2),
