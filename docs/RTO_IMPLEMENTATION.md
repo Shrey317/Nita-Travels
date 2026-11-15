@@ -90,3 +90,20 @@ Simplified-interface verification: production build (including lint and TypeScri
 RTO Vehicles now has an Add car button and dedicated /rent-to-own/vehicles/new form. Successful creation returns to the vehicle register; no driver or agreement is required at this stage. The Payments register opens the Manual entry agreement tab, where the administrator explicitly records actual receipts, repair invoices and completed services. The manual repair route does not require a quotation workflow and does not invent a quotation or payment. Expenses and driver receipts remain separate records. Expected weekly rent remains a schedule, never automatically collected income. Service planning remains absent from navigation.
 
 Manual-entry verification: production build passed, 12 isolated database tests passed and all 4 Chromium workflows passed. Browser verification creates a car using the actual form and checks payment, repair and completed-service entry forms without service planning.
+
+
+## Weekly deposit change — 14 November 2026
+
+The user confirmed R650 deposit instalments start with the first weekly rent payment, apply to existing agreements, and preserve prior deposits. For an R8,000 deposit with no prior payments this is 12 × R650 and one R200 payment. No full deposit is required to start; the signed agreement is still required. The deposit follows rent due dates, including downtime extensions. Existing UPFRONT receipts count toward the deposit without rewriting the original records or signed terms.
+
+The Add payment form combines rent and deposit into one WEEKLY receipt. The server locks the agreement, checks the full amount for the selected oldest unpaid weeks, allocates rent and stores the deposit portion separately. Short payments are rejected; late payments can cover multiple weeks. Duplicate retries cannot create a second receipt. Undoing the receipt restores both rent and deposit balances. Completion requires the full deposit. Deposit-only payments cannot exceed the remaining deposit.
+
+Rent charts exclude deposits. Outstanding totals include only deposit instalments due by the report cutoff; future deposit amounts are not labelled overdue. Payment lists and CSV exports show the rent/deposit split. The main menu shows daily work first, with less-used pages under More. The payment form calculates the total when Weeks paid changes.
+
+Migration 20261114090000_weekly_deposit adds the WEEKLY enum value and a nonnegative depositAmount column (default zero) with an amount cap. It does not alter or delete previous receipts. Apply it before deploying this code. Old app versions can continue serving old receipts during migration, but once WEEKLY receipts exist, rollback must retain a reader that understands WEEKLY and depositAmount. Do not drop the new column or rewrite receipts to roll back.
+
+The weekly-deposit migration and app changes have not been applied to production in this task.
+
+Prior standalone deposits reduce the remaining total to collect; the weekly top-up stays R650 until the final smaller payment. For example, an existing R1,000 deposit leaves ten R650 payments and one R500 payment.
+
+Final verification (15 November 2026): production build, lint and TypeScript passed; 257 unit tests passed; 17 isolated database tests passed during implementation, with the four weekly-deposit tests rerun after the compatibility adjustment. All five Chromium workflows passed against the final build, including combined payment receipt, manual car creation, mobile navigation and bank privacy. Car selection uses a same-origin relative redirect; successful car creation navigates without a competing refresh. Vercel team access remains blocked (403); production migration and deployment remain pending.

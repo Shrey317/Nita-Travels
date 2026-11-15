@@ -1,3 +1,4 @@
+import { depositPart, rentPart } from '@/lib/rto-deposit';
 import { requireSession, handleApiError } from '@/lib/api-response';
 import { rtoReport } from '@/lib/db/rto-report';
 import { csvRows } from '@/lib/reports';
@@ -10,7 +11,7 @@ export async function GET(request: Request) {
     const where = { agreementId: { in: report.rows.map(a => a.id) }, date: { gte: report.range.from, lt: report.range.until } };
     if (query.get('type') === 'payments') {
       const rows = await prisma.rtoPayment.findMany({ where, orderBy: [{ date: 'asc' }, { id: 'asc' }], include: { agreement: { select: { number: true, vehicleId: true } } } });
-      csv = csvRows([['Agreement','Vehicle','Date','Reference','Purpose','Amount (R)','Method','Reversed','Notes'], ...rows.map(r => [r.agreement.number,r.agreement.vehicleId,r.date.toISOString().slice(0,10),r.reference,r.kind,r.amount.toFixed(2),r.method,r.reversedAt ? 'Yes' : 'No',r.notes])]);
+      csv = csvRows([['Agreement','Vehicle','Date','Reference','Purpose','Amount (R)','Rent (R)','Deposit (R)','Method','Reversed','Notes'], ...rows.map(r => [r.agreement.number,r.agreement.vehicleId,r.date.toISOString().slice(0,10),r.reference,r.kind,r.amount.toFixed(2),rentPart(r).toFixed(2),depositPart(r).toFixed(2),r.method,r.reversedAt ? 'Yes' : 'No',r.notes])]);
     }
     if (query.get('type') === 'mileage') {
       const rows = await prisma.rtoMileageEntry.findMany({ where, orderBy: [{ date: 'asc' }, { id: 'asc' }], include: { agreement: { select: { number: true, vehicleId: true } } } });

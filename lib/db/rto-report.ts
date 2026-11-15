@@ -1,3 +1,4 @@
+import { depositSchedule, rentPart } from '../rto-deposit';
 import { z } from 'zod';
 import { prisma } from './client';
 import { calendarDateSchema } from '../schemas/common.schema';
@@ -46,18 +47,18 @@ export async function rtoReport(params: Record<string, string | undefined>) {
       allDueBalances.push(installmentBalance(charge.amount, allocations).toString());
     }
     if (a.activatedAt) {
-      const upfront = sumMoney(a.payments.filter(p => p.kind === 'UPFRONT').map(p => p.amount));
-      if (upfront.lt(a.upfrontRequired)) allDueBalances.push(a.upfrontRequired.minus(upfront).toString());
+      const deposit = depositSchedule(a.upfrontRequired, a.payments.map(p => ({ ...p, reversedAt: null })), a.weeks);
+      deposit.forEach((week, i) => { if (dates[i]! < range.until) allDueBalances.push(week.balance.toString()); });
     }
     const periodPayments = a.payments.filter(p => p.date >= range.from);
-    periodPayments.filter(p => p.kind === 'RENT').forEach(p => { bucket(p.date).collected += p.amount.toNumber(); weekBucket(p.date).collected += p.amount.toNumber(); });
+    periodPayments.forEach(p => { bucket(p.date).collected += rentPart(p).toNumber(); weekBucket(p.date).collected += rentPart(p).toNumber(); });
     const completed = a.activatedAt ? dates.filter(d => d < range.until).length : 0;
     return { ...a, payments: periodPayments, completed, remaining: a.weeks - completed, progress: Math.floor(completed / a.weeks * 100), outstanding, outstandingAmount, expectedAmount, unavailable: a.downtime.some(d => d.startsAt < range.until && (!d.endsAt || d.endsAt >= range.until)) };
   });
   return { range, rows, chart: [...monthly.values()].sort((a, b) => a.label.localeCompare(b.label)), overdue,
     weeklyChart: [...weekly.values()].sort((a, b) => a.label.localeCompare(b.label)),
     expected: sumMoney(expected).toFixed(2), outstanding: sumMoney(balances).toFixed(2),
-    collected: sumMoney(agreements.flatMap(a => a.payments.filter(p => p.kind === 'RENT' && p.date >= range.from).map(p => p.amount))).toFixed(2),
+    collected: sumMoney(agreements.flatMap(a => a.payments.filter(p => p.date >= range.from).map(rentPart))).toFixed(2),
     totalOutstanding: sumMoney(allDueBalances).toFixed(2),
     currentWeeklyRent: sumMoney(rows.filter(r => ['ACTIVE','IN_DEFAULT'].includes(r.status) && !r.unavailable).map(r => r.weeklyAmount)).toFixed(2),
     repairs: sumMoney(agreements.flatMap(a => a.repairs.map(r => r.invoiceAmount))).toFixed(2),

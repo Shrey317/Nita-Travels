@@ -10,6 +10,7 @@ export const agreementSchema = z.object({ number: id, vehicleId: id, driverId: i
 export const transferSchema = z.object({ vehicleId: id, toModule: z.enum(['NORMAL_RENTAL', 'RENT_TO_OWN', 'UNASSIGNED']), effectiveAt: calendarDateSchema, odometerKm: nonnegativeIntegerSchema, condition: text, resolution: text });
 export const statusSchema = z.object({ agreementId: id, status: z.enum(['DRAFT', 'ACTIVE', 'SUSPENDED', 'IN_DEFAULT', 'COMPLETED', 'TERMINATED', 'CANCELLED']), reason: text });
 export const paymentSchema = z.object({ agreementId: id, date: calendarDateSchema, amount: positiveAmount, kind: z.enum(['RENT', 'UPFRONT', 'CHARGE']), reference: id, method: text, notes: text.optional(), idempotencyKey: z.string().uuid() });
+export const weeklyPaymentSchema = paymentSchema.omit({ kind: true }).extend({ weeks: z.number().int().min(1).max(52).default(1) });
 export const reversalSchema = z.object({ paymentId: id, reason: text });
 export const mileageSchema = z.object({ agreementId: id, date: calendarDateSchema, odometerKm: nonnegativeIntegerSchema, readingType: z.enum(['LIFETIME', 'DISPLAYED']).default('LIFETIME'), source: text });
 export const repairSchema = z.object({ agreementId: id, date: calendarDateSchema, kind: text, description: text, workshop: text, quotation: amount, approvedAmount: amount, invoiceAmount: amount, recoveryAmount: amount.default('0') });

@@ -9,7 +9,7 @@ import { transferVehicle } from '@/lib/db/fleet-assignment';
 import { revalidatePath } from 'next/cache';
 const actions: Record<string, (input: unknown, actor: string) => Promise<unknown>> = {
   vehicles: createRtoVehicle, drivers: rto.createDriver, agreements: rto.createAgreement, status: rto.changeAgreementStatus,
-  payments: rto.recordRtoPayment, reversal: rto.reverseRtoPayment, mileage: rto.recordRtoMileage,
+  payments: rto.recordRtoPayment, 'weekly-payment': rto.recordWeeklyPayment, reversal: rto.reverseRtoPayment, mileage: rto.recordRtoMileage,
   repairs: rto.recordRtoRepair, 'manual-repair': rto.recordManualRtoRepair, services: rto.recordRtoService, downtime: rto.recordDowntime,
   'close-downtime': rto.closeDowntime, settlement: rto.settlementReview, transfer: transferVehicle,
   'adjust-installment': rto.adjustInstallment, 'correct-mileage': rto.correctRtoMileage,

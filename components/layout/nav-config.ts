@@ -19,6 +19,7 @@ import {
 
 export type NavGroup = {
   label: string;
+  collapsed?: boolean;
   items: { href: string; label: string; icon: LucideIcon; adminOnly?: boolean }[];
 };
 
@@ -73,16 +74,18 @@ export const RTO_NAV_GROUPS: NavGroup[] = [
   { label: 'RENT-TO-OWN', items: [
     { href: '/rent-to-own', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/rent-to-own/vehicles', label: 'Vehicles', icon: Car },
-    { href: '/rent-to-own/agreements', label: 'Drivers & Agreements', icon: Users },
+    { href: '/rent-to-own/agreements', label: 'Drivers', icon: Users },
     { href: '/rent-to-own/payments', label: 'Payments', icon: Receipt },
     { href: '/rent-to-own/mileage', label: 'Mileage', icon: Gauge },
     { href: '/rent-to-own/repairs', label: 'Repairs', icon: Wrench },
-    { href: '/rent-to-own/downtime', label: 'Vehicle Downtime', icon: RefreshCw },
-    { href: '/rent-to-own/documents', label: 'Documents', icon: FileBarChart },
-    { href: '/rent-to-own/settlements', label: 'Settlement Reviews', icon: Receipt },
+  ] },
+  { label: 'More', collapsed: true, items: [
+    { href: '/rent-to-own/downtime', label: 'Time off road', icon: RefreshCw },
+    { href: '/rent-to-own/documents', label: 'Files', icon: FileBarChart },
+    { href: '/rent-to-own/settlements', label: 'Pay off early', icon: Receipt },
     { href: '/rent-to-own/alerts', label: 'Alerts', icon: Bell },
     { href: '/rent-to-own/reports', label: 'Reports', icon: BarChart3 },
-    { href: '/rent-to-own/manage', label: 'Setup & Transfers', icon: ListChecks, adminOnly: true },
+    { href: '/rent-to-own/manage', label: 'Add driver / agreement', icon: ListChecks, adminOnly: true },
   ] },
 ];
 export function navigationGroups(pathname: string): NavGroup[] {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -9,6 +9,10 @@ import { Menu, X, LogOut, CarFront, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navigationGroups, isNavigationActive } from "@/components/layout/nav-config";
 import { signOutAction } from "@/app/(dashboard)/actions";
+
+function NavSection({ collapsed, active, label, children }: { collapsed?: boolean; active: boolean; label: string; children: ReactNode }) {
+  return collapsed ? <details open={active || undefined} className="space-y-1"><summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-muted">{label}</summary>{children}</details> : <div className="space-y-1">{children}</div>;
+}
 
 function NavLinks({
   onNavigate,
@@ -37,8 +41,8 @@ function NavLinks({
   return (
     <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-6 custom-scrollbar" aria-label="Main navigation">
       {visibleGroups.map((group) => (
-        <div key={group.label} className="space-y-1">
-          {!isCollapsed && (
+        <NavSection key={group.label} label={group.label} collapsed={group.collapsed} active={group.items.some(item => isNavigationActive(pathname, item.href))}>
+          {!isCollapsed && !group.collapsed && (
             <div className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-muted">
               {group.label}
             </div>
@@ -103,7 +107,7 @@ function NavLinks({
               </Link>
             );
           })}
-        </div>
+        </NavSection>
       ))}
     </nav>
   );

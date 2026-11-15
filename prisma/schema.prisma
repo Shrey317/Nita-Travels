@@ -240,6 +240,7 @@ enum RtoPaymentKind {
   RENT
   UPFRONT
   CHARGE
+  WEEKLY
 }
 
 model RtoPayment {
@@ -248,6 +249,7 @@ model RtoPayment {
   agreement      RtoAgreement           @relation(fields: [agreementId], references: [id], onDelete: Restrict)
   date           DateTime               @db.Date
   amount         Decimal                @db.Decimal(14, 2)
+  depositAmount  Decimal                @default(0) @db.Decimal(14, 2)
   kind           RtoPaymentKind
   reference      String
   method         String

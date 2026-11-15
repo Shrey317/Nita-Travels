@@ -4,6 +4,7 @@ import { audit, lockVehicle } from './fleet-assignment';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { DEFAULT_TERMS, DAY, assertTransition, dueDates, installmentBalance, mileageCharge, money, repairSplit, sumMoney } from '../rto';
 import * as s from '../schemas/rto.schema';
+import { depositPaid, depositSchedule, depositRemaining, rentPart } from '../rto-deposit';
 
 export async function lockAgreement(tx: Prisma.TransactionClient, id: string) {
   const found = await tx.rtoAgreement.findUnique({ where: { id } });
@@ -46,11 +47,11 @@ export async function changeAgreementStatus(input: unknown, actor: string) {
       if (!assignment || assignment.startsAt > agreement.startDate) throw new ValidationError('Transfer this vehicle to RTO on or before the agreement start date.');
       if (await tx.rtoAgreement.count({ where: { vehicleId: agreement.vehicleId, status: { in: ['ACTIVE', 'SUSPENDED', 'IN_DEFAULT'] } } })) throw new ConflictError('Vehicle already has an active agreement.');
       if (!await tx.rtoDocument.count({ where: { agreementId: agreement.id, kind: 'SIGNED_CONTRACT' } })) throw new ValidationError('Attach the signed contract before activation.');
-      const upfront = await tx.rtoPayment.aggregate({ where: { agreementId: agreement.id, kind: 'UPFRONT', reversedAt: null }, _sum: { amount: true } });
-      if (money(upfront._sum.amount ?? 0).lt(agreement.upfrontRequired)) throw new ValidationError('Record the required upfront payment before activation.');
       await tx.rtoInstallment.createMany({ data: dueDates(agreement.startDate, agreement.weeks, []).map((date, i) => ({ agreementId: agreement.id, sequence: i + 1, originalDueDate: date, effectiveDueDate: date, amount: agreement.weeklyAmount })) });
     }
     if (data.status === 'COMPLETED') {
+      const receipts = await tx.rtoPayment.findMany({ where: { agreementId: agreement.id } });
+      if (depositRemaining(agreement.upfrontRequired, depositPaid(receipts)).gt(0)) throw new ValidationError('Pay the remaining deposit before completing this agreement.');
       const installments = await tx.rtoInstallment.findMany({ where: { agreementId: agreement.id }, include: { allocations: { include: { payment: true } } } });
       const charges = await tx.rtoCharge.findMany({ where: { agreementId: agreement.id }, include: { allocations: { include: { payment: true } } } });
       const downtime = await tx.rtoDowntime.findMany({ where: { agreementId: agreement.id } });
@@ -61,6 +62,34 @@ export async function changeAgreementStatus(input: unknown, actor: string) {
     const result = await tx.rtoAgreement.update({ where: { id: agreement.id }, data: { status: data.status, ...(agreement.status === 'DRAFT' && data.status === 'ACTIVE' ? { activatedAt: new Date() } : {}), ...(resolved ? { resolvedAt: new Date(), resolution: data.reason } : {}) } });
     await audit(tx, 'RTO', agreement.id, 'STATUS_CHANGED', actor, { from: agreement.status, to: data.status, reason: data.reason });
     return result;
+  }, TRANSACTION_OPTIONS);
+}
+export async function recordWeeklyPayment(input: unknown, actor: string) {
+  const data = s.weeklyPaymentSchema.parse(input);
+  return prisma.$transaction(async tx => {
+    const agreement = await lockAgreement(tx, data.agreementId);
+    const existing = await tx.rtoPayment.findUnique({ where: { idempotencyKey: data.idempotencyKey } });
+    if (existing) {
+      if (existing.agreementId !== agreement.id || existing.kind !== 'WEEKLY' || !existing.amount.eq(data.amount) || existing.reference !== data.reference || +existing.date !== +data.date || existing.method !== data.method) throw new ConflictError('This payment reference was already used for another payment.');
+      return existing;
+    }
+    operational(agreement.status);
+    if (data.date > new Date() || data.date < agreement.startDate) throw new ValidationError('Use the date you received the payment, on or after the agreement start.');
+    const [installments, payments] = await Promise.all([
+      tx.rtoInstallment.findMany({ where: { agreementId: agreement.id }, orderBy: { sequence: 'asc' }, include: { allocations: { include: { payment: true } } } }),
+      tx.rtoPayment.findMany({ where: { agreementId: agreement.id } }),
+    ]);
+    const deposit = depositSchedule(agreement.upfrontRequired, payments, installments.length);
+    const unpaid = installments.map((i, index) => ({ id: i.id, rent: installmentBalance(i.amount, i.allocations), deposit: deposit[index]!.balance })).filter(i => i.rent.gt(0) || i.deposit.gt(0)).slice(0, data.weeks);
+    if (unpaid.length !== data.weeks) throw new ValidationError('There are fewer unpaid weeks. Check the payment schedule.');
+    const rent = sumMoney(unpaid.map(i => i.rent)); const depositAmount = sumMoney(unpaid.map(i => i.deposit));
+    const total = rent.plus(depositAmount);
+    if (!total.eq(data.amount)) throw new ValidationError(`Enter R${total.toFixed(2)} for ${data.weeks} week(s): R${rent.toFixed(2)} rent + R${depositAmount.toFixed(2)} deposit. Late payments cover the oldest unpaid weeks.`);
+    const { weeks, ...receipt } = data;
+    const row = await tx.rtoPayment.create({ data: { ...receipt, kind: 'WEEKLY', depositAmount, actor } });
+    for (const i of unpaid) if (i.rent.gt(0)) await tx.rtoPaymentAllocation.create({ data: { paymentId: row.id, installmentId: i.id, amount: i.rent } });
+    await audit(tx, 'RTO', agreement.id, 'WEEKLY_PAYMENT_RECORDED', actor, { paymentId: row.id, weeks, rent: rent.toFixed(2), deposit: depositAmount.toFixed(2), total: total.toFixed(2) });
+    return row;
   }, TRANSACTION_OPTIONS);
 }
 export async function recordRtoPayment(input: unknown, actor: string) {
@@ -75,6 +104,11 @@ export async function recordRtoPayment(input: unknown, actor: string) {
     if (data.date > new Date()) throw new ValidationError('Actual payments cannot be future dated.');
     if (data.kind !== 'UPFRONT') operational(agreement.status);
     else if (!['DRAFT', 'ACTIVE', 'SUSPENDED', 'IN_DEFAULT'].includes(agreement.status)) throw new ValidationError('Agreement is resolved.');
+    if (data.kind === 'UPFRONT') {
+      const receipts = await tx.rtoPayment.findMany({ where: { agreementId: agreement.id } });
+      const left = depositRemaining(agreement.upfrontRequired, depositPaid(receipts));
+      if (money(data.amount).gt(left)) throw new ValidationError(`Only R${left.toFixed(2)} of the deposit is left to pay.`);
+    }
     const row = await tx.rtoPayment.create({ data: { ...data, actor } });
     let remaining = money(data.amount);
     if (data.kind === 'RENT') {
@@ -233,17 +267,21 @@ export async function getRtoAgreement(id: string) {
   } });
   if (!agreement) throw new NotFoundError('Agreement not found.');
   const dates = dueDates(agreement.startDate, agreement.weeks, agreement.downtime);
-  const installments = agreement.installments.map((i, index) => ({ ...i, effectiveDueDate: dates[index]!, balance: installmentBalance(i.amount, i.allocations).toFixed(2) }));
+  const paidDeposit = depositPaid(agreement.payments);
+  const deposit = depositSchedule(agreement.upfrontRequired, agreement.payments, agreement.weeks);
+  const installments = agreement.installments.map((i, index) => ({ ...i, effectiveDueDate: dates[index]!, balance: installmentBalance(i.amount, i.allocations).toFixed(2), depositAmount: deposit[index]!.amount.toFixed(2), depositBalance: deposit[index]!.balance.toFixed(2) }));
+  const next = installments.find(i => money(i.balance).plus(i.depositBalance).gt(0));
   const completedWeeks = agreement.activatedAt ? dates.filter(date => date <= new Date()).length : 0;
   const auditHistory = await prisma.fleetAuditEvent.findMany({ where: { scope: 'RTO', recordId: id }, orderBy: { createdAt: 'desc' }, take: 200 });
   return { ...agreement, installments, completedWeeks, remainingWeeks: agreement.weeks - completedWeeks, completionDate: dates.at(-1), progress: Math.floor(completedWeeks / agreement.weeks * 100), auditHistory,
     indicativeSettlement: agreement.weeklyAmount.times(agreement.weeks - completedWeeks).toFixed(2),
     scheduledBalance: sumMoney(installments.map(i => i.balance)).toFixed(2),
     amountReceived: sumMoney(agreement.payments.filter(p => !p.reversedAt).map(p => p.amount)).toFixed(2),
-    upfrontReceived: sumMoney(agreement.payments.filter(p => !p.reversedAt && p.kind === 'UPFRONT').map(p => p.amount)).toFixed(2),
+    upfrontReceived: paidDeposit.toFixed(2), depositRemaining: depositRemaining(agreement.upfrontRequired, paidDeposit).toFixed(2),
+    nextPayment: next ? money(next.balance).plus(next.depositBalance).toFixed(2) : '0.00', nextRent: next?.balance ?? '0.00', nextDeposit: next?.depositBalance ?? '0.00',
     downtimeDays: agreement.downtime.reduce((n, d) => n + (+(d.endsAt ?? new Date()) - +d.startsAt) / DAY, 0),
     chargeBalance: sumMoney(agreement.charges.map(c => installmentBalance(c.amount, c.allocations))).toFixed(2),
-    unallocatedRent: sumMoney(agreement.payments.filter(p => !p.reversedAt && p.kind === 'RENT').map(p => p.amount.minus(sumMoney(p.allocations.map(a => a.amount))))).toFixed(2),
+    unallocatedRent: sumMoney(agreement.payments.filter(p => !p.reversedAt && ['RENT','WEEKLY'].includes(p.kind)).map(p => rentPart(p).minus(sumMoney(p.allocations.map(a => a.amount))))).toFixed(2),
   };
 }
 
