@@ -72,7 +72,7 @@ describe('separate fleet ledgers and atomic lifecycle', () => {
     await recordRtoMileage({ agreementId, date: '2025-02-01', odometerKm: 11000, source: 'Photo' }, 'admin');
     const entry = await recordRtoMileage({ agreementId, date: '2025-02-08', odometerKm: 13200, source: 'Photo' }, 'admin');
     await correctRtoMileage({ agreementId, entryId: entry.id, odometerKm: 13100, reason: 'Verified transcription error' }, 'admin');
-    expect((await prisma.rtoCharge.findUniqueOrThrow({ where: { sourceKey: `mileage:${entry.id}` } })).amount.toFixed(2)).toBe('150.00');
+    expect(await prisma.rtoCharge.count({ where: { sourceKey: `mileage:${entry.id}` } })).toBe(0);
     expect((await prisma.vehicle.findUniqueOrThrow({ where: { id: 'CR76' } })).currentMileageKm).toBe(13100);
     const installment = await prisma.rtoInstallment.findFirstOrThrow({ where: { agreementId }, orderBy: { sequence: 'asc' } });
     await adjustInstallment({ agreementId, installmentId: installment.id, revisedAmount: '2800', reason: 'Approved contractual adjustment' }, 'admin');
@@ -80,7 +80,7 @@ describe('separate fleet ledgers and atomic lifecycle', () => {
     expect(await prisma.fleetAuditEvent.count({ where: { recordId: agreementId, action: 'MILEAGE_CORRECTED' } })).toBe(1);
     expect((await prisma.rtoMileagePeriod.findFirstOrThrow({ where: { agreementId } })).excessKm).toBe(100);
   });
-  it('preserves lifetime mileage through a meter replacement and reconciles irregular weeks without rollover', async () => {
+  it('preserves lifetime mileage through a meter replacement and reconciles irregular weeks without automatic charges', async () => {
     const baseline = await prisma.rtoMileageEntry.findFirstOrThrow({ where: { agreementId }, orderBy: { date: 'desc' } });
     await recordMeterReplacement({ vehicleId: 'CR76', effectiveDate: '2025-02-09', lifetimeKm: 13150, displayedKm: 0, reason: 'Workshop replacement certificate' }, 'admin');
     const interim = await recordRtoMileage({ agreementId, date: '2025-02-12', odometerKm: 350, readingType: 'DISPLAYED', source: 'Verified photo' }, 'admin');
@@ -95,7 +95,7 @@ describe('separate fleet ledgers and atomic lifecycle', () => {
     await reconcileMileage(data, 'admin');
     await expect(correctRtoMileage({ agreementId, entryId: end.id, odometerKm: 17310, reason: 'Attempted change after weekly review' }, 'admin')).rejects.toThrow('reviewed weekly allocations');
     await expect(reconcileMileage(data, 'admin')).rejects.toThrow('already billed');
-    const charge = await prisma.rtoCharge.findFirstOrThrow({ where: { agreementId, sourceKey: { startsWith: 'mileage-period:' } } }); expect(charge.amount.toFixed(2)).toBe('600.00');
+    expect(await prisma.rtoCharge.count({ where: { agreementId, sourceKey: { startsWith: 'mileage-period:' } } })).toBe(0);
     expect((await prisma.vehicle.findUniqueOrThrow({ where: { id: 'CR76' } })).currentMileageKm).toBe(17300);
   });
   it('reserves and releases a replacement and audits closed downtime corrections', async () => {

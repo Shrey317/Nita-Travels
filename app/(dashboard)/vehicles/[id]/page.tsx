@@ -1,3 +1,5 @@
+import { CarDetails } from '@/components/fleet-expansion/car-details';
+import { MonthlyMileage } from '@/components/fleet-expansion/monthly-mileage';
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -93,7 +95,8 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
 
   return (
     <div className="space-y-8">
-      <VehicleModuleHistory vehicleId={vehicle.id} isAdmin={isAdmin} />
+      <MonthlyMileage vehicleId={vehicle.id} />
+      <VehicleModuleHistory vehicleId={vehicle.id} isAdmin={isAdmin} /><CarDetails vehicleId={vehicle.id} admin={isAdmin} />
       {/* ── Vehicle Header ── */}
       <div className="flex flex-col gap-4 xl:flex-row xl:flex-wrap xl:items-start xl:justify-between">
         <div className="min-w-0">
@@ -105,7 +108,7 @@ export default async function VehicleProfilePage(props: VehicleProfilePageProps)
               {vehicle.id}
             </span>
             <h1 className="text-2xl font-bold tracking-tight text-ink">
-              {vehicle.make} {vehicle.model}
+              {vehicle.make} {vehicle.model} {vehicle.modelYear}
             </h1>
             {!vehicle.active && <Badge variant="destructive">Inactive</Badge>}
             {service && <Badge variant={badgeVariant[service.status]}>{badgeLabel[service.status]}</Badge>}

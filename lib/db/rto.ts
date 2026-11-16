@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma, TRANSACTION_OPTIONS } from './client';
 import { audit, lockVehicle } from './fleet-assignment';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
-import { DEFAULT_TERMS, DAY, assertTransition, dueDates, installmentBalance, mileageCharge, money, repairSplit, sumMoney } from '../rto';
+import { DEFAULT_TERMS, DAY, assertTransition, dueDates, installmentBalance, money, repairSplit, sumMoney } from '../rto';
 import * as s from '../schemas/rto.schema';
 import { depositPaid, depositSchedule, depositRemaining, rentPart } from '../rto-deposit';
 
@@ -161,11 +161,10 @@ export async function recordRtoMileage(input: unknown, actor: string) {
     const baseline = await tx.rtoMileageEntry.findFirst({ where: { agreementId: agreement.id }, orderBy: { date: 'asc' } });
     const sevenDays = previous && baseline && (+data.date - +previous.date) / DAY === 7 && (+previous.date - +baseline.date) % (7 * DAY) === 0;
     const reviewRequired = !!previous && !sevenDays;
-    const billed = sevenDays ? mileageCharge(distance, 7) : { excessKm: 0, amount: money(0) };
+    const billed = { excessKm: sevenDays ? Math.max(distance - 2000, 0) : 0, amount: money(0) };
     if (sevenDays && distance > 5000) throw new ValidationError('A weekly increase above 5,000 km requires reconciliation.');
     const row = await tx.rtoMileageEntry.create({ data: { agreementId: data.agreementId, date: data.date, odometerKm: data.odometerKm, source: data.source, displayedKm, reviewRequired, distanceKm: distance, excessKm: billed.excessKm } });
     if (sevenDays) await tx.rtoMileagePeriod.create({ data: { agreementId: agreement.id, startsAt: previous!.date, endsAt: data.date, distanceKm: distance, excessKm: billed.excessKm, evidence: data.source, actor } });
-    if (billed.amount.gt(0)) await tx.rtoCharge.create({ data: { agreementId: agreement.id, date: data.date, kind: 'MILEAGE', description: `${billed.excessKm} excess km`, amount: billed.amount, sourceKey: `mileage:${row.id}` } });
     await tx.vehicle.update({ where: { id: vehicle.id }, data: { currentMileageKm: data.odometerKm } });
     await audit(tx, 'RTO', agreement.id, 'MILEAGE_RECORDED', actor, { entryId: row.id });
     return row;
@@ -319,20 +318,17 @@ export async function correctRtoMileage(input: unknown, actor: string) {
     const period = previous ? await tx.rtoMileagePeriod.findFirst({ where: { agreementId: agreement.id, endsAt: entry.date } }) : null;
     if (period && await tx.rtoCharge.count({ where: { sourceKey: `mileage-period:${period.id}` } })) throw new ValidationError('This reading supports reviewed weekly allocations. Reconcile those allocations before correcting it.');
     if (period && previous && +period.startsAt !== +previous.date) throw new ValidationError('This reading supports reviewed weekly allocations. Reconcile those allocations before correcting it.');
-    const billed = period ? mileageCharge(distance, 7) : { excessKm: 0, amount: money(0) };
+    const billed = { excessKm: period ? Math.max(distance - 2000, 0) : 0, amount: money(0) };
     const activeMeter = entry.displayedKm === null ? null : await tx.vehicleOdometerEvent.findFirst({ where: { vehicleId: vehicle.id, effectiveDate: { lte: entry.date } }, orderBy: { effectiveDate: 'desc' } });
     const displayedKm = entry.displayedKm === null ? null : data.odometerKm - (activeMeter?.offsetKm ?? 0);
     if (displayedKm !== null && displayedKm < 0) throw new ValidationError('Correction would put the displayed odometer below zero.');
     const charge = await tx.rtoCharge.findUnique({ where: { sourceKey: `mileage:${entry.id}` }, include: { allocations: { include: { payment: true } } } });
-    const allocated = charge ? charge.amount.minus(installmentBalance(charge.amount, charge.allocations)) : money(0);
-    if (billed.amount.lt(allocated)) throw new ValidationError('Reconcile or reverse the mileage charge payment before reducing the charge.');
+    if (charge) throw new ValidationError('This reading has a historical mileage charge. Review that charge separately before correcting the reading.');
     const result = await tx.rtoMileageEntry.update({ where: { id: entry.id }, data: { odometerKm: data.odometerKm, displayedKm, distanceKm: distance, excessKm: billed.excessKm } });
     if (previous) await tx.rtoMileagePeriod.updateMany({ where: { agreementId: agreement.id, startsAt: previous.date, endsAt: entry.date }, data: { distanceKm: distance, excessKm: billed.excessKm, evidence: `Corrected: ${data.reason}`, actor } });
-    if (charge) await tx.rtoCharge.update({ where: { id: charge.id }, data: { amount: billed.amount, description: `${billed.excessKm} excess km (corrected)` } });
-    else if (billed.amount.gt(0)) await tx.rtoCharge.create({ data: { agreementId: agreement.id, date: entry.date, kind: 'MILEAGE', description: `${billed.excessKm} excess km`, amount: billed.amount, sourceKey: `mileage:${entry.id}` } });
     // Only replace the shared current reading if this was its source; preserve later/manual evidence.
     await tx.vehicle.update({ where: { id: vehicle.id }, data: { currentMileageKm: Math.max(data.odometerKm, vehicle.currentMileageKm === entry.odometerKm ? floor : vehicle.currentMileageKm) } });
-    await audit(tx, 'RTO', agreement.id, 'MILEAGE_CORRECTED', actor, { entryId: entry.id, previousOdometerKm: entry.odometerKm, revisedOdometerKm: data.odometerKm, previousCharge: charge?.amount.toFixed(2) ?? '0.00', revisedCharge: billed.amount.toFixed(2), reason: data.reason });
+    await audit(tx, 'RTO', agreement.id, 'MILEAGE_CORRECTED', actor, { entryId: entry.id, previousOdometerKm: entry.odometerKm, revisedOdometerKm: data.odometerKm, previousCharge: '0.00', revisedCharge: billed.amount.toFixed(2), reason: data.reason });
     return result;
   }, TRANSACTION_OPTIONS);
 }

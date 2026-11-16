@@ -13,6 +13,10 @@ export const vehicleIdSchema = z
 const vehicleBaseSchema = z.object({
   id: vehicleIdSchema,
   make: z.string().trim().min(1, "Make is required"),
+  modelYear: z.number().int().min(1950).max(2100).nullable().optional(),
+  handlerName: z.string().trim().max(100).nullable().optional(),
+  purchaseCompany: z.string().trim().max(200).nullable().optional(),
+  fidelityMonthlyCents: nonnegativeIntegerSchema.nullable().optional(),
   model: z.string().trim().min(1, "Model is required"),
   registration: z.string().trim().min(1, "Registration is required"),
   registration2: z.string().trim().min(1).nullable().optional(),

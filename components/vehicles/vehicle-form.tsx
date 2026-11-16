@@ -24,6 +24,7 @@ interface FormState {
   id: string;
   make: string;
   model: string;
+  modelYear: string;
   registration: string;
   registration2: string;
   transmission: "Manual" | "Auto";
@@ -55,6 +56,7 @@ function buildInitialState(vehicle?: Vehicle): FormState {
       id: "",
       make: "",
       model: "",
+      modelYear: "",
       registration: "",
       registration2: "",
       transmission: "Manual",
@@ -79,6 +81,7 @@ function buildInitialState(vehicle?: Vehicle): FormState {
     id: vehicle.id,
     make: vehicle.make,
     model: vehicle.model,
+    modelYear: vehicle.modelYear?.toString() ?? "",
     registration: vehicle.registration,
     registration2: vehicle.registration2 ?? "",
     transmission: vehicle.transmission === "Auto" ? "Auto" : "Manual",
@@ -132,6 +135,7 @@ export function VehicleForm({ vehicle, canEditFinance = false }: VehicleFormProp
       id: form.id.trim().toUpperCase(),
       make: form.make,
       model: form.model,
+      modelYear: form.modelYear ? Number(form.modelYear) : null,
       registration: form.registration,
       registration2: form.registration2.trim() || null,
       transmission: form.transmission,
@@ -232,6 +236,7 @@ export function VehicleForm({ vehicle, canEditFinance = false }: VehicleFormProp
               <FieldError id="make-error" message={errors.make} />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="modelYear">Model year</Label><Input id="modelYear" type="number" min="1950" max="2100" value={form.modelYear} onChange={e=>update("modelYear",e.target.value)} />
               <Label htmlFor="model">Model</Label>
               <Input
                 id="model"

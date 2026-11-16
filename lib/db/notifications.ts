@@ -1,3 +1,4 @@
+import { mileageTotals } from '@/lib/monthly-mileage';
 /** Shared operational alerts. Every item links to recorded evidence. */
 import { prisma } from "@/lib/db/client";
 import { getServiceStatusAllVehicles } from "@/lib/db/service";
@@ -37,19 +38,21 @@ export async function getFleetNotifications(serviceRead?: ReturnType<typeof getS
   const rtoAgreements = await prisma.rtoAgreement.findMany({ where: { status: { in: ['ACTIVE','SUSPENDED','IN_DEFAULT'] } }, select: {
     id: true, number: true, vehicleId: true, vehicle: { select: { currentMileageKm: true } },
     services: { where: { status: { in: ['PLANNED','COMPLETED'] } }, orderBy: { date: 'desc' }, select: { id: true, date: true, status: true, targetMileageKm: true, odometerKm: true, intervalKm: true } },
-    mileage: { orderBy: { date: 'desc' }, take: 1, select: { date: true, reviewRequired: true } },
+    mileage: { orderBy: { date: 'desc' }, select: { date: true, reviewRequired: true, distanceKm: true } },
     downtime: { where: { endsAt: null }, select: { id: true } },
   } });
   for (const agreement of rtoAgreements) {
     const service = agreement.services.find(s => s.status === 'COMPLETED'); const reading = agreement.mileage[0];
     const href = `/rent-to-own/agreements/${agreement.id}`;
+    const totals = mileageTotals(agreement.mileage,today);
+    if (totals.monthOver || totals.weekOver) notifications.push({id:`rto-mileage-limit-${agreement.id}-${dateKey(today).slice(0,7)}`,priority:totals.monthOver ? 'critical':'warning',title:`${agreement.vehicleId} · ${totals.monthOver ? 'Monthly 8,000 km limit exceeded':'Weekly 2,000 km warning'}`,description:`${totals.monthKm} km this calendar month; ${totals.weekKm} km this week. Weekly usage can balance within the month. No automatic charge. Distance follows reading dates.`,vehicleId:agreement.vehicleId,href:`${href}?tab=mileage`,category:'mileage',timestamp:today});
     const remaining = service ? service.odometerKm + service.intervalKm - agreement.vehicle.currentMileageKm : null;
     for (const plan of agreement.services.filter(s => s.status === 'PLANNED')) {
       const mileageDue = plan.targetMileageKm !== null && plan.targetMileageKm <= agreement.vehicle.currentMileageKm;
       if (plan.date <= addDays(today, 7) || mileageDue) notifications.push({ id: `rto-service-plan-${plan.id}`, priority: plan.date < today || mileageDue ? 'warning' : 'info', title: `${agreement.vehicleId} · Planned RTO service`, description: `Scheduled ${dateKey(plan.date)}${plan.targetMileageKm !== null ? ` at ${plan.targetMileageKm.toLocaleString('en-ZA')} km` : ''}. Record completion and the company-paid cost.`, vehicleId: agreement.vehicleId, href, category: 'service', timestamp: today });
     }
     if (remaining === null || remaining <= 1500) notifications.push({ id: `rto-service-${agreement.id}`, priority: remaining === null ? 'info' : remaining <= 0 ? 'critical' : 'warning', title: `${agreement.vehicleId} · RTO service ${remaining === null ? 'baseline needed' : remaining <= 0 ? 'due' : 'due soon'}`, description: remaining === null ? 'Record the last completed RTO service and its interval.' : `${Math.abs(remaining).toLocaleString('en-ZA')} km ${remaining <= 0 ? 'past' : 'until'} scheduled servicing. Company pays 100%.`, vehicleId: agreement.vehicleId, href, category: 'service', timestamp: today });
-    if (!reading || reading.date < addDays(today, -7) || reading.reviewRequired) notifications.push({ id: `rto-mileage-${agreement.id}`, priority: 'warning', title: `${agreement.vehicleId} · RTO mileage ${reading?.reviewRequired ? 'review required' : 'reading due'}`, description: reading?.reviewRequired ? 'Irregular readings need verified weekly reconciliation before excess mileage is charged.' : `Record a current reading for ${agreement.number}.`, vehicleId: agreement.vehicleId, href, category: 'mileage', timestamp: today });
+    if (!reading || reading.date < addDays(today, -7) || reading.reviewRequired) notifications.push({ id: `rto-mileage-${agreement.id}`, priority: 'warning', title: `${agreement.vehicleId} · RTO mileage ${reading?.reviewRequired ? 'review required' : 'reading due'}`, description: reading?.reviewRequired ? 'Check irregular readings to confirm the weekly and monthly distance. No automatic mileage charge.' : `Record a current reading for ${agreement.number}.`, vehicleId: agreement.vehicleId, href, category: 'mileage', timestamp: today });
     if (agreement.downtime.length) notifications.push({ id: `rto-downtime-${agreement.id}`, priority: 'info', title: `${agreement.vehicleId} · Rent suspended`, description: 'Approved downtime remains open. Close it when the vehicle is available and the replacement is returned.', vehicleId: agreement.vehicleId, href, category: 'repairs', timestamp: today });
   }
   const [documents, plannedWork] = await Promise.all([
@@ -78,6 +81,12 @@ export async function getFleetNotifications(serviceRead?: ReturnType<typeof getS
         description: "No service transaction with a mileage reading is available. Record or verify the latest service before interpreting service status.",
         vehicleId: row.vehicleId, href: `/transactions/new?vehicleId=${row.vehicleId}`, category: "service" });
     }
+  }
+  const monthStart = new Date(Date.UTC(today.getUTCFullYear(),today.getUTCMonth(),1));
+  const monthEntries = await prisma.mileageEntry.findMany({where:{vehicleId:{in:vehicles.map(v=>v.id)},date:{gte:monthStart,lt:addDays(today,1)}},select:{vehicleId:true,date:true,distanceDrivenKm:true}});
+  for (const vehicle of vehicles) {
+    const totals=mileageTotals(monthEntries.filter(e=>e.vehicleId===vehicle.id).map(e=>({date:e.date,distanceKm:e.distanceDrivenKm})),today);
+    if (totals.monthOver) notifications.push({id:`mil-month-${vehicle.id}-${dateKey(today).slice(0,7)}`,priority:'critical',title:`${vehicle.id} · Monthly 8,000 km limit exceeded`,description:`${totals.monthKm} km recorded this calendar month. Contact the driver. Alerts only; no automatic charge. Distance follows reading dates.`,vehicleId:vehicle.id,href:`/mileage?vehicleId=${vehicle.id}`,category:'mileage',timestamp:today});
   }
   const mileage = analyzeMileage(mileageEntries, { from: weekStart, to: addDays(weekStart, 6) });
   const recordedIds = new Set(mileageEntries.map(entry => entry.vehicleId));

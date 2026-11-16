@@ -35,6 +35,10 @@ datasource db {
 model Vehicle {
   id                    String                 @id // CR01–CR09, fixed — never auto-generated
   make                  String
+  modelYear             Int?
+  handlerName           String?
+  purchaseCompany       String?
+  fidelityMonthlyCents  Int?
   model                 String
   registration          String
   registration2         String?

@@ -1,3 +1,4 @@
+import { saveCarDetails } from '@/lib/db/car-details';
 import { addFollowUp, closeFollowUp, getFollowUps } from '@/lib/db/rto-follow-ups';
 import { randomUUID } from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -65,5 +66,13 @@ describe('weekly rent and deposit receipts', () => {
     await closeFollowUp({agreementId,noteId:note.id},'admin');
     expect((await getFollowUps([agreementId]))[0]?.done).toBe(true);
     expect((await getRtoAgreement(agreementId)).scheduledBalance).toBe(before.scheduledBalance);
+  });
+  it('stores included operating costs without changing driver balances',async()=>{
+    const before=await getRtoAgreement(agreementId);
+    await saveCarDetails({vehicleId:'RT88',modelYear:2025,handlerName:'Manager A',purchaseCompany:'Test company',fidelityMonthly:'225'},'admin');
+    const car=await prisma.vehicle.findUniqueOrThrow({where:{id:'RT88'}});
+    expect(car.fidelityMonthlyCents).toBe(22500);expect(car.handlerName).toBe('Manager A');expect(car.modelYear).toBe(2025);
+    expect((await getRtoAgreement(agreementId)).scheduledBalance).toBe(before.scheduledBalance);
+    await expect(saveCarDetails({vehicleId:'RT88',modelYear:2025,handlerName:'Manager A',fidelityMonthly:'-10'},'admin')).rejects.toThrow();
   });
 });

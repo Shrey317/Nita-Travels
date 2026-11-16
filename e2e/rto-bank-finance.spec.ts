@@ -120,6 +120,15 @@ test('weekly payment form saves rent and a 650 deposit together without upfront 
   const a = await post('/api/rent-to-own/agreements', {number:'WEEKLY-92',vehicleId:'RT92',driverId:driver.id,modelYear:2025,startDate:'2025-01-01',weeklyAmount:'2850'});
   await prisma.rtoDocument.create({data:{agreementId:a.id,title:'Test signed agreement',kind:'SIGNED_CONTRACT',mimeType:'application/pdf',content:Buffer.from('%PDF-test'),actor:'test'}});
   await post('/api/rent-to-own/status', {agreementId:a.id,status:'ACTIVE',reason:'Signed agreement'});
+  await page.goto('/rent-to-own/vehicles/RT92/details');
+  await page.locator('summary:visible').filter({hasText:/^Edit car details$/}).click();
+  await page.getByLabel('Model year',{exact:true}).filter({visible:true}).fill('2025');
+  await page.getByRole('textbox',{name:'Manager handling this car',exact:true}).fill('Manager A');
+  await page.getByRole('textbox',{name:'Company the car was bought under (optional)',exact:true}).fill('Test Company');
+  await page.getByRole('textbox',{name:'Fidelity monthly cost (R)',exact:true}).fill('225');
+  await page.getByRole('button',{name:'Edit car details',exact:true}).click();
+  await expect(page.getByText('Manager: Manager A · Bought under: Test Company',{exact:true}).filter({visible:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Car details · 2025',exact:true})).toBeVisible();
   await page.goto(`/rent-to-own/agreements/${a.id}?tab=entries`);
   const form = page.getByRole('form', {name:'Add weekly payment'});
   await expect(form.getByLabel('Amount received (R)', {exact:true})).toHaveValue('3500.00');

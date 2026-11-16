@@ -1,3 +1,4 @@
+import { mileageTotals } from '@/lib/monthly-mileage';
 import { getFollowUps } from '@/lib/db/rto-follow-ups';
 import Link from 'next/link';
 import { requireSession } from '@/lib/api-response';
@@ -17,6 +18,9 @@ export default async function RtoPage({ searchParams }: { searchParams: Promise<
   const active = rows.filter(r => ['ACTIVE','SUSPENDED','IN_DEFAULT'].includes(r.status));
   const queue = rows.map(agreement => {
     const issues = [];
+    const mileage = mileageTotals(agreement.mileage,today);
+    if (mileage.monthOver) issues.push('Mileage over 8,000 km this month');
+    else if (mileage.weekOver) issues.push('Mileage over 2,000 km this week');
     if (followUps.some(n => n.agreementId === agreement.id && n.dueDate <= today)) issues.push('Follow-up due');
     if (Number(agreement.amountDue) > 0) issues.push(agreement.paymentStatus);
     if (agreement.status === 'IN_DEFAULT' && Number(agreement.amountDue) === 0) issues.push('Review agreement status');
@@ -33,7 +37,7 @@ export default async function RtoPage({ searchParams }: { searchParams: Promise<
   return <div className="space-y-6">
     <div className="flex flex-wrap items-start justify-between gap-4"><ModuleHeader title="Rent-to-Own" description="Your vehicles, drivers and rental payments in one place." />{session.staffRole === 'ADMIN' && <Link className="rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white" href="/rent-to-own/manage">Add vehicle or agreement</Link>}</div>
     <form className="flex flex-wrap items-end gap-3 rounded-xl border border-border p-4">
-      <label className="min-w-0 flex-1 text-sm">Find a vehicle or driver<input name="q" defaultValue={params.q} placeholder="Vehicle, driver or agreement" className="block w-full rounded border bg-background p-2" /></label>
+      <label className="min-w-0 flex-1 text-sm">Find a vehicle, driver or manager<input name="q" defaultValue={params.q} placeholder="Vehicle, driver, manager or agreement" className="block w-full rounded border bg-background p-2" /></label>
       <label className="text-sm">Status<select name="status" defaultValue={params.status} className="block rounded border bg-background p-2"><option value="">All</option>{Object.entries(statusLabel).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label><button className="rounded-lg bg-primary px-4 py-2 text-white">Apply</button>
     </form>
     <nav aria-label="Payment filters" className="flex flex-wrap gap-2">{([['all','All'],['overdue','Overdue'],['today','Due today'],['attention','Needs attention']] as const).map(([value,label]) => {
@@ -50,7 +54,7 @@ export default async function RtoPage({ searchParams }: { searchParams: Promise<
         {visibleQueue.slice((range.page - 1) * 20, range.page * 20).map(({ agreement: r, issues }) => (
           <article key={r.id} className="min-w-0 rounded-xl border border-border bg-card p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0"><h3 className="font-semibold break-words">{r.driver.name}</h3><Link className="text-sm underline" href={`/rent-to-own/agreements/${r.id}`}>{r.vehicleId} · {r.vehicle.registration}</Link></div>
+              <div className="min-w-0"><h3 className="font-semibold break-words">{r.driver.name}</h3><Link className="text-sm underline" href={`/rent-to-own/agreements/${r.id}`}>{r.vehicleId} · {r.vehicle.registration} · {r.vehicle.modelYear ?? r.modelYear}</Link><p className="text-sm">Manager: {r.vehicle.handlerName ?? "Not assigned"}</p></div>
               <div><p className="text-sm text-muted">Due now</p><p className="text-xl font-semibold">{zar(r.amountDue)}</p></div>
             </div>
             <p className="mt-3 text-sm">Deposit left: <strong>{zar(r.depositLeft)}</strong></p>

@@ -20,8 +20,8 @@ export function VehicleCard({ vehicle, incomeCents, expenseCents, netProfitCents
               </span>
               <span className="inline-flex rounded-md bg-surface-elevated px-2 py-1 text-xs font-bold text-ink border border-border-subtle">{vehicle.id}</span>
             </div>
-            <h2 className="font-bold text-ink group-hover:text-primary transition-colors">{vehicle.make} {vehicle.model}</h2>
-            <p className="break-words text-sm text-ink-secondary">{registrationLine}</p>
+            <h2 className="font-bold text-ink group-hover:text-primary transition-colors">{vehicle.make} {vehicle.model} {vehicle.modelYear}</h2>
+            <p className="break-words text-sm text-ink-secondary">{registrationLine}</p><p className="text-sm text-ink-secondary">Manager: {vehicle.handlerName ?? "Not assigned"}</p>
           </div>
           {!vehicle.active ? <Badge variant="secondary">Inactive</Badge> : service ? <Badge variant={badgeVariant[service.status]}>{badgeLabel[service.status]}</Badge> : <Badge variant="warning">Needs Data</Badge>}
         </div>

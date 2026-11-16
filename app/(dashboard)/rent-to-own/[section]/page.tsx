@@ -1,3 +1,4 @@
+import { MonthlyMileage } from '@/components/fleet-expansion/monthly-mileage';
 import { rtoReport } from '@/lib/db/rto-report';
 import { CollectionsChart } from '@/components/fleet-expansion/collections-chart';
 import { depositPart, rentPart } from '@/lib/rto-deposit';
@@ -15,7 +16,7 @@ const sections: Record<string, [string, string]> = {
   vehicles: ['Vehicles', 'Your Rent-to-Own cars.'],
   agreements: ['Drivers', 'Drivers and their car agreements.'],
   payments: ['Payments', 'Choose a car to add a payment. Save only money you have received.'],
-  mileage: ['Mileage', 'Weekly mileage and extra kilometre charges.'],
+  mileage: ['Mileage', 'Weekly warnings and calendar-month mileage. No automatic charges.'],
   repairs: ['Repairs', 'Repair costs and who pays.'],
   service: ['Scheduled Servicing', 'Plan maintenance, complete services and track company-paid costs.'],
   downtime: ['Time off road', 'Track when a car cannot be used.'],
@@ -40,9 +41,9 @@ export default async function RtoSection({ params, searchParams }: { params: Pro
   const agreementLink = (a: { id: string; number: string; vehicleId: string }) => <Link prefetch={false} className="underline" href={`/rent-to-own/agreements/${a.id}?tab=${tab}`}>{a.vehicleId} · {a.number}</Link>;
   let headers: string[] = []; let rows: ReactNode[][] = [];
   if (section === 'vehicles') {
-    const vehicles = await prisma.vehicle.findMany({ where: { deletedAt: null, assignments: { some: { module: 'RENT_TO_OWN', endsAt: null } }, ...(q ? { OR: [{ id: { contains: q, mode: 'insensitive' } }, { registration: { contains: q, mode: 'insensitive' } }] } : {}) }, select: { id: true, make: true, model: true, registration: true, currentMileageKm: true, availability: true, rtoAgreements: { orderBy: { createdAt: 'desc' }, select: { id: true, number: true, vehicleId: true, status: true } } }, orderBy: { id: 'asc' }, ...pagination });
-    headers = ['Vehicle', 'Registration', 'Lifetime km', 'Availability', 'Agreements'];
-    rows = vehicles.map(v => [`${v.id} · ${v.make} ${v.model}`, v.registration, v.currentMileageKm.toLocaleString(), v.availability, <div key={v.id} className="space-y-2">{v.rtoAgreements.map(a => <div key={a.id}>{agreementLink(a)} · {a.status}</div>)}</div>]);
+    const vehicles = await prisma.vehicle.findMany({ where: { deletedAt: null, assignments: { some: { module: 'RENT_TO_OWN', endsAt: null } }, ...(q ? { OR: [{ id: { contains: q, mode: 'insensitive' } }, { registration: { contains: q, mode: 'insensitive' } }] } : {}) }, select: { id: true, make: true, model: true, modelYear: true, handlerName: true, registration: true, currentMileageKm: true, availability: true, rtoAgreements: { orderBy: { createdAt: 'desc' }, select: { id: true, number: true, vehicleId: true, status: true } } }, orderBy: { id: 'asc' }, ...pagination });
+    headers = ['Vehicle', 'Manager', 'Details', 'Registration', 'Lifetime km', 'Availability', 'Agreements'];
+    rows = vehicles.map(v => [`${v.id} · ${v.make} ${v.model} ${v.modelYear ?? ""}`, v.handlerName ?? "Not assigned", <a key={`details-${v.id}`} className="underline" href={`/rent-to-own/vehicles/${v.id}/details`}>Car details</a>, v.registration, v.currentMileageKm.toLocaleString(), v.availability, <div key={v.id} className="space-y-2">{v.rtoAgreements.map(a => <div key={a.id}>{agreementLink(a)} · {a.status}</div>)}</div>]);
   } else if (section === 'agreements') {
     const agreements = await prisma.rtoAgreement.findMany({ where: filter, include: { driver: true }, orderBy: { number: 'asc' }, ...pagination });
     headers = ['Car / agreement', 'Driver', 'Contact', 'Status', 'Start', 'Weekly rent'];
@@ -83,6 +84,7 @@ export default async function RtoSection({ params, searchParams }: { params: Pro
   const choices = ['payments', 'mileage', 'repairs', 'service', 'downtime', 'documents', 'settlements'].includes(section) ? await prisma.rtoAgreement.findMany({ where: filter, select: { id: true, number: true, vehicleId: true }, orderBy: { number: 'asc' }, take: 30 }) : [];
   const pageHref = (value: number) => `/rent-to-own/${section}?${new URLSearchParams({ q, page: String(value) })}`;
   return <>
+    {section === 'mileage' && <div className="grid gap-3 lg:grid-cols-2">{[...new Set(choices.map(a=>a.vehicleId))].map(id=><div key={id}><h2 className="font-semibold">{id}</h2><MonthlyMileage vehicleId={id} rto /></div>)}</div>}
     <ModuleHeader title={`Rent-to-Own · ${config[0]}`} description={config[1]} />
     {section === 'vehicles' && session.staffRole === 'ADMIN' && <form action="/rent-to-own/vehicles/new" method="get"><button className="mb-5 inline-block rounded-lg bg-primary px-5 py-3 font-semibold text-white">Add vehicle</button></form>}
     {section === 'reports' ? <div className="space-y-4">

@@ -5,7 +5,7 @@ export const DAY = 86400000;
 export const WEEK = 7 * DAY;
 export const money = (value: Prisma.Decimal.Value) => new Prisma.Decimal(value).toDecimalPlaces(2);
 export const sumMoney = (values: Prisma.Decimal.Value[]) => values.reduce<Prisma.Decimal>((a, b) => a.plus(b), money(0));
-export const DEFAULT_TERMS = { version: 1, weeklyKm: 2000, excessPerKm: '1.50', repairDriverPercent: 50, serviceDriverPercent: 0, insuranceIncluded: true, downtimeExtends: true, ownershipCosts: 'DRIVER', refundTreatment: 'LEGAL_REVIEW_REQUIRED' };
+export const DEFAULT_TERMS = { version: 2, weeklyKm: 2000, monthlyKm: 8000, mileageReset: 'CALENDAR_MONTH', automaticMileageCharges: false, excessPerKm: '0.00', repairDriverPercent: 50, serviceDriverPercent: 0, insuranceIncluded: true, downtimeExtends: true, ownershipCosts: 'DRIVER', refundTreatment: 'LEGAL_REVIEW_REQUIRED' };
 export function defaultWeeklyAmount(year: number) { return year >= 2025 ? '2850.00' : '2650.00'; }
 export const transitions: Record<RtoStatus, RtoStatus[]> = {
   DRAFT: ['ACTIVE', 'CANCELLED'], ACTIVE: ['SUSPENDED', 'IN_DEFAULT', 'COMPLETED', 'TERMINATED'],

@@ -13,9 +13,9 @@ export function reportRange(params: Record<string, string | undefined>) {
 }
 export async function rtoReport(params: Record<string, string | undefined>) {
   const range = reportRange(params);
-  const agreements = await prisma.rtoAgreement.findMany({ where: { ...(params.status ? { status: z.enum(['DRAFT','ACTIVE','SUSPENDED','IN_DEFAULT','COMPLETED','TERMINATED','CANCELLED']).parse(params.status) } : {}), ...(params.q ? { OR: [{ number: { contains: params.q, mode: 'insensitive' } }, { vehicleId: { contains: params.q, mode: 'insensitive' } }, { driver: { name: { contains: params.q, mode: 'insensitive' } } }] } : {}) }, orderBy: { number: params.sort === 'desc' ? 'desc' : 'asc' }, include: {
-    documents: { select: { kind: true } }, mileage: { orderBy: { date: 'desc' }, take: 1, select: { date: true, reviewRequired: true } },
-    vehicle: { select: { registration: true } }, driver: { select: { name: true } }, downtime: true,
+  const agreements = await prisma.rtoAgreement.findMany({ where: { ...(params.status ? { status: z.enum(['DRAFT','ACTIVE','SUSPENDED','IN_DEFAULT','COMPLETED','TERMINATED','CANCELLED']).parse(params.status) } : {}), ...(params.q ? { OR: [{ number: { contains: params.q, mode: 'insensitive' } }, { vehicleId: { contains: params.q, mode: 'insensitive' } }, { driver: { name: { contains: params.q, mode: 'insensitive' } } }, { vehicle: { handlerName: { contains: params.q, mode: 'insensitive' } } }] } : {}) }, orderBy: { number: params.sort === 'desc' ? 'desc' : 'asc' }, include: {
+    documents: { select: { kind: true } }, mileage: { orderBy: { date: 'desc' }, select: { date: true, reviewRequired: true, distanceKm: true } },
+    vehicle: { select: { registration: true, modelYear: true, handlerName: true } }, driver: { select: { name: true } }, downtime: true,
     installments: { include: { allocations: { include: { payment: true } } }, orderBy: { sequence: 'asc' } },
     payments: { where: { date: { lt: range.until }, OR: [{ reversedAt: null }, { reversedAt: { gte: range.until } }] } },
     charges: { where: { date: { lt: range.until } }, include: { allocations: { include: { payment: true } } } },

@@ -1,3 +1,4 @@
+import { MonthlyMileage } from '@/components/fleet-expansion/monthly-mileage';
 import { normalRentalVehicles } from '@/lib/db/module-scope';
 import { parsePageListQuery } from "@/lib/query-filters";
 export const dynamic = "force-dynamic";
@@ -73,6 +74,7 @@ export default async function MileagePage(props: MileagePageProps) {
 
   return (
     <div className="space-y-6">
+      <details><summary className="cursor-pointer font-semibold">Calendar-month mileage · 8,000 km allowance</summary>{vehicles.filter(v=>!vehicleId.length || vehicleId.includes(v.id)).map(v=><div key={v.id}><h2>{v.id}</h2><MonthlyMileage vehicleId={v.id} /></div>)}</details>
       {filterError && <p role="alert" className="rounded-lg border border-status-error p-4 text-status-error">{filterError}</p>}
       <PageHeader title="Mileage Log" description={`${result.total} entries logged`}>
         <Button asChild variant="outline">

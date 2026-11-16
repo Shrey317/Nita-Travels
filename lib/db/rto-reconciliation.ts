@@ -2,7 +2,7 @@ import { prisma, TRANSACTION_OPTIONS } from './client';
 import { audit, lockVehicle } from './fleet-assignment';
 import { lockAgreement, operational, refreshSchedule } from './rto';
 import { ConflictError, ValidationError } from '../errors';
-import { DAY, WEEK, mileageCharge, sumMoney } from '../rto';
+import { DAY, WEEK } from '../rto';
 import { availabilitySchema, downtimeCorrectionSchema, meterReplacementSchema, mileageReconciliationSchema } from '../schemas/rto.schema';
 
 export async function recordMeterReplacement(input: unknown, actor: string) {
@@ -61,14 +61,13 @@ export async function reconcileMileage(input: unknown, actor: string) {
     const periods = [];
     for (let i = 0; i < data.weeklyDistances.length; i++) {
       const distance = data.weeklyDistances[i]!;
-      const billed = mileageCharge(distance, 7);
+      const billed = { excessKm: Math.max(distance - 2000, 0) };
       const startsAt = new Date(+start.date + i * WEEK); const endsAt = new Date(+startsAt + WEEK);
       const period = await tx.rtoMileagePeriod.create({ data: { agreementId: agreement.id, startsAt, endsAt, distanceKm: distance, excessKm: billed.excessKm, evidence: data.evidence, actor } });
-      if (billed.amount.gt(0)) await tx.rtoCharge.create({ data: { agreementId: agreement.id, date: endsAt, kind: 'MILEAGE', amount: billed.amount, description: `Reviewed week ${startsAt.toISOString().slice(0,10)}: ${billed.excessKm} excess km`, sourceKey: `mileage-period:${period.id}` } });
       periods.push(period);
     }
     await tx.rtoMileageEntry.updateMany({ where: { agreementId: agreement.id, date: { gt: start.date, lte: end.date } }, data: { reviewRequired: false } });
-    await audit(tx, 'RTO', agreement.id, 'MILEAGE_RECONCILED', actor, { startEntryId: start.id, endEntryId: end.id, weeklyDistances: data.weeklyDistances, evidence: data.evidence, totalCharge: sumMoney(periods.map(p => mileageCharge(p.distanceKm,7).amount)).toFixed(2) });
+    await audit(tx, 'RTO', agreement.id, 'MILEAGE_RECONCILED', actor, { startEntryId: start.id, endEntryId: end.id, weeklyDistances: data.weeklyDistances, evidence: data.evidence, totalCharge: '0.00' });
     return periods;
   }, TRANSACTION_OPTIONS);
 }
