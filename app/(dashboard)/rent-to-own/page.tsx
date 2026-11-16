@@ -1,3 +1,4 @@
+import { getFollowUps } from '@/lib/db/rto-follow-ups';
 import Link from 'next/link';
 import { requireSession } from '@/lib/api-response';
 import { rtoReport } from '@/lib/db/rto-report';
@@ -10,11 +11,13 @@ export default async function RtoPage({ searchParams }: { searchParams: Promise<
   const session = await requireSession(); const params = await searchParams;
   const today = businessToday();
   const report = await rtoReport({ ...params, from: undefined, to: undefined }); const { rows, range } = report;
+  const followUps = (await getFollowUps(rows.map(r => r.id))).filter(n => !n.done);
   const query = new URLSearchParams(Object.entries(params).filter((p): p is [string, string] => p[1] !== undefined));
   const pageLink = (page: number) => { const q = new URLSearchParams(query); q.set('page', String(page)); return `/rent-to-own?${q}`; };
   const active = rows.filter(r => ['ACTIVE','SUSPENDED','IN_DEFAULT'].includes(r.status));
   const queue = rows.map(agreement => {
     const issues = [];
+    if (followUps.some(n => n.agreementId === agreement.id && n.dueDate <= today)) issues.push('Follow-up due');
     if (Number(agreement.amountDue) > 0) issues.push(agreement.paymentStatus);
     if (agreement.status === 'IN_DEFAULT' && Number(agreement.amountDue) === 0) issues.push('Review agreement status');
     if (agreement.unavailable) issues.push('Off the road');
@@ -48,11 +51,13 @@ export default async function RtoPage({ searchParams }: { searchParams: Promise<
           <article key={r.id} className="min-w-0 rounded-xl border border-border bg-card p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0"><h3 className="font-semibold break-words">{r.driver.name}</h3><Link className="text-sm underline" href={`/rent-to-own/agreements/${r.id}`}>{r.vehicleId} · {r.vehicle.registration}</Link></div>
-              <div><p className="text-sm text-muted">Amount due</p><p className="text-xl font-semibold">{zar(r.amountDue)}</p></div>
+              <div><p className="text-sm text-muted">Due now</p><p className="text-xl font-semibold">{zar(r.amountDue)}</p></div>
             </div>
+            <p className="mt-3 text-sm">Deposit left: <strong>{zar(r.depositLeft)}</strong></p>
+            {followUps.filter(n => n.agreementId === r.id).map(n => <p key={n.id} className="mt-2 break-words text-sm">Follow up {day(n.dueDate)}: {n.note}</p>)}
             <p className="my-3 text-sm">{r.status === 'DRAFT' ? 'Not started' : r.paymentStatus}{r.daysLate > 0 ? ` · ${r.daysLate} days late` : ''}</p>
             <div className="flex flex-wrap gap-3 text-sm">{issues.map(issue => {
-              const target = issue.startsWith('Mileage') ? 'mileage' : issue === 'Signed agreement missing' ? 'documents' : issue === 'Off the road' ? 'downtime' : issue === 'Start agreement' ? 'overview' : 'payments';
+              const target = issue === 'Follow-up due' ? 'overview' : issue.startsWith('Mileage') ? 'mileage' : issue === 'Signed agreement missing' ? 'documents' : issue === 'Off the road' ? 'downtime' : issue === 'Start agreement' ? 'overview' : 'payments';
               return <Link key={issue} className="underline" href={`/rent-to-own/agreements/${r.id}?tab=${target}`}>{issue}</Link>;
             })}</div>
             <details className="my-3 text-sm"><summary className="cursor-pointer">Balance details</summary><p className="mt-2">Deposit left {zar(r.depositLeft)}</p><ul className="mt-2 space-y-2">{r.dueItems.map((item, index) => <li key={index}>{item.label} · {day(item.date)} · {zar(item.amount)}</li>)}</ul></details>

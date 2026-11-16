@@ -1,3 +1,4 @@
+import { addFollowUp, closeFollowUp, getFollowUps } from '@/lib/db/rto-follow-ups';
 import { randomUUID } from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { prisma } from '@/lib/db/client';
@@ -52,5 +53,17 @@ describe('weekly rent and deposit receipts', () => {
     expect((await getRtoAgreement(a.id)).upfrontReceived).toBe('8000.00');
     expect((await getRtoAgreement(a.id)).depositRemaining).toBe('0.00');
     await expect(recordRtoPayment({agreementId:a.id,date:'2025-01-02',amount:'650',kind:'UPFRONT',reference:'EXTRA',method:'EFT',idempotencyKey:randomUUID()},'admin')).rejects.toThrow('Only R0.00');
+  });
+  it('keeps reminders separate from balances and makes retries safe', async () => {
+    const before = await getRtoAgreement(agreementId);
+    const input = {agreementId,note:'Will pay Friday',dueDate:'2026-11-20',idempotencyKey:randomUUID()};
+    const note = await addFollowUp(input,'admin');
+    expect((await addFollowUp(input,'admin')).id).toBe(note.id);
+    expect((await getFollowUps([agreementId])).filter(n => !n.done)).toHaveLength(1);
+    await expect(closeFollowUp({agreementId,noteId:'another-drivers-note'},'admin')).rejects.toThrow('Follow-up not found');
+    await closeFollowUp({agreementId,noteId:note.id},'admin');
+    await closeFollowUp({agreementId,noteId:note.id},'admin');
+    expect((await getFollowUps([agreementId]))[0]?.done).toBe(true);
+    expect((await getRtoAgreement(agreementId)).scheduledBalance).toBe(before.scheduledBalance);
   });
 });

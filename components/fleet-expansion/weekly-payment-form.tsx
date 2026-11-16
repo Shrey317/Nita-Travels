@@ -27,7 +27,7 @@ export function WeeklyPaymentForm({ agreementId, unpaid }: { agreementId: string
     <h2 className="text-lg font-semibold sm:col-span-2">Add payment</h2>
     <label className="grid gap-2 text-sm">Date paid<input required name="date" type="date" className="rounded-lg border bg-background p-3" /></label>
     <label className="grid gap-2 text-sm">Weeks paid<select value={weeks} onChange={e => {setWeeks(Number(e.target.value));setAmount(undefined);setToken(undefined);}} className="rounded-lg border bg-background p-3">{unpaid.slice(0,52).map((_,i) => <option key={i} value={i+1}>{i+1} {i ? 'weeks' : 'week'}</option>)}</select></label>
-    <p className="text-sm sm:col-span-2">Amount for selected weeks: <strong>R{expected}</strong>. Rent R{(rent/100).toFixed(2)} + deposit R{(deposit/100).toFixed(2)} = <strong>R{expected}</strong></p>
+    <p className="text-sm sm:col-span-2">Selected weeks: {selected.map(w => w.sequence).join(", ")}. Rent <strong>R{(rent/100).toFixed(2)}</strong> + deposit <strong>R{(deposit/100).toFixed(2)}</strong> = <strong>R{expected}</strong></p>
     <label className="grid gap-2 text-sm">Amount received (R)<input required name="amount" inputMode="decimal" value={amount ?? expected} onChange={e=>{setAmount(e.target.value);setToken(undefined);}} className="rounded-lg border bg-background p-3" /></label>
     <label className="grid gap-2 text-sm">Payment reference<input required name="reference" maxLength={100} className="rounded-lg border bg-background p-3" /></label>
     <label className="grid gap-2 text-sm">Paid by<select name="method" className="rounded-lg border bg-background p-3"><option>EFT</option><option>Cash</option><option>Card</option><option>Other</option></select></label>
