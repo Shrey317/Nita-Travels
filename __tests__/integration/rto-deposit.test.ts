@@ -1,3 +1,4 @@
+import { createDriverCharge } from '@/lib/db/rto-repairs';
 import { saveCarDetails } from '@/lib/db/car-details';
 import { addFollowUp, closeFollowUp, getFollowUps } from '@/lib/db/rto-follow-ups';
 import { randomUUID } from 'node:crypto';
@@ -75,4 +76,32 @@ describe('weekly rent and deposit receipts', () => {
     expect((await getRtoAgreement(agreementId)).scheduledBalance).toBe(before.scheduledBalance);
     await expect(saveCarDetails({vehicleId:'RT88',modelYear:2025,handlerName:'Manager A',fidelityMonthly:'-10'},'admin')).rejects.toThrow();
   });
+  it('restores rent and deposit after reversing an older multi-week receipt', async () => {
+    const before = await getRtoAgreement(agreementId);
+    const payment = await recordWeeklyPayment(receipt('5700',2),'admin');
+    await recordWeeklyPayment(receipt('2850'),'admin');
+    await reverseRtoPayment({paymentId:payment.id,reason:'Correcting bank reference'},'admin');
+    const after = await getRtoAgreement(agreementId);
+    expect(Number(after.scheduledBalance)).toBe(Number(before.scheduledBalance)-2850);
+    expect(after.depositRemaining).toBe(before.depositRemaining);
+    await expect(reverseRtoPayment({paymentId:payment.id,reason:'Again'},'admin')).rejects.toThrow('already reversed');
+  });
+  it('caps extra-charge receipts and restores the charge after undo', async () => {
+    await createDriverCharge({agreementId,date:'2025-04-01',kind:'APPROVED_ADJUSTMENT',amount:'100',description:'Approved test charge',reference:'EDGE-CHARGE'},'admin');
+    const input={agreementId,date:'2025-04-10',amount:'101',kind:'CHARGE',reference:'EDGE-RECEIPT',method:'EFT',idempotencyKey:randomUUID()};
+    await expect(recordRtoPayment(input,'admin')).rejects.toThrow('more than');
+    expect(await prisma.rtoPayment.count({where:{reference:'EDGE-RECEIPT'}})).toBe(0);
+    const paid=await recordRtoPayment({...input,amount:'100'},'admin');
+    expect((await getRtoAgreement(agreementId)).chargeBalance).toBe('0.00');
+    await reverseRtoPayment({paymentId:paid.id,reason:'Wrong payment'},'admin');
+    expect((await getRtoAgreement(agreementId)).chargeBalance).toBe('100.00');
+  });
+  it('corrects a deposit by undoing and replacing its receipt',async()=>{
+    const old=await prisma.rtoAgreement.findUniqueOrThrow({where:{number:'OLD-DEPOSIT'}});
+    const paid=await prisma.rtoPayment.findFirstOrThrow({where:{agreementId:old.id,kind:'UPFRONT'}});
+    await reverseRtoPayment({paymentId:paid.id,reason:'Deposit was only 650'},'admin');
+    await recordRtoPayment({agreementId:old.id,date:'2025-01-01',amount:'650',kind:'UPFRONT',reference:'CORRECTED-DEPOSIT',method:'EFT',idempotencyKey:randomUUID()},'admin');
+    expect((await getRtoAgreement(old.id)).depositRemaining).toBe('7350.00');
+  });
+
 });

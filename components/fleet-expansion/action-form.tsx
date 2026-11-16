@@ -18,7 +18,7 @@ export function ActionForm({ title, endpoint, fields, fixed = {}, description, i
       try {
         const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const result = await response.json(); if (!response.ok) throw new Error(result.error ?? 'Unable to save.');
-        setKey(null); setSuccess('Saved successfully.'); form.reset(); if (successHref) window.location.assign(successHref); else router.refresh();
+        setKey(null); setSuccess('Saved successfully.'); form.reset(); if (successHref) window.location.assign(successHref.replace('{id}', encodeURIComponent(String(result.result?.id ?? '')))); else router.refresh();
       } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save.'); } finally { setPending(false); }
     }}>
       {fields.map(field => <label key={field.name} className="grid gap-1 text-sm">{field.label}{field.optional ? ' (optional)' : ''}
@@ -29,11 +29,11 @@ export function ActionForm({ title, endpoint, fields, fixed = {}, description, i
       <div className="sm:col-span-2"><Button disabled={pending} type="submit">{pending ? 'Saving…' : title}</Button><p role="alert" className="mt-2 text-sm text-red-600">{error}</p><p role="status" className="text-sm text-teal">{success}</p></div>
     </form></details>;
 }
-export function DocumentForm({ scope, recordId }: { scope: 'BANK' | 'RTO'; recordId: string }) {
+export function DocumentForm({ scope, recordId, successHref }: { scope: 'BANK' | 'RTO'; recordId: string; successHref?: string }) {
   const router = useRouter(); const [message, setMessage] = useState(''); const [pending, setPending] = useState(false);
   return <form className="space-y-3 rounded-xl border border-border p-4" onSubmit={async event => {
     event.preventDefault(); const data = new FormData(event.currentTarget); data.set('scope', scope); data.set('recordId', recordId); setPending(true);
-    try { const response = await fetch('/api/private-documents', { method: 'POST', body: data }); const result = await response.json(); if (!response.ok) throw new Error(result.error); setMessage('Document attached.'); router.refresh(); } catch (error) { setMessage(error instanceof Error ? error.message : 'Upload failed.'); } finally { setPending(false); }
+    try { const response = await fetch('/api/private-documents', { method: 'POST', body: data }); const result = await response.json(); if (!response.ok) throw new Error(result.error); setMessage('Document attached.'); if (successHref) window.location.assign(successHref); else router.refresh(); } catch (error) { setMessage(error instanceof Error ? error.message : 'Upload failed.'); } finally { setPending(false); }
   }}><h3 className="font-semibold">Attach private document</h3><p className="text-sm text-muted">PDF, JPEG or PNG, up to 2 MB. Downloads require an authorised session.</p>
     {scope === 'RTO' && <label className="block text-sm">Document type<select name="kind" className="ml-2 rounded border bg-background p-2"><option value="SIGNED_CONTRACT">Signed contract</option><option value="RECEIPT">Receipt / invoice</option><option value="ODOMETER">Odometer photo</option><option value="SUPPORTING">Supporting document</option></select></label>}
     <label className="block text-sm">File<input name="file" type="file" accept=".pdf,.jpg,.jpeg,.png" required className="block max-w-full" /></label><Button disabled={pending}>{pending ? 'Uploading…' : 'Attach document'}</Button><p role="status">{message}</p>

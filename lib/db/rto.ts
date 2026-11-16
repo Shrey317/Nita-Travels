@@ -50,7 +50,9 @@ export async function changeAgreementStatus(input: unknown, actor: string) {
       await tx.rtoInstallment.createMany({ data: dueDates(agreement.startDate, agreement.weeks, []).map((date, i) => ({ agreementId: agreement.id, sequence: i + 1, originalDueDate: date, effectiveDueDate: date, amount: agreement.weeklyAmount })) });
     }
     if (data.status === 'COMPLETED') {
-      const receipts = await tx.rtoPayment.findMany({ where: { agreementId: agreement.id } });
+      const receipts = await tx.rtoPayment.findMany({ where: { agreementId: agreement.id }, include: { allocations: true } });
+      if (!await tx.rtoDocument.count({where:{agreementId:agreement.id,kind:'SIGNED_CONTRACT'}})) throw new ValidationError('Attach the signed agreement before completing.');
+      if (receipts.some(p => !p.reversedAt && ['RENT','WEEKLY','CHARGE'].includes(p.kind) && (p.kind === 'CHARGE' ? p.amount : rentPart(p)).minus(sumMoney(p.allocations.map(a=>a.amount))).gt(0))) throw new ValidationError('Review unused payment credit before completing this agreement.');
       if (depositRemaining(agreement.upfrontRequired, depositPaid(receipts)).gt(0)) throw new ValidationError('Pay the remaining deposit before completing this agreement.');
       const installments = await tx.rtoInstallment.findMany({ where: { agreementId: agreement.id }, include: { allocations: { include: { payment: true } } } });
       const charges = await tx.rtoCharge.findMany({ where: { agreementId: agreement.id }, include: { allocations: { include: { payment: true } } } });
@@ -102,6 +104,7 @@ export async function recordRtoPayment(input: unknown, actor: string) {
       return existing;
     }
     if (data.date > new Date()) throw new ValidationError('Actual payments cannot be future dated.');
+    if (data.kind !== 'UPFRONT' && data.date < agreement.startDate) throw new ValidationError('Payment date must be on or after the agreement start.');
     if (data.kind !== 'UPFRONT') operational(agreement.status);
     else if (!['DRAFT', 'ACTIVE', 'SUSPENDED', 'IN_DEFAULT'].includes(agreement.status)) throw new ValidationError('Agreement is resolved.');
     if (data.kind === 'UPFRONT') {
@@ -127,6 +130,7 @@ export async function recordRtoPayment(input: unknown, actor: string) {
         remaining = remaining.minus(allocated);
         if (remaining.lte(0)) break;
       }
+      if (remaining.gt(0)) throw new ValidationError('This payment is more than the unpaid extra charges. Check the amount before saving.');
     }
     await audit(tx, 'RTO', agreement.id, 'PAYMENT_RECORDED', actor, { paymentId: row.id, amount: data.amount, kind: data.kind, unallocated: remaining.toFixed(2) });
     return row;
@@ -280,6 +284,7 @@ export async function getRtoAgreement(id: string) {
     nextPayment: next ? money(next.balance).plus(next.depositBalance).toFixed(2) : '0.00', nextRent: next?.balance ?? '0.00', nextDeposit: next?.depositBalance ?? '0.00',
     downtimeDays: agreement.downtime.reduce((n, d) => n + (+(d.endsAt ?? new Date()) - +d.startsAt) / DAY, 0),
     chargeBalance: sumMoney(agreement.charges.map(c => installmentBalance(c.amount, c.allocations))).toFixed(2),
+    unallocatedCharges: sumMoney(agreement.payments.filter(p => !p.reversedAt && p.kind === 'CHARGE').map(p => p.amount.minus(sumMoney(p.allocations.map(a => a.amount))))).toFixed(2),
     unallocatedRent: sumMoney(agreement.payments.filter(p => !p.reversedAt && ['RENT','WEEKLY'].includes(p.kind)).map(p => rentPart(p).minus(sumMoney(p.allocations.map(a => a.amount))))).toFixed(2),
   };
 }

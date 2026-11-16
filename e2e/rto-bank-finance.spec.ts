@@ -70,6 +70,7 @@ test('business switcher separates navigation, registers and normal vehicle lists
   await page.getByRole('combobox', { name: /^Choose a car/ }).selectOption({ label: 'CR77 · BROWSER-RTO-77' });
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page).toHaveURL(/\/rent-to-own\/agreements\/[^?]+\?tab=repairs$/, { timeout: 30000 });
+  await page.locator('summary:visible').filter({hasText:/^Quotes and approvals$/}).click();
   await expect(page.locator('summary:visible').filter({ hasText: /^Add repair quote$/ })).toBeVisible();
   await expect(page.getByText('Record payment', { exact: true })).toHaveCount(0);
   await switcher.getByRole('link', { name: 'Normal Rental', exact: true }).click();
@@ -145,7 +146,7 @@ test('weekly payment form saves rent and a 650 deposit together without upfront 
     await sections.getByRole('link', { name: 'Payment history', exact: true }).click();
     await expect(page).toHaveURL(/tab=payments$/);
     await expect(page.getByRole('heading', { name: 'Payment history', exact: true })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'WEEKLY-92-RECEIPT', exact: true })).toBeVisible();
+    await expect(page.getByRole('article', { name: 'Payment WEEKLY-92-RECEIPT', exact: true })).toBeVisible();
     await sections.getByRole('link', { name: 'Add payment', exact: true }).click();
     await expect(page).toHaveURL(/tab=entries$/);
     await expect(form.getByRole('button', { name: 'Save payment', exact: true })).toBeVisible();
@@ -183,4 +184,51 @@ test('weekly payment form saves rent and a 650 deposit together without upfront 
   await expect(card).toContainText('Deposit left');
   await page.setViewportSize({width:390,height:844});
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+
+test('guided setup, repair balances and mobile receipt reversal',async({page})=>{
+  await login(page);
+  const post=async(path:string,data:unknown)=>{const r=await page.request.post(path,{data});expect(r.ok(),await r.text()).toBeTruthy();return (await r.json()).result;};
+  await post('/api/rent-to-own/vehicles',{id:'RT93',make:'Suzuki',model:'S-Presso',registration:'GUIDED-93',transmission:'Manual',purchaseDate:'2025-01-01',purchasePrice:'100000',mileageAtPurchaseKm:0,currentMileageKm:0});
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/rent-to-own/manage');
+  await page.getByRole('combobox',{name:'RTO car',exact:true}).filter({visible:true}).selectOption('RT93');
+  await page.getByRole('button',{name:'Continue to driver',exact:true}).click();
+  await page.locator('summary:visible').filter({hasText:/^Add driver$/}).click();
+  await page.getByLabel('Full name',{exact:true}).filter({visible:true}).fill('Guided test driver');
+  await page.getByLabel('Phone',{exact:true}).filter({visible:true}).fill('000');
+  await page.getByLabel('Driving licence reference',{exact:true}).filter({visible:true}).fill('TEST');
+  await page.getByRole('button',{name:'Add driver',exact:true}).click();
+  await page.getByLabel('Agreement number',{exact:true}).filter({visible:true}).fill('GUIDED-93');
+  await page.getByLabel('Start date',{exact:true}).filter({visible:true}).fill('2025-01-01');
+  await page.getByRole('button',{name:'Save agreement',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'4. Attach the signed agreement'})).toBeVisible();
+  await page.getByLabel('File',{exact:true}).filter({visible:true}).setInputFiles({name:'signed-test.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 test signed contract')});
+  await page.getByRole('button',{name:'Attach document',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'5. Review and start'})).toBeVisible();
+  await page.getByRole('button',{name:'Start agreement',exact:true}).click();
+  await expect(page.getByRole('navigation',{name:'Agreement sections'})).toBeVisible();
+  const a=await prisma.rtoAgreement.findUniqueOrThrow({where:{number:'GUIDED-93'}});
+  await post('/api/rent-to-own/manual-repair',{agreementId:a.id,date:'2025-02-01',kind:'Repair',description:'Guided repair bill',workshop:'Test workshop',invoiceAmount:'1000',recoveryAmount:'200'});
+  await page.goto(`/rent-to-own/agreements/${a.id}?tab=costs`);
+  const repair=page.getByRole('article').filter({hasText:'Guided repair bill'});
+  await expect(repair).toContainText('Driver still owes');
+  await expect(repair).toContainText('400');
+  await post('/api/rent-to-own/payments',{agreementId:a.id,date:'2025-02-02',kind:'CHARGE',amount:'400',reference:'GUIDED-COST-93',method:'EFT',idempotencyKey:crypto.randomUUID()});
+  await page.goto(`/rent-to-own/agreements/${a.id}?tab=payments`);
+  const receipt=page.getByRole('article',{name:'Payment GUIDED-COST-93',exact:true});
+  await expect(receipt.getByRole('link',{name:'View receipt'})).toBeVisible();
+  await receipt.locator('summary').click();
+  await receipt.getByLabel('Reason',{exact:true}).fill('Wrong bank receipt');
+  await receipt.getByRole('button',{name:'Undo payment',exact:true}).click();
+  await expect(receipt).toContainText('Wrong bank receipt');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  const charge=await prisma.rtoCharge.findFirstOrThrow({where:{agreementId:a.id}});
+  expect(charge.amount.toFixed(2)).toBe('400.00');
+  await page.goto(`/rent-to-own/agreements/${a.id}?tab=completion`);
+  await expect(page.getByRole('heading',{name:'Finish agreement',exact:true})).toBeVisible();
+  await expect(page.getByText('Needs attention: All scheduled rent paid',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Complete agreement',exact:true})).toHaveCount(0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
