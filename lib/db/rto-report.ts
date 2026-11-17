@@ -13,12 +13,13 @@ export function reportRange(params: Record<string, string | undefined>) {
 }
 export async function rtoReport(params: Record<string, string | undefined>) {
   const range = reportRange(params);
-  const agreements = await prisma.rtoAgreement.findMany({ where: { ...(params.status ? { status: z.enum(['DRAFT','ACTIVE','SUSPENDED','IN_DEFAULT','COMPLETED','TERMINATED','CANCELLED']).parse(params.status) } : {}), ...(params.q ? { OR: [{ number: { contains: params.q, mode: 'insensitive' } }, { vehicleId: { contains: params.q, mode: 'insensitive' } }, { driver: { name: { contains: params.q, mode: 'insensitive' } } }, { vehicle: { handlerName: { contains: params.q, mode: 'insensitive' } } }] } : {}) }, orderBy: { number: params.sort === 'desc' ? 'desc' : 'asc' }, include: {
+  const agreements = await prisma.rtoAgreement.findMany({ where: { ...(params.status ? { status: z.enum(['DRAFT','ACTIVE','SUSPENDED','IN_DEFAULT','COMPLETED','TERMINATED','CANCELLED']).parse(params.status) } : {}), ...(params.q ? { OR: [{ payments: { some: { reference: { contains: params.q, mode: 'insensitive' } } } }, { vehicle: { registration: { contains: params.q, mode: 'insensitive' } } }, { number: { contains: params.q, mode: 'insensitive' } }, { vehicleId: { contains: params.q, mode: 'insensitive' } }, { driver: { name: { contains: params.q, mode: 'insensitive' } } }, { vehicle: { handlerName: { contains: params.q, mode: 'insensitive' } } }] } : {}) }, orderBy: { number: params.sort === 'desc' ? 'desc' : 'asc' }, include: {
     documents: { select: { kind: true } }, mileage: { orderBy: { date: 'desc' }, select: { date: true, reviewRequired: true, distanceKm: true } },
     vehicle: { select: { registration: true, modelYear: true, handlerName: true } }, driver: { select: { name: true } }, downtime: true,
     installments: { include: { allocations: { include: { payment: true } } }, orderBy: { sequence: 'asc' } },
     payments: { where: { date: { lt: range.until }, OR: [{ reversedAt: null }, { reversedAt: { gte: range.until } }] } },
     charges: { where: { date: { lt: range.until } }, include: { allocations: { include: { payment: true } } } },
+    services: { where: { status: 'COMPLETED', date: { gte: range.from, lt: range.until } } },
     repairs: { where: { date: { gte: range.from, lt: range.until } } },
   } });
   const monthly = new Map<string, { label: string; expected: number; collected: number }>();
@@ -66,7 +67,7 @@ export async function rtoReport(params: Record<string, string | undefined>) {
     const periodPayments = a.payments.filter(p => p.date >= range.from);
     periodPayments.forEach(p => { bucket(p.date).collected += rentPart(p).toNumber(); weekBucket(p.date).collected += rentPart(p).toNumber(); });
     const completed = a.activatedAt ? dates.filter(d => d < range.until).length : 0;
-    return { ...a, dueItems, daysLate, paymentStatus, depositLeft, amountDue: sumMoney(dueBalances).toFixed(2), payments: periodPayments, completed, remaining: a.weeks - completed, progress: Math.floor(completed / a.weeks * 100), outstanding, outstandingAmount, expectedAmount, unavailable: a.downtime.some(d => d.startsAt < range.until && (!d.endsAt || d.endsAt >= range.until)) };
+    return { ...a, lastPayment: [...a.payments].sort((x,y)=>+y.date-+x.date)[0] ?? null, dueItems, daysLate, paymentStatus, depositLeft, amountDue: sumMoney(dueBalances).toFixed(2), payments: periodPayments, completed, remaining: a.weeks - completed, progress: Math.floor(completed / a.weeks * 100), outstanding, outstandingAmount, expectedAmount, unavailable: a.downtime.some(d => d.startsAt < range.until && (!d.endsAt || d.endsAt >= range.until)) };
   });
   return { range, rows, chart: [...monthly.values()].sort((a, b) => a.label.localeCompare(b.label)), overdue,
     weeklyChart: [...weekly.values()].sort((a, b) => a.label.localeCompare(b.label)),

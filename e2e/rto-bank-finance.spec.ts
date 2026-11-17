@@ -210,6 +210,11 @@ test('guided setup, repair balances and mobile receipt reversal',async({page})=>
   await page.getByRole('button',{name:'Start agreement',exact:true}).click();
   await expect(page.getByRole('navigation',{name:'Agreement sections'})).toBeVisible();
   const a=await prisma.rtoAgreement.findUniqueOrThrow({where:{number:'GUIDED-93'}});
+  for(const section of ['vehicles','agreements','payments','mileage','repairs','documents','reports','alerts','manage']) {
+    await page.goto(`/rent-to-own/${section}`);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),section).toBe(true);
+  }
+
   await post('/api/rent-to-own/manual-repair',{agreementId:a.id,date:'2025-02-01',kind:'Repair',description:'Guided repair bill',workshop:'Test workshop',invoiceAmount:'1000',recoveryAmount:'200'});
   await page.goto(`/rent-to-own/agreements/${a.id}?tab=costs`);
   const repair=page.getByRole('article').filter({hasText:'Guided repair bill'});
@@ -220,6 +225,7 @@ test('guided setup, repair balances and mobile receipt reversal',async({page})=>
   const receipt=page.getByRole('article',{name:'Payment GUIDED-COST-93',exact:true});
   await expect(receipt.getByRole('link',{name:'View receipt'})).toBeVisible();
   await receipt.locator('summary').click();
+  await expect(receipt).toContainText('extra charges increase by');
   await receipt.getByLabel('Reason',{exact:true}).fill('Wrong bank receipt');
   await receipt.getByRole('button',{name:'Undo payment',exact:true}).click();
   await expect(receipt).toContainText('Wrong bank receipt');
@@ -228,7 +234,7 @@ test('guided setup, repair balances and mobile receipt reversal',async({page})=>
   expect(charge.amount.toFixed(2)).toBe('400.00');
   await page.goto(`/rent-to-own/agreements/${a.id}?tab=completion`);
   await expect(page.getByRole('heading',{name:'Finish agreement',exact:true})).toBeVisible();
-  await expect(page.getByText('Needs attention: All scheduled rent paid',{exact:true})).toBeVisible();
+  await expect(page.getByText('Needs attention: All scheduled rent paid',{exact:true}).filter({visible:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Complete agreement',exact:true})).toHaveCount(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

@@ -1,3 +1,4 @@
+import { RtoTimeline } from '@/components/fleet-expansion/rto-timeline';
 import { RtoCompletion } from '@/components/fleet-expansion/rto-completion';
 import { RtoCosts } from '@/components/fleet-expansion/rto-costs';
 import { RtoPaymentHistory } from '@/components/fleet-expansion/rto-payment-history';
@@ -114,6 +115,7 @@ export default async function AgreementPage({ params, searchParams }: { params: 
     {(tab === 'costs' || tab === 'entries') && <><h2 className="mt-8 text-xl font-semibold">Recorded services</h2><DataTable headers={['Date', 'Workshop', 'Status', 'Actual / target km', 'Next interval', 'Company cost']} rows={a.services.map(s => [day(s.date), s.workshop, s.status, s.status === 'PLANNED' ? s.targetMileageKm : s.odometerKm, s.status === 'COMPLETED' ? s.odometerKm + s.intervalKm : 'After completion', s.status === 'COMPLETED' ? zar(s.cost) : 'Not yet incurred'])} /></>}
     {tab === 'downtime' && <><h2 className="mt-8 text-xl font-semibold">Downtime</h2><DataTable headers={['Start', 'End', 'Reason', 'Replacement', 'Approved by']} rows={a.downtime.map(d => [d.startsAt.toISOString(), d.endsAt?.toISOString() ?? 'Currently unavailable', d.reason, d.replacementVehicleId ?? 'None', d.approvedBy])} /></>}
     {tab === 'settlements' && <><h2 className="mt-8 text-xl font-semibold">Early payoff requests</h2><DataTable headers={['Date', 'Estimated amount', 'Approved amount', 'Status', 'Legal basis']} rows={a.settlements.map(s => [day(s.createdAt), zar(s.indicativeAmount), s.approvedAmount ? zar(s.approvedAmount) : 'Pending review', s.status, s.legalBasis])} /></>}
+    {tab === 'overview' && <RtoTimeline agreement={a} />}
     {tab === 'overview' && <><details className="my-6"><summary className="cursor-pointer text-xl font-semibold">Who changed what</summary><DataTable headers={['When', 'Action', 'Actor', 'Details']} rows={a.auditHistory.map(e => [e.createdAt.toISOString(), e.action, e.actor, JSON.stringify(e.detail)])} /></details></>}
   </>;
 }

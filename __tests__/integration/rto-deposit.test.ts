@@ -104,4 +104,11 @@ describe('weekly rent and deposit receipts', () => {
     expect((await getRtoAgreement(old.id)).depositRemaining).toBe('7350.00');
   });
 
+  it('finds a receipt and keeps the latest payment visible outside the report period',async()=>{
+    const report=await rtoReport({q:'CORRECTED-DEPOSIT',from:'2026-11-01',to:'2026-11-17'});
+    expect(report.rows).toHaveLength(1);
+    expect(report.rows[0]?.lastPayment?.reference).toBe('CORRECTED-DEPOSIT');
+    expect(report.rows[0]?.payments).toHaveLength(0);
+  });
+
 });
