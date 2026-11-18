@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const file = form.get('file');
     const scope = String(form.get('scope')); const recordId = String(form.get('recordId'));
     const kind = String(form.get('kind') || 'SUPPORTING');
-    if (!['RTO', 'BANK'].includes(scope) || !recordId || !['SIGNED_CONTRACT', 'SUPPORTING', 'RECEIPT', 'ODOMETER'].includes(kind)) throw new ValidationError('Choose a valid document category.');
+    if (!['RTO', 'BANK'].includes(scope) || !recordId || !['SIGNED_CONTRACT', 'DRIVERS_LICENCE', 'DRIVERS_PERMIT', 'SUPPORTING', 'RECEIPT', 'ODOMETER'].includes(kind)) throw new ValidationError('Choose a valid document category.');
     if (!(file instanceof File) || file.size < 1 || file.size > 2 * 1024 * 1024) throw new ValidationError('Choose a PDF, JPEG or PNG no larger than 2 MB.');
     const content = Buffer.from(await file.arrayBuffer());
     const mimeType = content.subarray(0, 5).toString() === '%PDF-' ? 'application/pdf' : content[0] === 0xff && content[1] === 0xd8 && content[2] === 0xff ? 'image/jpeg' : content.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) ? 'image/png' : null;

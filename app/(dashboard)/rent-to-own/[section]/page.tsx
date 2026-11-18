@@ -16,8 +16,8 @@ export const dynamic = 'force-dynamic';
 const sections: Record<string, [string, string]> = {
   vehicles: ['Vehicles', 'Your Rent-to-Own cars.'],
   agreements: ['Drivers', 'Drivers and their car agreements.'],
-  payments: ['Payments', 'Choose a car to add a payment. Save only money you have received.'],
-  mileage: ['Mileage', 'Weekly warnings and calendar-month mileage. No automatic charges.'],
+  payments: ['Payments', 'Choose a car to add a payment.'],
+  mileage: ['Mileage', 'Weekly warnings and calendar-month mileage.'],
   repairs: ['Repairs', 'Repair costs and who pays.'],
   service: ['Scheduled Servicing', 'Plan maintenance, complete services and track company-paid costs.'],
   downtime: ['Time off road', 'Track when a car cannot be used.'],
@@ -50,7 +50,7 @@ export default async function RtoSection({ params, searchParams }: { params: Pro
     headers = ['Car / agreement', 'Driver', 'Contact', 'Status', 'Start', 'Weekly rent'];
     rows = agreements.map(a => [agreementLink(a), a.driver.name, a.driver.phone, a.status, day(a.startDate), zar(a.weeklyAmount)]);
   } else if (section === 'payments') {
-    const payments = await prisma.rtoPayment.findMany({ where: q ? { OR: [{reference:{contains:q,mode:'insensitive'}},{agreement:{OR:filter.OR?.filter(item=>!('payments' in item))}}] } : {}, include: { agreement: true }, orderBy: { date: 'desc' }, ...pagination });
+    const payments = await prisma.rtoPayment.findMany({ where: q ? { OR: [{ reference: { contains: q, mode: 'insensitive' } }, { agreement: { OR: filter.OR?.filter(item => !('payments' in item)) } }] } : {}, include: { agreement: true }, orderBy: { date: 'desc' }, ...pagination });
     headers = ['Car / agreement', 'Date', 'Reference', 'For', 'Total', 'Rent', 'Deposit', 'Status'];
     rows = payments.map(p => [agreementLink(p.agreement), day(p.date), p.reference, p.kind === 'WEEKLY' ? 'Weekly payment' : p.kind === 'UPFRONT' ? 'Deposit' : p.kind === 'RENT' ? 'Rent' : 'Other', zar(p.amount), zar(rentPart(p)), zar(depositPart(p)), p.reversedAt ? 'Reversed' : 'Recorded']);
   } else if (section === 'mileage') {
@@ -83,19 +83,21 @@ export default async function RtoSection({ params, searchParams }: { params: Pro
     rows = alerts.slice(pagination.skip, pagination.skip + 31).map(n => [n.priority, n.vehicleId, <Link prefetch={false} key={n.id} href={n.href} className="underline">{n.title}</Link>, n.description]);
   }
   const choices = ['payments', 'mileage', 'repairs', 'service', 'downtime', 'documents', 'settlements'].includes(section) ? await prisma.rtoAgreement.findMany({ where: filter, select: { id: true, number: true, vehicleId: true }, orderBy: { number: 'asc' }, take: 30 }) : [];
+  const addAction: Record<string, string> = { payments: 'Add payment', mileage: 'Add mileage', repairs: 'Add repair', service: 'Add service cost', downtime: 'Add time off road', documents: 'Add document', settlements: 'Review early payoff' };
   const pageHref = (value: number) => `/rent-to-own/${section}?${new URLSearchParams({ q, page: String(value) })}`;
   return <>
-    {section === 'mileage' && <div className="grid gap-3 lg:grid-cols-2">{[...new Set(choices.map(a=>a.vehicleId))].map(id=><div key={id} className="min-w-0"><h2 className="font-semibold">{id}</h2><MonthlyMileage vehicleId={id} rto /></div>)}</div>}
+    {section === 'mileage' && <div className="grid gap-3 lg:grid-cols-2">{[...new Set(choices.map(a => a.vehicleId))].map(id => <div key={id} className="min-w-0"><h2 className="font-semibold">{id}</h2><MonthlyMileage vehicleId={id} rto /></div>)}</div>}
     <ModuleHeader title={`Rent-to-Own · ${config[0]}`} description={config[1]} />
     {section === 'vehicles' && session.staffRole === 'ADMIN' && <form action="/rent-to-own/vehicles/new" method="get"><button className="mb-5 inline-block rounded-lg bg-primary px-5 py-3 font-semibold text-white">Add vehicle</button></form>}
     {section === 'reports' ? <div className="space-y-4">
       <form className="flex flex-wrap items-end gap-3"><label>From<input required type="date" name="from" defaultValue={historicalReport ? day(historicalReport.range.from) : ''} className="block rounded border bg-background p-2" /></label><label>To<input required type="date" name="to" defaultValue={historicalReport ? day(historicalReport.range.to) : ''} className="block rounded border bg-background p-2" /></label><button className="rounded bg-primary px-4 py-2 text-white">View report</button></form>
-      {historicalReport && <><p>Rent collected {zar(historicalReport.collected)} · Total due at period end {zar(historicalReport.totalOutstanding)}</p><CollectionsChart title="Weekly rent expected and collected" data={historicalReport.weeklyChart} /><h2 className="text-xl font-semibold">Car performance</h2><p className="text-sm">Recorded rent less company repair shares and completed services in this period. Deposits are shown separately. This excludes finance, Fidelity and manager costs unless recorded elsewhere; it is not net profit.</p><DataTable headers={['Car','Rent received','Due at period end','Deposit left','Company repairs','Services','After these costs']} rows={historicalReport.rows.map(r=>{const rent=sumMoney(r.payments.map(rentPart));const repairs=sumMoney(r.repairs.map(x=>x.companyAmount));const services=sumMoney(r.services.map(x=>x.cost));return [r.vehicleId,zar(rent),zar(r.amountDue),zar(r.depositLeft),zar(repairs),zar(services),zar(rent.minus(repairs).minus(services))];})} /></>}
-      <div className="flex flex-wrap gap-4">{['agreements','payments','mileage','repairs'].map(type => <a key={type} className="capitalize underline" href={`/api/rent-to-own/export?${exportRange}&type=${type}`}>{type} CSV</a>)}</div>
+      {historicalReport && <><p>Rent collected {zar(historicalReport.collected)} · Total due at period end {zar(historicalReport.totalOutstanding)}</p><CollectionsChart title="Weekly rent expected and collected" data={historicalReport.weeklyChart} /><h2 className="text-xl font-semibold">Car performance</h2><p className="text-sm">Recorded rent less company repair shares and completed services in this period. Deposits are shown separately. This excludes finance, Fidelity and manager costs unless recorded elsewhere; it is not net profit.</p><DataTable headers={['Car', 'Rent received', 'Due at period end', 'Deposit left', 'Company repairs', 'Services', 'After these costs']} rows={historicalReport.rows.map(r => { const rent = sumMoney(r.payments.map(rentPart)); const repairs = sumMoney(r.repairs.map(x => x.companyAmount)); const services = sumMoney(r.services.map(x => x.cost)); return [r.vehicleId, zar(rent), zar(r.amountDue), zar(r.depositLeft), zar(repairs), zar(services), zar(rent.minus(repairs).minus(services))]; })} /></>}
+      <div className="flex flex-wrap gap-4">{['agreements', 'payments', 'mileage', 'repairs'].map(type => <a key={type} className="capitalize underline" href={`/api/rent-to-own/export?${exportRange}&type=${type}`}>{type} CSV</a>)}</div>
     </div> : <>
       <form className="mb-5 flex flex-wrap gap-3"><input aria-label="Find a car or driver" name="q" defaultValue={q} placeholder="Car, driver, agreement or receipt" className="min-w-0 flex-1 rounded-lg border border-border bg-background p-3" /><button className="rounded-lg bg-primary px-4 py-2 text-white">Search</button></form>
       {session.staffRole === 'ADMIN' && ['vehicles', 'agreements'].includes(section) && <Link prefetch={false} className="underline" href="/rent-to-own/manage">Create agreement or transfer a vehicle into Rent-to-Own</Link>}
-      {choices.length > 0 && <AgreementPicker agreements={choices} tab={tab} canEdit={session.staffRole === 'ADMIN'} />}
+      {section === 'payments' && <section className="mb-5 rounded-xl border border-border bg-card p-4"><h2 className="font-semibold">Deposit payments</h2><p className="mt-2 text-sm">Choose the car below. You can record the full R8,000 deposit upfront, or record the R650 deposit contribution together with each weekly rent payment until the deposit is paid.</p></section>}
+      {choices.length > 0 && <AgreementPicker agreements={choices} tab={tab} canEdit={session.staffRole === 'ADMIN'} actionLabel={addAction[section]} />}
       <DataTable headers={headers} rows={rows.slice(0, 30)} empty="No records yet. Choose a car above to start." />
       <nav aria-label="Register pages" className="flex gap-4 text-sm">{page > 1 && <Link prefetch={false} href={pageHref(page - 1)}>Previous</Link>}<span>Page {page}</span>{rows.length > 30 && <Link prefetch={false} href={pageHref(page + 1)}>Next</Link>}</nav>
     </>}
